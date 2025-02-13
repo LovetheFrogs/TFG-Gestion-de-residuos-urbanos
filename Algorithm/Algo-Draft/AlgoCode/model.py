@@ -13,15 +13,10 @@
 
     Make edge distances follow this function to penalize/reward?
 """
-# TO-DO: Change types (type safety) for constructors.
-# TO-DO: Add file creation to create_models & refactor it & document it. COMPLETED (run tests). Update `model.md`
-# TO-DO: Add check & Exception (& test) for already existing edge. COMPLETED (run tests). Update `model.md`
-# TO-DO: Allow to store index of center node (weight 0 for it? visited = None? def center(nodeId) to make a node the center??) in graph AND add visited status to node (T | F). COMPLETED (run tests) Update `model.md`
 # TO-DO: Allow to store distance of each node to centroid (for k-clusters algorithm).
 # TO-DO: Add non-heuristic search functions (to check if our solution is faster/cheaper). added bfs, left to test. add dijkstra and test both
 # TO-DO: Implement first iteration of the algorithm.
 # TO-DO: Create benchmark for time to execute & value of different aproaches.
-# TO-DO: Add reference to unittest documentation -> "https://docs.python.org/3/library/unittest.html"
 # TO-DO: Add reference to LSST documentation guidelines. -> "https://developer.lsst.io/v/DM-5063/docs/py_docs.html#"
 # TO-DO: Create file from database module.
 # NOTE: Having a node as visited or not allows for trucks to update the status of various nodes to false to request a new execution of the algorithm, changing the truck that had to visit them.
