@@ -86,6 +86,7 @@ class Graph():
         self.edge_list = []
         self.nodes = 0
         self.edges = 0
+        self.center = None
         
     def get_node(self, idx):
         """ Returns the node of the graph with the specified id.
