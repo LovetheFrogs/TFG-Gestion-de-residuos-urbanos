@@ -266,6 +266,9 @@ class Graph():
         total_capacity = truck_capacity * truck_count
         return total_waste < total_capacity
 
+    def set_num_zones(self, truck_capacity):
+        return math.ceil(self.total_weight / truck_capacity)
+
     def divide_graph(self, n_zones):
         return 0
 
@@ -307,10 +310,12 @@ class Node():
         self.coordinates = (float(x), float(y))
 
     def get_distance(self, b):
-        return math.sqrt(pow(self.coordinates[0] - b.coordinates[0], 2) + pow(self.coordinates[1] - b.coordinates[1], 2))
+        """ Manhattan distance, closer to real world info than euclidean distance"""
+        # return math.sqrt(pow(self.coordinates[0] - b.coordinates[0], 2) + pow(self.coordinates[1] - b.coordinates[1], 2))
+        return (abs(self.coordinates[0] - b.coordinates[0]) + abs(self.coordinates[1] - b.coordinates[1]))
         
     def __repr__(self):
-        return f"[ id = {self.index} | weight = {self.weight} ]"
+        return f"[ id = {self.index} | weight = {self.weight} | coordinates = {self.coordinates} ]"
         
         
 class Edge():
@@ -351,7 +356,7 @@ class Edge():
         self.speed = float(speed)
         self.origin = origin
         self.dest = dest
-        self.time = (float(length)/1000)/self.speed
+        self.time = (float(self.length)/1000)/self.speed
         self.value = self.length + self.time
         
     def __repr__(self):
