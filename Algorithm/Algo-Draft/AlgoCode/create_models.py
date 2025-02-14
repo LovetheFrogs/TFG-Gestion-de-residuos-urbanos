@@ -5,10 +5,11 @@ import sys
 import random
 
 CWD = os.getcwd()
-DATA_SIZE = 20                      # Number of training files created.
-MIN_NODES, MAX_NODES = 500, 1500    # Minimum and Maximum number of nodes.
+DATA_SIZE = 2                      # Number of training files created.
+MIN_NODES, MAX_NODES = 500, 500    # Minimum and Maximum number of nodes.
 MIN_WEIGHT, MAX_WEIGHT = 100, 1500  # Minimum and Maximum weight of the nodes.
-MIN_DIST, MAX_DIST = 0.100, 5.500   # Minimum and Maximum distance between two nodes.
+MIN_X, MAX_X = -100, 100
+MIN_Y, MAX_Y = -100, 100           # Minimum and Maximum distance between two nodes.
 MIN_SPEED, MAX_SPEED = 20, 60       # Minimum and Maximum speed between two nodes.
 NEW_LINE = "\n"
 
@@ -78,7 +79,7 @@ def generate_nodes():
     num_nodes = random.randint(MIN_NODES, MAX_NODES)
     nodes = set(range(num_nodes))
     node_data = NEW_LINE.join(
-        f"{node} {random.uniform(MIN_WEIGHT, MAX_WEIGHT):.2f}" for node in nodes
+        f"{node} {random.uniform(MIN_WEIGHT, MAX_WEIGHT):.2f} {random.randint(MIN_X, MAX_X)} {random.randint(MIN_Y, MAX_Y)}" for node in nodes
     )
     weight = sum(float(line.split()[1]) for line in node_data.split("\n")[0:])
     nodes_data = f"{num_nodes}{NEW_LINE}{node_data}{NEW_LINE}"
@@ -116,7 +117,7 @@ def generate_edges(nodes):
             dest = random.choice(nodes_list)
         edge = (node, dest)
         edge_data.append(
-            f"{random.uniform(MIN_DIST, MAX_DIST):.3f} {random.uniform(MIN_SPEED, MAX_SPEED):.1f} {node} {dest}"
+            f"{random.uniform(MIN_SPEED, MAX_SPEED):.1f} {node} {dest}"
         )
 
     extra_edges = int(
@@ -133,7 +134,7 @@ def generate_edges(nodes):
             edge = (origin, dest)
         edges.add(edge)
         edge_data.append(
-            f"{random.uniform(MIN_DIST, MAX_DIST):.3f} {random.uniform(MIN_SPEED, MAX_SPEED):.1f} {origin} {dest}"
+            f"{random.uniform(MIN_SPEED, MAX_SPEED):.1f} {origin} {dest}"
         )
 
     edge_data = f"{len(edges)}{NEW_LINE}" + NEW_LINE.join(edge_data) + NEW_LINE

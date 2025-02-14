@@ -25,6 +25,9 @@
 
 import os
 from collections import deque
+from sklearn.cluster import KMeans
+import numpy as np
+import math
 from exceptions import NodeNotFound, DuplicateNode, DuplicateEdge
 
 class Graph():
@@ -205,12 +208,12 @@ class Graph():
             n = int(f.readline().strip())
             for _ in range(n):
                 aux = f.readline().strip().split()
-                self.add_node(Node(aux[0], aux[1]))
+                self.add_node(Node(aux[0], aux[1], aux[2], aux[3]))
             
             m = int(f.readline().strip())
             for _ in range(m):
                 aux = f.readline().strip().split()
-                self.add_edge(Edge(aux[0], aux[1], self.get_node(int(aux[2])), self.get_node(int(aux[3]))))
+                self.add_edge(Edge(aux[0], self.get_node(int(aux[2])), self.get_node(int(aux[3]))))
 
     def bfs(source):
         """ Performs Breadth First Search on the graph.
@@ -252,6 +255,19 @@ class Graph():
 
         return path, res
 
+    def set_center(self, node):
+        self.center = node
+
+    def total_weight(self):
+        return sum(node.weight for node in self.node_list)
+
+    def can_pickup_all(self, truck_capacity, truck_count):
+        total_waste = self.total_weight()
+        total_capacity = truck_capacity * truck_count
+        return total_waste < total_capacity
+
+    def divide_graph(self, n_zones):
+        return 0
 
     def __repr__(self):
         new_line = "\n"
@@ -283,11 +299,15 @@ class Node():
     --------
     graph.Graph()
     """
-    def __init__(self, index, weight, center = False):
+    def __init__(self, index, x, y, weight, center = False):
         self.index = int(index)
         self.weight = float(weight) if not bool(center) else 0
         self.center = bool(center)
         self.visited = False
+        self.coordinates = (float(x), float(y))
+
+    def get_distance(self, b):
+        return math.sqrt(pow(self.coordinates[0] - b.coordinates[0], 2) + pow(self.coordinates[1] - b.coordinates[1], 2))
         
     def __repr__(self):
         return f"[ id = {self.index} | weight = {self.weight} ]"
@@ -326,8 +346,8 @@ class Edge():
     graph.Node()
     graph.Graph()
     """
-    def __init__(self, length, speed, origin, dest):
-        self.length = float(length)
+    def __init__(self, speed, origin, dest):
+        self.length = origin.get_distance(dest)
         self.speed = float(speed)
         self.origin = origin
         self.dest = dest
@@ -336,8 +356,3 @@ class Edge():
         
     def __repr__(self):
         return f"[ length = {self.length} | speed = {self.speed} | {self.origin.index} -> {self.dest.index} ]"
-
-if __name__ == "__main__":
-    g = Graph()
-    g.populate_from_file(os.getcwd() + "/files/test.txt")
-    g.get_node(1)
