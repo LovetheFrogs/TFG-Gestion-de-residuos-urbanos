@@ -26,7 +26,7 @@
 
 import os
 from collections import deque
-from sklearn.cluster import KMeans
+# from sklearn.cluster import KMeans
 import numpy as np
 import math
 from exceptions import NodeNotFound, DuplicateNode, DuplicateEdge
@@ -109,8 +109,7 @@ class Graph():
             if node.index == idx: return node
         
         raise NodeNotFound(idx)
-        
-    
+          
     def add_node(self, node):
         """ Adds a node to the graph. 
         
@@ -214,7 +213,7 @@ class Graph():
             m = int(f.readline().strip())
             for _ in range(m):
                 aux = f.readline().strip().split()
-                self.add_edge(Edge(aux[0], self.get_node(int(aux[2])), self.get_node(int(aux[3]))))
+                self.add_edge(Edge(aux[0], self.get_node(int(aux[1])), self.get_node(int(aux[2]))))
 
     def bfs(source):
         """ Performs Breadth First Search on the graph.
@@ -258,6 +257,8 @@ class Graph():
 
     def set_center(self, node):
         self.center = node
+        self.center.weight = 0
+        self.node_list.remove(node)
 
     def total_weight(self):
         return sum(node.weight for node in self.node_list)
@@ -268,62 +269,73 @@ class Graph():
         return total_waste < total_capacity
 
     def set_num_zones(self, truck_capacity):
-        return math.ceil(self.total_weight / truck_capacity)
+        return math.ceil(self.total_weight() / truck_capacity)
 
-    def linear_partition(self, k):
-        n = len(self.node_list)
-        if n == 0 or k == 0: return []
-        if k >= n: return list(range(1, n + 1))
+    def __create_zones__(self, angled_nodes, truck_capacity):
+        zones = []
+        current_weight = 0
+        current_zone = []
 
-        prefix = [0] * (n + 1)
-        for i in range(n): prefix[i + 1] = prefix[i] + self.node_list[i].weight
 
-        dp = [[float('inf')] * (k + 1) for _ in range(n + 1)]
-        for i in range(n + 1): dp[i][1] = prefix[i]
+        for node in angled_nodes:
+            if current_weight + node.weight > truck_capacity:
+                zones.append([self.center] + current_zone)
+                current_zone = [node]
+                current_weight = node.weight
+            else:
+                current_zone.append(node)
+                current_weight += node.weight
 
-        for j in range(2, k + 1):
-            for i in range(j, n + 1):
-                for x in range(j - 1, i):
-                    current_max = max(dp[x][j - 1], prefix[i] - prefix[x])
-                    if current_max < dp[i][j]: dp[i][j] = current_max
+        if current_zone: zones.append([self.center] + current_zone)
 
-        partitions = []
-        current = n
-        for j in range(k, 1, -1):
-            best_x = current - 1
-            for x in range(j - 1, current):
-                if max(dp[x][j - 1], prefix[current] - prefix[x]) == dp[current][j]:
-                    best_x = xbreak
-            partitions.append(best_x)
-            current = best_x
-        partitions.sort()
-        return partitions
+        return zones
 
-    def partition_in_zones(self, max_w, truck_capacity):
+    def __postprocess_zones__(self, zones, truck_capacity):
+        improved = True
+        while improved:
+            improved = False
+            i = 0
+            while i < len(zones) - 1:
+                current_zone = zones[i][1:]
+                next_zone = zones[i+1][1:]
+                
+                if not current_zone:
+                    i += 1
+                    continue
+                
+                last_node = current_zone[-1]
+                current_weight = sum(n.weight for n in current_zone[:-1])
+                new_next_weight = sum(n.weight for n in next_zone) + last_node.weight
+                
+                if new_next_weight < truck_capacity:
+                    zones[i] = [self.center] + current_zone[:-1]
+                    zones[i+1] = [self.center] + next_zone + [last_node]
+                    if not zones[i][1:]:
+                        zones.pop(i)
+                        improved = True
+                        break
+                    improved = True
+                i += 1
+
+    def divide_graph(self, truck_capacity, post = False):
         if self.center is None: raise NotImplementedError # Create Exception for when node is not defined
         if not self.node_list: raise NotImplementedError # Create Exception for when there are no nodes added
-        for node in self.node_list: node.angle = math.atan2(node.coordinates[0], node.coordinates[1])
+        for node in self.node_list: node.angle = math.atan2((node.coordinates[1] - self.center.coordinates[1]), (node.coordinates[0] - self.center.coordinates[0]))
         angled_nodes = sorted(self.node_list, key=lambda n: n.angle)
-        total_weight = self.total_weight()
-        if total_weight == 0: return self.center
+        zones = self.__create_zones__(angled_nodes, truck_capacity)
+        if post: self.__postprocess_zones__(zones, truck_capacity)
+            
+        return zones
 
-        k = set_num_zones(truck_capacity)
-        if k <= 0: k = 1
-
-        if k > self.node_count - 1: k = self.node_count
-        partitions = linear_partition(k) if k < 1 else []
-
-        zones = []
-        prev = 0
-        for p in partitions:
-            zone = [self.center] + angled_nodes[prev:p]
-            zones.append(zone)
-            prev = p
-        zones.append([self.center] + angled_nodes[prev:])
-        return zones[:k]
-
-    def divide_graph(self, n_zones):
-        return 0
+    def create_subgraph(self, nodes):
+        g = Graph()
+        for node in nodes: g.add_node(node)
+        for node in g.node_list:
+            edges = self.graph[node]
+            for edge in edges:
+                if edge.dest in g.node_list: g.add_edge(edge)
+        
+        return g
 
     def __repr__(self):
         new_line = "\n"
@@ -355,7 +367,7 @@ class Node():
     --------
     graph.Graph()
     """
-    def __init__(self, index, x, y, weight, center = False):
+    def __init__(self, index, weight, x, y, center = False):
         self.index = int(index)
         self.weight = float(weight) if not bool(center) else 0
         self.center = bool(center)
@@ -415,3 +427,13 @@ class Edge():
         
     def __repr__(self):
         return f"[ length = {self.length} | speed = {self.speed} | {self.origin.index} -> {self.dest.index} ]"
+
+
+if __name__ == '__main__':
+    g = Graph()
+    g.populate_from_file(os.getcwd() + "/files/test2.txt")
+    g.set_center(g.get_node(0))
+    res = g.divide_graph(725)
+    sg = []
+    for z in res: sg.append(g.create_subgraph(z))
+    input()
