@@ -5,8 +5,8 @@ import sys
 import random
 
 CWD = os.getcwd()
-DATA_SIZE = 2                      # Number of training files created.
-MIN_NODES, MAX_NODES = 500, 500    # Minimum and Maximum number of nodes.
+DATA_SIZE = 10                     # Number of training files created.
+MIN_NODES, MAX_NODES = 13, 13    # Minimum and Maximum number of nodes.
 MIN_WEIGHT, MAX_WEIGHT = 100, 1500  # Minimum and Maximum weight of the nodes.
 MIN_X, MAX_X = -100, 100
 MIN_Y, MAX_Y = -100, 100           # Minimum and Maximum distance between two nodes.
@@ -112,18 +112,19 @@ def generate_edges(nodes):
     edge_data = []
 
     for node in nodes:
-        dest = random.choice(nodes_list)
-        while node == dest:
-            dest = random.choice(nodes_list)
-        edge = (node, dest)
-        edge_data.append(
-            f"{random.uniform(MIN_SPEED, MAX_SPEED):.1f} {node} {dest}"
-        )
+        if node == 0: continue
+        edge = node, 0
+        edges.add(edge)
+        edge_data.append(f"{random.uniform(MIN_SPEED, MAX_SPEED):.1f} {node} {0}")
+        edge = 0, node
+        edges.add(edge)
+        edge_data.append(f"{random.uniform(MIN_SPEED, MAX_SPEED):.1f} {0} {node}")
 
+    # Eliminate - len(edges) bc loop starts at len(edges), not 0
     extra_edges = int(
         random.uniform(
-            ((0.5 * (node_count * (node_count - 1))) - len(edges)),
-            ((0.75 * (node_count * (node_count - 1))) - len(edges)),
+            ((0.5 * (node_count * (node_count - 1)))),
+            ((0.75 * (node_count * (node_count - 1)))),
         )
     )
     while (len(edges)) < extra_edges:
@@ -135,6 +136,11 @@ def generate_edges(nodes):
         edges.add(edge)
         edge_data.append(
             f"{random.uniform(MIN_SPEED, MAX_SPEED):.1f} {origin} {dest}"
+        )
+        edge = (dest, origin)
+        edges.add(edge)
+        edge_data.append(
+            f"{random.uniform(MIN_SPEED, MAX_SPEED):.1f} {dest} {origin}"
         )
 
     edge_data = f"{len(edges)}{NEW_LINE}" + NEW_LINE.join(edge_data) + NEW_LINE
