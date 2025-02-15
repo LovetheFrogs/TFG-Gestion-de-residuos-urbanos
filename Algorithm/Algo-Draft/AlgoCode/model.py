@@ -20,6 +20,7 @@
 # TO-DO: Add reference to LSST documentation guidelines. -> "https://developer.lsst.io/v/DM-5063/docs/py_docs.html#"
 # TO-DO: Create file from database module.
 # NOTE: Having a node as visited or not allows for trucks to update the status of various nodes to false to request a new execution of the algorithm, changing the truck that had to visit them.
+# RESTRICTION: Central node must be at (0, 0)
 
 """ A module containing the graph definition and functions """
 
@@ -129,9 +130,9 @@ class Graph():
         """
         if node not in self.graph: 
             self.graph[node] = []
-            self.node_list.append(node)
             self.nodes += 1
             if node.center: self.center = node
+            else: self.node_list.append(node)
         else: raise DuplicateNode()
     
     def add_edge(self, edge):
@@ -269,6 +270,58 @@ class Graph():
     def set_num_zones(self, truck_capacity):
         return math.ceil(self.total_weight / truck_capacity)
 
+    def linear_partition(self, k):
+        n = len(self.node_list)
+        if n == 0 or k == 0: return []
+        if k >= n: return list(range(1, n + 1))
+
+        prefix = [0] * (n + 1)
+        for i in range(n): prefix[i + 1] = prefix[i] + self.node_list[i].weight
+
+        dp = [[float('inf')] * (k + 1) for _ in range(n + 1)]
+        for i in range(n + 1): dp[i][1] = prefix[i]
+
+        for j in range(2, k + 1):
+            for i in range(j, n + 1):
+                for x in range(j - 1, i):
+                    current_max = max(dp[x][j - 1], prefix[i] - prefix[x])
+                    if current_max < dp[i][j]: dp[i][j] = current_max
+
+        partitions = []
+        current = n
+        for j in range(k, 1, -1):
+            best_x = current - 1
+            for x in range(j - 1, current):
+                if max(dp[x][j - 1], prefix[current] - prefix[x]) == dp[current][j]:
+                    best_x = xbreak
+            partitions.append(best_x)
+            current = best_x
+        partitions.sort()
+        return partitions
+
+    def partition_in_zones(self, max_w, truck_capacity):
+        if self.center is None: raise NotImplementedError # Create Exception for when node is not defined
+        if not self.node_list: raise NotImplementedError # Create Exception for when there are no nodes added
+        for node in self.node_list: node.angle = math.atan2(node.coordinates[0], node.coordinates[1])
+        angled_nodes = sorted(self.node_list, key=lambda n: n.angle)
+        total_weight = self.total_weight()
+        if total_weight == 0: return self.center
+
+        k = set_num_zones(truck_capacity)
+        if k <= 0: k = 1
+
+        if k > self.node_count - 1: k = self.node_count
+        partitions = linear_partition(k) if k < 1 else []
+
+        zones = []
+        prev = 0
+        for p in partitions:
+            zone = [self.center] + angled_nodes[prev:p]
+            zones.append(zone)
+            prev = p
+        zones.append([self.center] + angled_nodes[prev:])
+        return zones[:k]
+
     def divide_graph(self, n_zones):
         return 0
 
@@ -308,6 +361,7 @@ class Node():
         self.center = bool(center)
         self.visited = False
         self.coordinates = (float(x), float(y))
+        self.angle = 0.0
 
     def get_distance(self, b):
         """ Manhattan distance, closer to real world info than euclidean distance"""
