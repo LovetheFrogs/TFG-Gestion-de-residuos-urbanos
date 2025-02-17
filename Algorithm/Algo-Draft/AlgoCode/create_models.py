@@ -5,11 +5,11 @@ import sys
 import random
 
 CWD = os.getcwd()
-DATA_SIZE = 10                     # Number of training files created.
-MIN_NODES, MAX_NODES = 13, 13    # Minimum and Maximum number of nodes.
-MIN_WEIGHT, MAX_WEIGHT = 100, 1500  # Minimum and Maximum weight of the nodes.
-MIN_X, MAX_X = -100, 100
-MIN_Y, MAX_Y = -100, 100           # Minimum and Maximum distance between two nodes.
+DATA_SIZE = 20                      # Number of training files created.
+MIN_NODES, MAX_NODES = 100, 500     # Minimum and Maximum number of nodes.
+MIN_WEIGHT, MAX_WEIGHT = 100, 250   # Minimum and Maximum weight of the nodes.
+MIN_X, MAX_X = -100, 100            # Dimensions of the map in x coordinates
+MIN_Y, MAX_Y = -100, 100            # Dimensions of the map in y coordinates
 MIN_SPEED, MAX_SPEED = 20, 60       # Minimum and Maximum speed between two nodes.
 NEW_LINE = "\n"
 
@@ -35,18 +35,24 @@ def update_global():
             case "-N":
                 global MAX_NODES
                 MAX_NODES = int(value)
+            case "-x":
+                global MIN_X
+                MIN_X: int(value)
+            case "-X":
+                global MAX_X
+                MAX_X: int(value)
+            case "-y":
+                global MIN_Y
+                MIN_Y: int(value)
+            case "-Y":
+                global MAX_Y
+                MAX_Y: int(value)
             case "-w":
                 global MIN_WEIGHT
                 MIN_WEIGHT = float(value)
             case "-W":
                 global MAX_WEIGHT
                 MAX_WEIGHT = float(value)
-            case "-d":
-                global MIN_DIST
-                MIN_DIST = float(value)
-            case "-D":
-                global MAX_DIST
-                MAX_DIST = float(value)
             case "-s":
                 global MIN_SPEED
                 MIN_SPEED = float(value)
@@ -60,9 +66,10 @@ def update_global():
 def generate_nodes():
     """ Generates a set of nodes 
     
-    This function generates `n` nodes, where n is between MIN_NODES and
+    This function generates $n$ nodes, where n is between MIN_NODES and
     MAX_NODES and gives them a random weight between MIN_WEIGHT and
-    MAX_WEIGHT, while creating the text that will be written to the
+    MAX_WEIGHT and random coordinates $(x \in [MIN_X, MAX_X], y \in 
+    [MIN_Y, MAX_Y])$, while creating the text that will be written to the
     dataset file.
 
     Returns
@@ -70,7 +77,7 @@ def generate_nodes():
     nodes : set()
         A set of the nodes generated.
     len(nodes) : int
-        The number of nodes generated `n`.
+        The number of nodes generated $n$.
     weight : float
         The sum of the weight of all nodes.
     nodes_data : str
@@ -89,9 +96,10 @@ def generate_nodes():
 def generate_edges(nodes):
     """ Generates a set of edges
 
-    The function generates `m` edges in two iterations. First, it generates
-    `n` edges, one for each node to ensure all of them are connected. Then,
-    it generates a random set of edges to achieve a density between 0.5 and
+    The function generates $m$ edges in two iterations. First, it generates
+    $(n - 1) \cdot 2$ edges, two for each node from and to the center to 
+    ensure all of them are accesible from the central node. Then, it 
+    generates a random set of edges to achieve a density between 0.5 and
     0.75.
 
     Parameters
@@ -102,7 +110,7 @@ def generate_edges(nodes):
     Returns
     -------
     len(edges) : int
-        The number of edges created `m`.
+        The number of edges created $m$.
     edge_data : str
         The edge-related text to be written to the file.
     """
@@ -151,9 +159,9 @@ def generate_edges(nodes):
 def create_log(data, tnodes, tedges, tdensity, tweight, path):
     """ Creates the text to be written to the log.
 
-    Each time the script is run, a log is created where you can see for each
-    dataset generated the number of nodes, edges, total weight and density, as
-    well as the average of these values for the whole datasets.
+    Each time the script is run, a log is created where you can see for 
+    each dataset generated the number of nodes, edges, total weight and 
+    density, as well as the average of these values for the whole datasets.
 
     Parameters
     ----------
