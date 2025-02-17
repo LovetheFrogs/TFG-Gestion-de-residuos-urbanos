@@ -8,14 +8,17 @@
 # TO-DO: Create benchmark for time to execute & value of different aproaches.
 # TO-DO: Create file from database module.
 # NOTE: Having a node as visited or not allows for trucks to update the status of various nodes to false to request a new execution of the algorithm, changing the truck that had to visit them.
+# Investigate 2opt inclusion on GA.
 
 """ A module containing the graph definition and functions """
 
 import os
 from collections import deque
+from deap import base, creator, tools, algorithms
 # from sklearn.cluster import KMeans
 import numpy as np
 import math
+import random
 import heapq
 from exceptions import NodeNotFound, DuplicateNode, DuplicateEdge
 
@@ -98,6 +101,14 @@ class Graph():
         
         raise NodeNotFound(idx)
           
+    def get_edge(self, origin, dest):
+        if origin not in self.graph: raise NodeNotFound(origin.index)
+        if dest not in self.graph: raise NodeNotFound(dest.index)
+        for edge in self.graph[origin]:
+            if edge.dest == dest: return edge
+        
+        raise NotImplementedError # Create Exception for when edge is not found
+
     def add_node(self, node):
         """ Adds a node to the graph. 
         
@@ -203,6 +214,8 @@ class Graph():
                 aux = f.readline().strip().split()
                 self.add_edge(Edge(aux[0], self.get_node(int(aux[1])), self.get_node(int(aux[2]))))
 
+            self.set_center(self.get_node(0))
+
     def bfs(source):
         """ Performs Breadth First Search on the graph.
 
@@ -247,7 +260,7 @@ class Graph():
         distances = {node: float('inf') for node in self.node_list + [self.center]}
         distances[start] = 0
         childs = {}
-        pq = [(o, start)]
+        pq = [(0, start)]
 
         while pq:
             curr_dist, curr_node = heapq.heappop(pq)
@@ -358,44 +371,110 @@ class Graph():
         
         return g
 
-    def run_GA(self, pop_size=300, ngen=100, cxpb=0.7, mutpb=0.2):
-        if 'FitnessMin' not in creator.__dict__: creator.create("FitnessMin", base.Fitness, weights=(-1.0))
-        if 'Individual' not in creator.__dict__: creator.create("Individual", list, fitness=creator.FitnessMin)
+    def run_GA(self, pop_size=1000, ngen=1000, cxpb=0.6, mutpb=0.4):
+        # Reset DEAP classes to avoid conflicts
+        if hasattr(creator, 'FitnessMin'):
+            del creator.FitnessMin
+        if hasattr(creator, 'Individual'):
+            del creator.Individual
 
+        # Define FitnessMin with a tuple for weights
+        creator.create("FitnessMin", base.Fitness, weights=(-1.0,))  # <-- Tuple here
+        creator.create("Individual", list, fitness=creator.FitnessMin)
         self.precompute_shortest_paths()
-        non_center_idx = [node.index for node in self.node_list]
-        center_idx = self.center.index
+        # Get original non-center node indices (e.g., [1, 2, ..., 12])
+        non_center_nodes = [node.index for node in self.node_list]
 
+        # Map GA indices (0-based) to original node indices
+        self.ga_to_original = {ga_idx: original_idx for ga_idx, original_idx in enumerate(non_center_nodes)}
+        # Map original node indices back to GA indices
+        self.original_to_ga = {original_idx: ga_idx for ga_idx, original_idx in self.ga_to_original.items()}
+
+        # Use 0-based GA indices for individuals (e.g., [0, 1, ..., 11])
+        non_center_ga_indices = list(self.ga_to_original.keys())
+
+        # DEAP Toolbox setup
         toolbox = base.Toolbox()
+        toolbox.register("indices", random.sample, non_center_ga_indices, len(non_center_ga_indices))
         toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.indices)
-        toolbox.register("population", tools.initRepeat, list, toolbox.individual)
-        
+        def greedy_path():
+            """Generates a greedy path using precomputed shortest path costs."""
+            start = self.center
+            unvisited = self.node_list.copy()
+            path = []
+            
+            while unvisited:
+                # Find the next node with the smallest shortest path cost from the current node
+                next_node = min(
+                    unvisited,
+                    key=lambda node: self.shortest_paths.get((start.index, node.index), float('inf'))
+                )
+                
+                # Ensure a valid path exists (graph is connected per problem statement)
+                if self.shortest_paths.get((start.index, next_node.index), float('inf')) == float('inf'):
+                    raise ValueError(f"No path from {start.index} to {next_node.index}")
+                
+                # Add the node to the path and mark as visited
+                path.append(self.original_to_ga[next_node.index])
+                start = next_node
+                unvisited.remove(next_node)
+            
+            return path
+        toolbox.register("greedy", greedy_path)
+        toolbox.register("population", tools.initRepeat, list, toolbox.individual, n=pop_size-1)
+            
         def evaluate(individual):
             total_value = 0
-            curr = self.center
-            for idx in individual:
-                key = (curr.idx, idx)
+            current = self.center
+            for ga_idx in individual:
+                # Convert GA index to original node index
+                original_idx = self.ga_to_original[ga_idx]  # <-- Now valid for 0 ≤ ga_idx ≤ 11
+                key = (current.index, original_idx)
                 total_value += self.shortest_paths.get(key, float('inf'))
-                penalty = sum(self.get_node(idx).weight * (i + 1) for i, idx in enumerate(individual))
-
-            return (total_value + 0.1 * penalty,)
+                current = self.get_node(original_idx)
+            # Return to center
+            key = (current.index, self.center.index)
+            total_value += self.shortest_paths.get(key, float('inf'))
+            # Node order penalty
+            penalty = sum(
+                self.get_node(self.ga_to_original[ga_idx]).weight * (i + 1)
+                for i, ga_idx in enumerate(individual)
+            )
+            return (total_value + 0.01 * penalty,)
         
-        toolbox.register("evaluate", evaluate)
-        toolbox.register("mate", tools.cxOrdered)
-        toolbox.register("mutate", tools.mutShuffleIndexes, indpb=0.05)
-        toolbox.register("selcet", tools.selTournament, tournsize=3)
+        def local_search(individual):
+            improved = True
+            while improved:
+                improved = False
+                for i in range(len(individual)):
+                    for j in range(i+2, len(individual)):
+                        new_ind = individual[:i] + individual[i:j][::-1] + individual[j:]
+                        if evaluate(new_ind)[0] < evaluate(individual)[0]:
+                            individual[:] = new_ind
+                            improved = True
+            return individual,
 
-        pop = toolbox.population(n=pop_size)
-        hof = tool.HallOfFame(1)
+        toolbox.register("evaluate", evaluate)
+        toolbox.register("mate", tools.cxPartialyMatched)
+        toolbox.register("mutate", tools.mutShuffleIndexes, indpb=0.5)
+        toolbox.register("select", tools.selTournament, tournsize=3)
+        toolbox.register("local_search", local_search)
+
+        pop = toolbox.population(n=pop_size) + [creator.Individual(toolbox.greedy())]
+        hof = tools.HallOfFame(1)
         stats = tools.Statistics(lambda ind: ind.fitness.values)
         stats.register("avg", np.mean)
         stats.register("min", np.min)
 
-        algorithms.eaSimple(pop, toolbox, cxpb=cxpb, mutpb=mutpb, ngen=ngen, stats=stats, halloffame=hof, verbose=True)
+        algorithms.eaMuPlusLambda(
+            pop, toolbox, mu=pop_size, lambda_=2*pop_size,
+            cxpb=cxpb, mutpb=mutpb, ngen=ngen, stats=stats,
+            halloffame=hof, verbose=True
+        )
 
-        best_individual = hof[0]
-        best_path = [center_idx] + best_individual + [center_idx]
-        total_value = evaluate(best_individual[1:-1][0])
+        best_individual = [i + 1 for i in hof[0]]
+        best_path = [self.center.index] + best_individual + [self.center.index]
+        total_value = evaluate(best_individual[1:-1])[0]
 
         return best_path, total_value
 
@@ -438,7 +517,7 @@ class Node():
     def get_distance(self, b):
         """ Manhattan distance, closer to real world info than euclidean distance"""
         # return math.sqrt(pow(self.coordinates[0] - b.coordinates[0], 2) + pow(self.coordinates[1] - b.coordinates[1], 2))
-        return (abs(self.coordinates[0] - b.coordinates[0]) + abs(self.coordinates[1] - b.coordinates[1]))
+        return abs((abs(self.coordinates[0] - b.coordinates[0]) + abs(self.coordinates[1] - b.coordinates[1])))
         
     def change_status(self):
         self.visited = not self.visited
@@ -495,9 +574,8 @@ class Edge():
 if __name__ == '__main__':
     g = Graph()
     g.populate_from_file(os.getcwd() + "/files/test2.txt")
-    g.set_center(g.get_node(0))
     res = g.divide_graph(725)
     sg = []
     for z in res: sg.append(g.create_subgraph(z))
-    g.run_GA()
-    input()
+    p, v = g.run_GA()
+    print(f"Path: {p}\nValue: {v}")
