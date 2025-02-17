@@ -1,6 +1,7 @@
 # Created by LovetheFrogs for URJC's tfg
 
-# Check YAPE (Yet Another Python Formatter)
+# Check YAPF (Yet Another Python Formatter)
+# Check https://stackoverflow.com/questions/14328406/tool-to-convert-python-code-to-be-pep8-compliant thread for linters/code style
 # Check VSCode LSST docstring plugin
 # TO-DO: Add non-heuristic search functions (to check if our solution is faster/cheaper). added bfs, left to test. add dijkstra and test both
 # TO-DO: Implement first iteration of the algorithm.
