@@ -2,25 +2,11 @@
 
 # Check YAPE (Yet Another Python Formatter)
 # Check VSCode LSST docstring plugin
-""" TO-DO: Create heuristic to evaluate solutions. ->
--> (min) H(r) = sum(for all nodes) d*x1 + t*x2
- Where:
-    r -> path
-    d -> distance
-    t -> time
-    w -> weight of destination (used for edge "value")
-    x1, x2, x3 -> weights (adjustable, find optimum...)
-
-    Make edge distances follow this function to penalize/reward?
-"""
-# TO-DO: Allow to store distance of each node to centroid (for k-clusters algorithm).
 # TO-DO: Add non-heuristic search functions (to check if our solution is faster/cheaper). added bfs, left to test. add dijkstra and test both
 # TO-DO: Implement first iteration of the algorithm.
 # TO-DO: Create benchmark for time to execute & value of different aproaches.
-# TO-DO: Add reference to LSST documentation guidelines. -> "https://developer.lsst.io/v/DM-5063/docs/py_docs.html#"
 # TO-DO: Create file from database module.
-# NOTE: Having a node as visited or not allows for trucks to update the status of various nodes to false to request a new execution of the algorithm, changing the truck that had to visit them. Add visit() function to Node
-# RESTRICTION: Central node must be at (0, 0)
+# NOTE: Having a node as visited or not allows for trucks to update the status of various nodes to false to request a new execution of the algorithm, changing the truck that had to visit them.
 
 """ A module containing the graph definition and functions """
 
@@ -453,6 +439,9 @@ class Node():
         # return math.sqrt(pow(self.coordinates[0] - b.coordinates[0], 2) + pow(self.coordinates[1] - b.coordinates[1], 2))
         return (abs(self.coordinates[0] - b.coordinates[0]) + abs(self.coordinates[1] - b.coordinates[1]))
         
+    def change_status(self):
+        self.visited = not self.visited
+
     def __repr__(self):
         return f"[ id = {self.index} | weight = {self.weight} | coordinates = {self.coordinates} ]"
         
