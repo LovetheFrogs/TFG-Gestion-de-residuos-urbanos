@@ -19,7 +19,7 @@
 # TO-DO: Create benchmark for time to execute & value of different aproaches.
 # TO-DO: Add reference to LSST documentation guidelines. -> "https://developer.lsst.io/v/DM-5063/docs/py_docs.html#"
 # TO-DO: Create file from database module.
-# NOTE: Having a node as visited or not allows for trucks to update the status of various nodes to false to request a new execution of the algorithm, changing the truck that had to visit them.
+# NOTE: Having a node as visited or not allows for trucks to update the status of various nodes to false to request a new execution of the algorithm, changing the truck that had to visit them. Add visit() function to Node
 # RESTRICTION: Central node must be at (0, 0)
 
 """ A module containing the graph definition and functions """
@@ -29,6 +29,7 @@ from collections import deque
 # from sklearn.cluster import KMeans
 import numpy as np
 import math
+import heapq
 from exceptions import NodeNotFound, DuplicateNode, DuplicateEdge
 
 class Graph():
@@ -255,6 +256,38 @@ class Graph():
 
         return path, res
 
+    def dijkstra(self, start, end):
+        distances = {node: float('inf') for node in self.node_list + [self.center]}
+        distances[start] = 0
+        childs = {}
+        pq = [(o, start)]
+
+        while pq:
+            curr_dist, curr_node = heapq.heappop(pq)
+            if curr_node == end: break
+            if curr_dist > distances[curr_node]: continue
+
+            for edge in self.graph.get(curr_node, []):
+                next = edge.dest
+                new_dist = curr_dist + edge.value
+                if new_dist < distances[next]:
+                    distances[next] = new_dist
+                    childs[next] = curr_node
+                    heapq.heappush(pq, (new_dist, next))
+        
+        return distances[end], []
+
+    def precompute_shortest_paths(self):
+        self.shortest_paths = {}
+        all_nodes = self.node_list + [self.center]
+        for start in all_nodes:
+            for end in all_nodes:
+                key = (start.index, end.index)
+                if start != end:
+                    distance, _ = self.dijkstra(start, end)
+                    self.shortest_paths[key] = distance
+                else: self.shortest_paths[key] = 0
+
     def set_center(self, node):
         self.center = node
         self.center.weight = 0
@@ -291,6 +324,7 @@ class Graph():
         return zones
 
     def __postprocess_zones__(self, zones, truck_capacity):
+        # Look at this function further
         improved = True
         while improved:
             improved = False
@@ -337,12 +371,51 @@ class Graph():
         
         return g
 
+    def run_GA(self, pop_size=300, ngen=100, cxpb=0.7, mutpb=0.2):
+        if 'FitnessMin' not in creator.__dict__: creator.create("FitnessMin", base.Fitness, weights=(-1.0))
+        if 'Individual' not in creator.__dict__: creator.create("Individual", list, fitness=creator.FitnessMin)
+
+        self.precompute_shortest_paths()
+        non_center_idx = [node.index for node in self.node_list]
+        center_idx = self.center.index
+
+        toolbox = base.Toolbox()
+        toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.indices)
+        toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+        
+        def evaluate(individual):
+            total_value = 0
+            curr = self.center
+            for idx in individual:
+                key = (curr.idx, idx)
+                total_value += self.shortest_paths.get(key, float('inf'))
+                penalty = sum(self.get_node(idx).weight * (i + 1) for i, idx in enumerate(individual))
+
+            return (total_value + 0.1 * penalty,)
+        
+        toolbox.register("evaluate", evaluate)
+        toolbox.register("mate", tools.cxOrdered)
+        toolbox.register("mutate", tools.mutShuffleIndexes, indpb=0.05)
+        toolbox.register("selcet", tools.selTournament, tournsize=3)
+
+        pop = toolbox.population(n=pop_size)
+        hof = tool.HallOfFame(1)
+        stats = tools.Statistics(lambda ind: ind.fitness.values)
+        stats.register("avg", np.mean)
+        stats.register("min", np.min)
+
+        algorithms.eaSimple(pop, toolbox, cxpb=cxpb, mutpb=mutpb, ngen=ngen, stats=stats, halloffame=hof, verbose=True)
+
+        best_individual = hof[0]
+        best_path = [center_idx] + best_individual + [center_idx]
+        total_value = evaluate(best_individual[1:-1][0])
+
+        return best_path, total_value
+
     def __repr__(self):
         new_line = "\n"
         return f'{new_line.join(f"{node} = {edges}" for node, edges in self.graph.items())}'
-    
-    
-
+        
 
 class Node():
     """ Implements the custom Node object that makes up a Graph.
@@ -436,4 +509,5 @@ if __name__ == '__main__':
     res = g.divide_graph(725)
     sg = []
     for z in res: sg.append(g.create_subgraph(z))
+    g.run_GA()
     input()
