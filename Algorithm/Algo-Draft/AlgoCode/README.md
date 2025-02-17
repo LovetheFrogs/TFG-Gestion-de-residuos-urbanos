@@ -1,4 +1,5 @@
-# Algorithm and model
+# :no_entry: [DEPRECATED] -> New documentation under development
+## Algorithm and model 
 
 The following document aims to explain the model created for the proposed problem, as well as the algorithm developed to find a solution, the tests defined for the codebase and other code created within the project.
 
