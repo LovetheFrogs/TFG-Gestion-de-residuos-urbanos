@@ -3,6 +3,8 @@
 # Check YAPF (Yet Another Python Formatter)
 # Use google code-style - https://google.github.io/styleguide/pyguide.html
 # Use google docstrings - https://gist.github.com/redlotus/3bc387c2591e3e908c9b63b97b11d24e
+# reStructuredText - https://www.writethedocs.org/guide/writing/reStructuredText/
+# PEP 484 - https://www.writethedocs.org/guide/writing/reStructuredText/
 # Check https://stackoverflow.com/questions/14328406/tool-to-convert-python-code-to-be-pep8-compliant thread for linters/code style
 # TO-DO: Add non-heuristic search functions (to check if our solution is faster/cheaper). added bfs, left to test. add dijkstra and test both
 # TO-DO: Create benchmark for time to execute & value of different aproaches.
@@ -10,7 +12,11 @@
 # NOTE: Having a node as visited or not allows for trucks to update the status of various nodes to false to request a new execution of the algorithm, changing the truck that had to visit them.
 # Investigate 2opt inclusion on GA.
 
-""" A module containing the graph definition and functions """
+"""Data structures that model the problem and its solution.
+
+The module contains the definitions and methods of the ``Node`` and ``Edge`` 
+classes, both of which form a ``Graph`` object.
+"""
 
 import os
 from collections import deque
@@ -22,39 +28,27 @@ import heapq
 import exceptions
 
 class Graph():
-    """ The Graph class contains the definition of the structure and the functions used on it.
+    """Contains the definition of the structure and the functions used on it.
 
-    The purpose of this class is to have a definition of the Graph data structure, used to create the distribution
-    map of the bins, as well as to contain all the methods used for building, updating and processing the data
-    obtained from the trucks. The Graph class is the core of this solution and contains the methods in charge of
-    finding the solution to the path-finding problem presented.
+    The purpose of this class is to have a definition of the Graph data 
+    structure, used to create the distribution map of the bins, as well as 
+    containing all the methods used for building, updating and processing 
+    the data obtained from the trucks and databases. The Graph class is the 
+    core of this solution and contains the methods in charge of finding the 
+    solution to the path-finding problem presented.
 
-    Attributes
-    ----------
-    graph : dict
-        The internal representation of the graph data structure. The keys are instances of `Node`
-        and the values are instances of `Edge`.
-    node_list : list
-        A list of all the nodes that make up the graph.
-    edge_list : list
-        A list of all the edges that make up the graph.
-    nodes : int
-        The number of nodes in the graph.
-    edges : int
-        The number of edges in the graph.
-    center : Node
-        The central node of the graph.
+    When a graph is created it will be empty, leaving adding data to it to the
+    user, who can either use a file with data or the provided functions to
+    manually add all the nodes and edges.
 
-    Raises
-    ------
-    NodeNotFound
-        If a searched for node is not found.
-    DuplicateNode
-        If a node is already in the Graph.
-    FileNotFoundError
-        If the file to read is not found.
-    IOError
-        If an error is found when reading a file.
+    Attributes:
+        graph (dict): Internal representation of the graph.
+        node_list (list[Node]): All the Nodes in the graph.
+        edge_list (list[Edge]): All the Edge in the graph.
+        nodes (int): Number of nodes in the graph.
+        edges (int): Number of edges in the graph.
+        center (Node): Central node of the graph. The central node is the start
+            of every path (the "distribution center"). 
     """
     def __init__(self):
         self.graph = {}
@@ -64,30 +58,35 @@ class Graph():
         self.edges = 0
         self.center = None
         
-    def get_node(self, idx):
-        """ Returns the node of the graph with the specified id.
+    def get_node(self, idx: int) -> 'Node':
+        """Gets the node of the graph with the specified id.
 
-        Parameters
-        ----------
-        idx : int
-            The id of the node to search.
+        Args:
+            idx: The id of the node to search.
         
-        Returns
-        -------
-        node : Node
-            The node whose index is equal to the ´idx´ parameter.
+        Returns:
+            The node whose index is equal to the ``idx``parameter.
 
-        Raises
-        ------
-        NodeNotFound
-            If the node is not found
+        Raises:
+            NodeNotFound: If the node is not found
         """
         for node in self.node_list:
             if node.index == idx: return node
         
         raise NodeNotFound(idx)
           
-    def get_edge(self, origin, dest):
+    def get_edge(self, origin: Node, dest: Node):
+        """Gets the edge of the graph with the specified origin and dest.
+        
+        Args:
+            a
+        
+        Returns:
+            a
+
+        Raises:
+            a
+        """
         if origin not in self.graph: raise NodeNotFound(origin.index)
         if dest not in self.graph: raise NodeNotFound(dest.index)
         for edge in self.graph[origin]:
@@ -96,7 +95,7 @@ class Graph():
         raise EdgeNotFound(f"{origin.index} -> {dest.index}")
 
     def add_node(self, node):
-        """ Adds a node to the graph. 
+        """Adds a node to the graph. 
         
         The function adds a node to the dict that represents the graph data structure, adding it to the 
         list of nodes and incrementing the count of nodes contained in the structure. If the node is a
