@@ -1,10 +1,10 @@
 # Created by LovetheFrogs for URJC's tfg
 
 # Check YAPF (Yet Another Python Formatter)
+# Use google code-style - https://google.github.io/styleguide/pyguide.html
+# Use google docstrings - https://gist.github.com/redlotus/3bc387c2591e3e908c9b63b97b11d24e
 # Check https://stackoverflow.com/questions/14328406/tool-to-convert-python-code-to-be-pep8-compliant thread for linters/code style
-# Check VSCode LSST docstring plugin
 # TO-DO: Add non-heuristic search functions (to check if our solution is faster/cheaper). added bfs, left to test. add dijkstra and test both
-# TO-DO: Implement first iteration of the algorithm.
 # TO-DO: Create benchmark for time to execute & value of different aproaches.
 # TO-DO: Create file from database module.
 # NOTE: Having a node as visited or not allows for trucks to update the status of various nodes to false to request a new execution of the algorithm, changing the truck that had to visit them.
@@ -28,19 +28,6 @@ class Graph():
     map of the bins, as well as to contain all the methods used for building, updating and processing the data
     obtained from the trucks. The Graph class is the core of this solution and contains the methods in charge of
     finding the solution to the path-finding problem presented.
-
-    Methods
-    -------
-    get_node(idx)
-        Returns the node of the graph with the specified id.
-    add_node(node)
-        Adds a node to the graph.
-    add_edge(edge)
-        Adds an edge to the graph.
-    populate_from_file(file)
-        Populates a graph from the data in a file.
-    bfs()
-        Breadth First Search of the graph.
 
     Attributes
     ----------
