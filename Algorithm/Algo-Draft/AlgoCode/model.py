@@ -15,12 +15,11 @@
 import os
 from collections import deque
 from deap import base, creator, tools, algorithms
-# from sklearn.cluster import KMeans
 import numpy as np
 import math
 import random
 import heapq
-from exceptions import NodeNotFound, DuplicateNode, DuplicateEdge
+import exceptions
 
 class Graph():
     """ The Graph class contains the definition of the structure and the functions used on it.
@@ -107,7 +106,7 @@ class Graph():
         for edge in self.graph[origin]:
             if edge.dest == dest: return edge
         
-        raise NotImplementedError # Create Exception for when edge is not found
+        raise EdgeNotFound(f"{origin.index} -> {dest.index}")
 
     def add_node(self, node):
         """ Adds a node to the graph. 
@@ -352,8 +351,8 @@ class Graph():
                 i += 1
 
     def divide_graph(self, truck_capacity, post = False):
-        if self.center is None: raise NotImplementedError # Create Exception for when node is not defined
-        if not self.node_list: raise NotImplementedError # Create Exception for when there are no nodes added
+        if self.center is None: raise NoCenterDefined()
+        if not self.node_list: raise EmptyGraph()
         for node in self.node_list: node.angle = math.atan2((node.coordinates[1] - self.center.coordinates[1]), (node.coordinates[0] - self.center.coordinates[0]))
         angled_nodes = sorted(self.node_list, key=lambda n: n.angle)
         zones = self.__create_zones__(angled_nodes, truck_capacity)
