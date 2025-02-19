@@ -11,6 +11,7 @@
 # TO-DO: Create file from database module.
 # NOTE: Having a node as visited or not allows for trucks to update the status of various nodes to false to request a new execution of the algorithm, changing the truck that had to visit them.
 # Investigate 2opt inclusion on GA.
+# Restriction: Currently all trucks need to have the same capacity.
 
 """Data structures that model the problem and its solution.
 
@@ -26,6 +27,120 @@ import math
 import random
 import heapq
 import exceptions
+from typing import TYPE_CHECKING
+
+
+class Node():
+    """ Implements the custom Node object that makes up a Graph.
+
+    A custom Object is used in order to ease the access to the data stored 
+    inside a Node, such as the weight of it. The drawback is this makes 
+    creating a graph object and populating it a bit more complex, although it 
+    can be easily automated (see ``Graph.populate_from_file`` function).
+
+    Args:
+        index: The index of a node. User must ensure it is unique.
+        weight: Weight of the node.
+        x: ``x`` coordinate of the node.
+        y: ``y`` coordinate of the node.
+        center (optional): If the node is the center one. Defaults to False.
+    """
+    def __init__(self, index: int, weight: float, x: float, y: float, center: bool = False):
+        #: int: Index of the node to be created.
+        self.index = int(index)
+        #: float: Weight of the node. 0 if the node has center set to True.
+        self.weight = float(weight) if not bool(center) else 0
+        #: bool: If the node is the center.
+        self.center = bool(center)
+        self.visited = False
+        #: tuple(float, float): The coordinates of the node.
+        self.coordinates = (float(x), float(y))
+        self.angle = 0.0
+
+    def get_distance(self, b: 'Node') -> float:
+        """Gets the Manhattan distance between two nodes.
+        
+        The Manhattan distance is the choice for this library, as it is closer 
+        to the real world distance between two points than euclidean distance.
+
+        Args:
+            b: The node to which we want to know the distance to.
+
+        Returns:
+            The absolute value of the manhhatan distance.  
+        """
+        return abs((abs(self.coordinates[0] - b.coordinates[0]) + abs(self.coordinates[1] - b.coordinates[1])))
+        
+    def change_status(self):
+        """Visits or unvisits the node depending on the previous visited status"""
+        self.visited = not self.visited
+
+    def __repr__(self) -> str:
+        """Changes the representation of the node.
+        
+        When print is called on the node, this method is called so that the 
+        result is more readable.
+
+        Returns:
+            A string representing the node.
+
+        Examples:
+            >>> print(Node(1, 150, 10, 5))
+            Node 1 -> Weight: 150, location: (10, 5).
+            >>> print(Node(0, 0, 3, -2, True))
+            Node 0 -> Weight: 0, location: (3, -2). Center,
+        """
+        msg = (
+            f"Node {self.index} -> weight: {self.weight}, "
+            f"location: {self.coordinates}. {"Center" if self.center else ""}."
+        )
+        return msg
+        
+        
+class Edge():
+    """ Implements the custom Edge object that makes up a Graph.
+
+    A custom Object is used in order to eaase the access to the data stored inside an Edge, such as the lenght, speed origin
+    abd destination of it. It has a few drawbacks, but the use of a class makes the code easier to follow, read and debug.
+
+    Parameters
+    ----------
+    lenght : float
+        The lenght of an Edge.
+    speed : float
+        The average speed of an Edge.
+    origin : Node
+        The Node object where this instance of an Edge will start.
+    dest : Node
+        The Node object where this instance of an Edge will end.
+
+    Attributes
+    ----------
+    time : float
+        The time it takes to go from origin to dest.
+    value : float
+        The value (cost) of traversing the edge. Comes from the heuristic function,
+        making it so it is fixed, while the importance of each part of the objective
+        function cahnges its importance. That is, a node with value 100 will have that
+        value always, but trough diferent iterations, a lower time may be more important than
+        a lower length.
+
+    See Also
+    --------
+    graph.Node()
+    graph.Graph()
+    """
+    def __init__(self, speed, origin, dest):
+        self.length = origin.get_distance(dest)
+        self.speed = float(speed)
+        self.origin = origin
+        self.dest = dest
+        self.time = (float(self.length)/1000)/self.speed
+        self.value = self.length + self.time
+        
+    def __repr__(self):
+        return f"[ length = {self.length} | speed = {self.speed} | {self.origin.index} -> {self.dest.index} ]"
+
 
 class Graph():
     """Contains the definition of the structure and the functions used on it.
@@ -58,7 +173,7 @@ class Graph():
         self.edges = 0
         self.center = None
         
-    def get_node(self, idx: int) -> 'Node':
+    def get_node(self, idx: int) -> Node:
         """Gets the node of the graph with the specified id.
 
         Args:
@@ -68,125 +183,168 @@ class Graph():
             The node whose index is equal to the ``idx``parameter.
 
         Raises:
-            NodeNotFound: If the node is not found
+            NodeNotFound: If the node is not in the graph
         """
-        for node in self.node_list:
+        for node in self.graph.keys:
             if node.index == idx: return node
         
         raise NodeNotFound(idx)
           
-    def get_edge(self, origin: Node, dest: Node):
+    def get_edge(self, origin: Node, dest: Node) -> Edge:
         """Gets the edge of the graph with the specified origin and dest.
         
         Args:
-            a
+            origin: The origin node of the edge.
+            dest: The destination node of the edge.
         
         Returns:
-            a
+            The edge with origin and destination equal to the ones in the 
+            arguments.
 
         Raises:
-            a
+            NodeNotFound: If the origin/dest nodes are not in the graph.
+            EdgeNotFound: If the edge is not in the graph.
         """
-        if origin not in self.graph: raise NodeNotFound(origin.index)
-        if dest not in self.graph: raise NodeNotFound(dest.index)
+        if origin not in self.graph.keys: raise NodeNotFound(origin.index)
+        if dest not in self.graph.keys: raise NodeNotFound(dest.index)
         for edge in self.graph[origin]:
             if edge.dest == dest: return edge
         
         raise EdgeNotFound(f"{origin.index} -> {dest.index}")
 
-    def add_node(self, node):
+    def add_node(self, node: Node):
         """Adds a node to the graph. 
         
-        The function adds a node to the dict that represents the graph data structure, adding it to the 
-        list of nodes and incrementing the count of nodes contained in the structure. If the node is a
-        center, it sets self.center to node.
+        The function adds a node to the dict that represents the graph data 
+        structure, to the list of nodes and increments the count of nodes 
+        contained in the structure. If the node is a center one, it sets 
+        self.center to node and doesn't add it to the list of nodes.
 
-        Parameters
-        ----------
-        node : Node
-            The node to be added to the graph
+        Args:
+            node: The node to add to the graph.
 
-        Raises
-        ------
-        DuplicateNode
-            If the node is already in the Graph.
+        Raises:
+            DuplicateNode: If the node is already in the graph.        
         """
-        if node not in self.graph: 
+        if node not in self.graph.keys: 
             self.graph[node] = []
             self.nodes += 1
             if node.center: self.center = node
             else: self.node_list.append(node)
         else: raise DuplicateNode()
     
-    def add_edge(self, edge):
-        """ Adds an edge to the graph.
+    def add_edge(self, edge: Edge):
+        """Adds an edge to the graph.
 
-        The function adds an edge to the dict that represents the graph data structure, adding it to the 
-        list of edges and incrementing the count of edges contained in the structure.
+        The function adds an edge to the dict that represents the graph data 
+        structure, to the list of edges and increments the count of edges 
+        contained in the structure.
 
-        Parameters
-        ----------
-        edge : Edge
-            The edge to be added to the graph.
+        Args:
+            edge: The edge to add to the graph
 
-        Raises
-        ------
-        NodeNotFound
-            If the origin node is not in the Graph.
-        DuplicateEdge
-            If the edge is already in the Graph.
+        Raises:
+            NodeNotFound: If the origin or dest node of the edge is not in the 
+                Graph.
+            DuplicateEdge: If the edge is already in the Graph.
         """
-        if edge in self.edge_list: raise DuplicateEdge()
-        if (edge.origin in self.graph and edge.dest in self.graph): 
+        if edge in self.graph.keys: raise DuplicateEdge()
+        if (edge.origin in self.graph.keys and edge.dest in self.graph.keys): 
             self.graph[edge.origin].append(edge)
             self.edge_list.append(edge)
             self.edges += 1
-        elif (edge.origin not in self.graph): raise NodeNotFound(edge.origin.index)
+        elif (edge.origin not in self.graph.keys): raise NodeNotFound(edge.origin.index)
         else: raise NodeNotFound(edge.dest.index)
-        
-    def populate_from_file(self, file):
-        """ Populates a graph from the data in a file.
 
-        An empty graph is created form the data available in a file. The file should ideally have a `.txt`
-        extension. The data in the file should be formatted accordingly. For further information about how
-        the file should be formated to be accepted, reffer to the **Notes** section.
+    def set_center(self, node: Node):
+        """Sets ``node`` as the central node of the graph.
 
-        Parameters
-        ----------
-        file : str
-            The path, name and extension of the file to read from as a string.
-        
-        
-        Raises
-        ------
-        FileNotFoundError
-            If the file to read is not found.
-        IOError
-            If an error is found when reading a file.
-        
-        See Also
-        --------
-        graph.Node
-        graph.Edge
+        The central node of the graph is the "distribution center" from where
+        the trucks start their paths. Note that an intermediate station where
+        a truck can unload is logically just a normal node with weight 0, not
+        a central node.
 
-        Notes
-        -----
-        The format of the data in the file must have the following format in order to be readable
-        by this function:
-        ``` text
-        n
-        idx1 weight1
-        idx2 weight2
-            ...
-        idxn weightn
-        m
-        length1 speed1 origin1 dest1
-        length2 speed2 origin2 dest2
-                    ...
-        lengthm speedm originm destm
+        Args:
+            node: The central node of the graph.
+
+        Raises:
+            NodeNotFound: If the node is not in the graph.
+        """
+        if node not in self.node_list: raise NodeNotFound(node.index)
+        self.center = node
+        self.center.weight = 0
+        self.node_list.remove(node)
+
+    def total_weight(self) -> float:
+        """Calculates the sum weight of all the nodes in the graph.
+
+        Returns:
+            The total weight of all the nodes.
+        """
+        return sum(node.weight for node in self.node_list)
+
+    def can_pickup_all(self, truck_capacity: float, truck_count: int) -> bool:
+        """Computes if all the trucks can pick up the bins in one round.
+
+        Args:
+            truck_capacity: The capacity of each truck.
+            truck_count: The number of available trucks.
+
+        Returns:
+            True if the bins can be picked up in one round, False if not.
+        """
+        total_waste = self.total_weight()
+        total_capacity = truck_capacity * truck_count
+        return total_waste < total_capacity
+
+    def set_num_zones(self, truck_capacity: float) -> int:
+        """Computes the minimum number of zones.
+        
+        The minimum number of zones is calculated if each truck's capacity 
+        is maximized. As such, the program does not guarantee division in 
+        this number of zones, as it may not be possible while keeping zone 
+        distribution sensible.
+
+        Args:
+            truck_capacity: The capacity of each truck.
+
+        Returns:
+            The minimum number of zones.
+        """
+        return math.ceil(self.total_weight() / truck_capacity)
+
+    def populate_from_file(self, file: str):
+        """Populates a graph from the data in a file.
+
+        An new graph is created form the data available in a file. The file 
+        should have a `.txt` extension and the data in it must be formatted 
+        accordingly.
+
+        The format of the data in the file must have the following format 
+        in order to be readable by this function:
         ```
-        Where `n` is the number of nodes to be read, followed by the parameters of each node and 
-        `m` is the number of edges to be read, followed by the parameters of each edge.
+        n
+        idx_1 weight_1 x_1 y_1
+        idx_2 weight_2 x_2 y_2
+            ...
+        idx_n weight_n x_n y_n
+        m
+        speed_1 origin_1 dest_1
+        speed_2 origin_2 dest_2
+                    ...
+        speed_m origin_m dest_m
+        ```
+        Where ``n`` is the number of nodes to be read, followed by the 
+        parameters of each node and ``m`` is the number of edges to be 
+        read, followed by the parameters of each edge.
+
+        Args:
+            file: The path of the file to read from.
+        
+        Raises:
+            FileNotFoundError: If the file to read is not found.
+            IOError: If an error is found when reading a file.
+            FileNotFoundError: If the file does not exist.
         """
         with open(file, 'r') as f:
             n = int(f.readline().strip())
@@ -201,36 +359,27 @@ class Graph():
 
             self.set_center(self.get_node(0))
 
-    def bfs(source):
-        """ Performs Breadth First Search on the graph.
+    def bfs(self, source: Node) -> list[int]:
+        """Performs Breadth First Search on the graph from the node ``source``.
 
-        Parameters
-        ----------
-        source : int
-            The index of the start node.
+        Args:
+            source: The index of the start node.
 
-        Returns
-        -------
-        path : list
-            List of the index of the nodes in the order they were visited.
-        res : int
-            Value of the objective function.
+        Returns:
+            The path found, represented as a list of the indices of said nodes.
 
-        Raises
-        ------
-        NodeNotFound
-            If the start node is not in the Graph.
+        Raises:
+            NodeNotFound: If the start node is not in the Graph.
         """
+        if self.get_node(source) not in self.graph.keys: raise NodeNotFound(source)
         q = deque()
         snode = self.get_node(source)
         visited = [False] * self.nodes
         visited[source - 1] = True
         q.append(snode)
         path = []
-        res = 0
         curr_val = 0
         while q:
-            res += curr_val
             curr = q.popleft()
             path.append(curr.index)
             for edge in self.graph[curr]:
@@ -239,7 +388,7 @@ class Graph():
                     visited[edge.dest.index - 1] = True
                     q.append(edge.dest)
 
-        return path, res
+        return path
 
     def dijkstra(self, start, end):
         distances = {node: float('inf') for node in self.node_list + [self.center]}
@@ -272,22 +421,6 @@ class Graph():
                     distance, _ = self.dijkstra(start, end)
                     self.shortest_paths[key] = distance
                 else: self.shortest_paths[key] = 0
-
-    def set_center(self, node):
-        self.center = node
-        self.center.weight = 0
-        self.node_list.remove(node)
-
-    def total_weight(self):
-        return sum(node.weight for node in self.node_list)
-
-    def can_pickup_all(self, truck_capacity, truck_count):
-        total_waste = self.total_weight()
-        total_capacity = truck_capacity * truck_count
-        return total_waste < total_capacity
-
-    def set_num_zones(self, truck_capacity):
-        return math.ceil(self.total_weight() / truck_capacity)
 
     def __create_zones__(self, angled_nodes, truck_capacity):
         zones = []
@@ -466,98 +599,11 @@ class Graph():
     def __repr__(self):
         new_line = "\n"
         return f'{new_line.join(f"{node} = {edges}" for node, edges in self.graph.items())}'
-        
-
-class Node():
-    """ Implements the custom Node object that makes up a Graph.
-
-    A custom Object is used in order to ease the access to the data stored inside a Node, such as the weight of a
-    node. The drawback is this makes creating a graph object and populating it a bit more verbose, although it can
-    be easily automated.
-
-    Parameters
-    ----------
-    index : int
-        The index of the Node to be created. Must be unique as it is used for search inside a graph, but this
-        uniqueness must be provided by the user.
-    weight : float
-        The weight of the Node to be created. Gets set to 0 is center = True.
-    center : bool, optional
-        If the node is the central node (source of path). Defaults to false.
-    visited : bool
-        If the node has been visited. 
-
-    See Also
-    --------
-    graph.Graph()
-    """
-    def __init__(self, index, weight, x, y, center = False):
-        self.index = int(index)
-        self.weight = float(weight) if not bool(center) else 0
-        self.center = bool(center)
-        self.visited = False
-        self.coordinates = (float(x), float(y))
-        self.angle = 0.0
-
-    def get_distance(self, b):
-        """ Manhattan distance, closer to real world info than euclidean distance"""
-        # return math.sqrt(pow(self.coordinates[0] - b.coordinates[0], 2) + pow(self.coordinates[1] - b.coordinates[1], 2))
-        return abs((abs(self.coordinates[0] - b.coordinates[0]) + abs(self.coordinates[1] - b.coordinates[1])))
-        
-    def change_status(self):
-        self.visited = not self.visited
-
-    def __repr__(self):
-        return f"[ id = {self.index} | weight = {self.weight} | coordinates = {self.coordinates} ]"
-        
-        
-class Edge():
-    """ Implements the custom Edge object that makes up a Graph.
-
-    A custom Object is used in order to eaase the access to the data stored inside an Edge, such as the lenght, speed origin
-    abd destination of it. It has a few drawbacks, but the use of a class makes the code easier to follow, read and debug.
-
-    Parameters
-    ----------
-    lenght : float
-        The lenght of an Edge.
-    speed : float
-        The average speed of an Edge.
-    origin : Node
-        The Node object where this instance of an Edge will start.
-    dest : Node
-        The Node object where this instance of an Edge will end.
-
-    Attributes
-    ----------
-    time : float
-        The time it takes to go from origin to dest.
-    value : float
-        The value (cost) of traversing the edge. Comes from the heuristic function,
-        making it so it is fixed, while the importance of each part of the objective
-        function cahnges its importance. That is, a node with value 100 will have that
-        value always, but trough diferent iterations, a lower time may be more important than
-        a lower length.
-
-    See Also
-    --------
-    graph.Node()
-    graph.Graph()
-    """
-    def __init__(self, speed, origin, dest):
-        self.length = origin.get_distance(dest)
-        self.speed = float(speed)
-        self.origin = origin
-        self.dest = dest
-        self.time = (float(self.length)/1000)/self.speed
-        self.value = self.length + self.time
-        
-    def __repr__(self):
-        return f"[ length = {self.length} | speed = {self.speed} | {self.origin.index} -> {self.dest.index} ]"
 
 
 if __name__ == '__main__':
     g = Graph()
+    n = Node()
     g.populate_from_file(os.getcwd() + "/files/test2.txt")
     res = g.divide_graph(725)
     sg = []
