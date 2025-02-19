@@ -6,9 +6,9 @@
 # reStructuredText - https://www.writethedocs.org/guide/writing/reStructuredText/
 # PEP 484 - https://www.writethedocs.org/guide/writing/reStructuredText/
 # Check https://stackoverflow.com/questions/14328406/tool-to-convert-python-code-to-be-pep8-compliant thread for linters/code style
-# TO-DO: Add non-heuristic search functions (to check if our solution is faster/cheaper). added bfs, left to test. add dijkstra and test both
+# TO-DO: Add non-heuristic search functions (to check if our solution is faster/cheaper). added bfs & Dijkstra, left to test both
 # TO-DO: Create benchmark for time to execute & value of different aproaches.
-# TO-DO: Create file from database module.
+# TO-DO: Create file from database module FOR THE OTHER TFG.
 # NOTE: Having a node as visited or not allows for trucks to update the status of various nodes to false to request a new execution of the algorithm, changing the truck that had to visit them.
 # Investigate 2opt inclusion on GA.
 # Restriction: Currently all trucks need to have the same capacity.
@@ -35,7 +35,7 @@ from typing import TYPE_CHECKING
 
 
 class Node():
-    """ Implements the custom Node object that makes up a Graph.
+    """ Implements the custom Node object.
 
     A custom Object is used in order to ease the access to the data stored 
     inside a Node, such as the weight of it. The drawback is this makes 
@@ -63,7 +63,7 @@ class Node():
         self.angle = 0.0
 
     def get_distance(self, b: 'Node') -> float:
-        """Gets the Manhattan distance between two nodes.
+        """Computes the Manhattan distance between two nodes.
         
         The Manhattan distance is the choice for this library, as it is closer 
         to the real world distance between two points than euclidean distance.
@@ -80,11 +80,11 @@ class Node():
         )
         
     def change_status(self):
-        """Visits or unvisits the node depending on the previous status"""
+        """Visits or unvisits the a depending on the previous status"""
         self.visited = not self.visited
 
     def __repr__(self) -> str:
-        """Changes the representation of the node.
+        """Changes the default representation of a node.
         
         When print is called on a node, this method is called so that the 
         output is more readable.
@@ -106,7 +106,7 @@ class Node():
         
         
 class Edge():
-    """Implements the custom Edge object that makes up a Graph.
+    """Implements the custom Edge object.
 
     A custom Object is used in order to eaase the access to the data stored 
     inside an Edge, such as the lenght, speed, origin and destination nodes 
@@ -139,7 +139,7 @@ class Edge():
         self.value = self.length + self.time
         
     def __repr__(self) -> str:
-        """Changes the representation of the edge.
+        """Changes the default representation of an edge.
         
         When print is called on an edge, this method is called so that the
         output is more readable.
@@ -190,7 +190,7 @@ class Graph():
         self.center = None
         
     def get_node(self, idx: int) -> Node:
-        """Gets the node of the graph with the specified id.
+        """Gets a node from the graph.
 
         Args:
             idx: The id of the node to search.
@@ -207,7 +207,7 @@ class Graph():
         raise NodeNotFound(idx)
           
     def get_edge(self, origin: Node, dest: Node) -> Edge:
-        """Gets the edge of the graph with the specified origin and dest.
+        """Gets an edge from the graph.
         
         Args:
             origin: The origin node of the edge.
@@ -274,7 +274,7 @@ class Graph():
         else: raise NodeNotFound(edge.dest.index)
 
     def set_center(self, node: Node):
-        """Sets ``node`` as the central node of the graph.
+        """Sets the central node of the graph.
 
         The central node of the graph is the "distribution center" from where
         the trucks start their paths. Note that an intermediate station where
@@ -290,6 +290,7 @@ class Graph():
         if node not in self.node_list: raise NodeNotFound(node.index)
         self.center = node
         self.center.weight = 0
+        self.center.center = True
         self.node_list.remove(node)
 
     def total_weight(self) -> float:
@@ -472,15 +473,32 @@ class Graph():
                     self.shortest_paths[key] = distance
                 else: self.shortest_paths[key] = 0
 
-    def create_zones(self, angled_nodes, truck_capacity):
+    def create_zones(self, angled_nodes: list[Node], truck_capacity: float) -> list[list[Node]]:
         """Divides the graph in zones.
 
-        This function is called by xxx
+        This function is called by ``divide_graph()``. It is in charge of 
+        dividing the nodes into zones using the ordered list of nodes by
+        angle, as discussed in the ``divide_graph()``'s docstring.
+
+        The function uses a greedy approach to evaluate if adding a new node 
+        to a zone makes that zone's weight greater than the truck's capacity.
+
+        After determining the nodes in each zone, the central node is added 
+        as every path must start and end on it. In other words, every zone 
+        must contain the central node.
+
+        Args:
+            angled_nodes: List of the graph's nodes ordered by the angle they
+                form with the central node.
+            truck_capacity: The maximum capacity of each truck.
+
+        Returns:
+            A list of lists containing the diferent zones created, each one 
+            containing a set of ``Node`` instances.
         """
         zones = []
         current_weight = 0
         current_zone = []
-
 
         for node in angled_nodes:
             if current_weight + node.weight > truck_capacity:
@@ -495,40 +513,33 @@ class Graph():
 
         return zones
 
-    def postprocess_zones(self, zones, truck_capacity):
+    def postprocess_zones(self, zones: list[list[Node]], truck_capacity: float) -> list[list[Node]]:
+        """Evaluates zones to determine if a frontier node should be moved.
+        
+        A frontier node is a node that, while being part of a zone, is right 
+        next to another one. This means that in every zone there will be two 
+        frontier nodes, the first and last ones of said zone. This function
+        determines if moving a frontier node to the zone it is adjacent to 
+        is feasible in order to reduce the number of nodes in a zone, with 
+        the objective of minimizing the final number of zones. It also does 
+        this to make zone's weight similar and avoid big differences in them.
+
+        However, in case this function is comparing two zones with a similar 
+        (high) number of nodes, it only evaluates if moving a node equilibrates
+        the weight of both zones, as it is not going to eliminate a zone (this 
+        would only happen if a zone has at most 3 nodes, including the center).
+
+        Args:
+            zones: The zones to be evaluated.
+            truck_capacity: The maximum capacity of each truck.
+
+        Returns:
+            A list of lists containing the diferent zones created, each one 
+            containing a set of ``Node`` instances.
+        """
         raise NotImplementedError
 
-    def experimental_postproccesing(self, zones, truck_capacity):
-        improved = True
-        while improved:
-            improved = False
-            i = 0
-            while i < len(zones) - 1:
-                current_zone = zones[i][1:]
-                next_zone = zones[i+1][1:]
-                
-                if not current_zone:
-                    i += 1
-                    continue
-                
-                last_node = current_zone[-1]
-                current_weight = sum(n.weight for n in current_zone[:-1])
-                new_next_weight = sum(n.weight for n in next_zone) + last_node.weight
-                
-                if new_next_weight < truck_capacity:
-                    zones[i] = [self.center] + current_zone[:-1]
-                    zones[i+1] = [self.center] + next_zone + [last_node]
-                    if not zones[i][1:]:
-                        zones.pop(i)
-                        improved = True
-                        break
-                    improved = True
-                i += 1
-
-        return zones
-
-    def divide_graph(self, truck_capacity: float, 
-                    experimental: bool = False) -> list[list[int]]:
+    def divide_graph(self, truck_capacity: float) -> list[list[Node]]:
         """Manages graph division in zones.
 
         The division in zones tries to give out a result that minimizes the 
@@ -547,12 +558,10 @@ class Graph():
         
         Args:
             truck_capacity: The maximum capacity of each truck.
-            experimental (optional): True to minimize the number of zones, 
-                can yield unoptimal zones so it defaults to False.
-
+            
         Returns:
-            A list of lists containing the diferent zones created, representing
-            each node as their index.
+            A list of lists containing the diferent zones created, each one 
+            containing a set of ``Node`` instances.
 
         Raises:
             NoCenterDefined: If the graph does not have a center node.
@@ -566,19 +575,37 @@ class Graph():
             node.angle = math.atan2(y, x)
         angled_nodes = sorted(self.node_list, key=lambda n: n.angle)
         zones = self.create_zones(angled_nodes, truck_capacity)
-        if post: zones = (self
-                          .experimental_postproccesing(zones, truck_capacity))
-        else: zones = self.postproccess_zones(zones, truck_capacity)
+        zones = self.postproccess_zones(zones, truck_capacity)
             
         return zones
 
-    def create_subgraph(self, nodes):
+    def create_subgraph(self, nodes: list[Node]) -> 'Graph':
+        """Creates a new graph from an existing one.
+
+        The new graph will have the nodes from the current graph that are in 
+        the ``nodes`` argument, as well as the edges connecting them, 
+        effectively making it a subgraph of the current one.
+
+        Allows to consider each zone as it's own individual graph, making it 
+        easier to get the optimal path for a zone.
+
+        Args:
+            nodes: A list of nodes for the new graph
+
+        Returns:
+            A new subgraph that comes from the graph instance this function is 
+            called on.
+
+        Raises:
+            NodeNotFound: If the node is not in the graph
+        """
         g = Graph()
         for node in nodes: g.add_node(node)
-        for node in g.node_list:
+        for node in g.graph.keys:
+            if node not in self.graph.keys: raise NodeNotFound(node.index)
             edges = self.graph[node]
             for edge in edges:
-                if edge.dest in g.node_list: g.add_edge(edge)
+                if edge.dest in g.graph.keys: g.add_edge(edge)
         
         return g
 
@@ -695,11 +722,19 @@ class Graph():
 
 
 if __name__ == '__main__':
+    """An example of creating using the module.
+    
+    In this example a graph is created from a file, divided in zones & 
+    subgraphs and paths are calculated for each subgraph.
+    """
     g = Graph()
-    n = Node()
     g.populate_from_file(os.getcwd() + "/files/test2.txt")
     res = g.divide_graph(725)
     sg = []
     for z in res: sg.append(g.create_subgraph(z))
     p, v = g.run_GA()
     print(f"Path: {p}\nValue: {v}")
+    for i, graph in enumerate(sg):
+        p, v = graph.run_GA()
+        print(f"Path {i}: {p}\nValue: {v}")
+
