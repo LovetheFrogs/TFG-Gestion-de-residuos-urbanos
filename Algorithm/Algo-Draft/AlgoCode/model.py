@@ -261,11 +261,12 @@ class Graph():
             DuplicateEdge: If the edge is already in the Graph.
         """
         if edge in self.graph.keys: raise DuplicateEdge()
-        if (edge.origin in self.graph.keys and edge.dest in self.graph.keys): 
+        if (edge.origin in self.graph.keys and edge.dest in self.graph.keys):
             self.graph[edge.origin].append(edge)
             self.edge_list.append(edge)
             self.edges += 1
-        elif (edge.origin not in self.graph.keys): raise NodeNotFound(edge.origin.index)
+        elif (edge.origin not in self.graph.keys):
+            raise NodeNotFound(edge.origin.index)
         else: raise NodeNotFound(edge.dest.index)
 
     def set_center(self, node: Node):
@@ -367,7 +368,10 @@ class Graph():
             m = int(f.readline().strip())
             for _ in range(m):
                 aux = f.readline().strip().split()
-                self.add_edge(Edge(aux[0], self.get_node(int(aux[1])), self.get_node(int(aux[2]))))
+                self.add_edge(Edge(aux[0], 
+                            self.get_node(int(aux[1])), 
+                            self.get_node(int(aux[2])))
+                            )
 
             self.set_center(self.get_node(0))
 
@@ -383,7 +387,8 @@ class Graph():
         Raises:
             NodeNotFound: If the start node is not in the Graph.
         """
-        if self.get_node(source) not in self.graph.keys: raise NodeNotFound(source)
+        if self.get_node(source) not in self.graph.keys:
+            raise NodeNotFound(source)
         q = deque()
         snode = self.get_node(source)
         visited = [False] * self.nodes
