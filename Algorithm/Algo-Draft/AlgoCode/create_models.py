@@ -1,19 +1,22 @@
-""" Batch creation of randomly generated training files """
+""" Batch creation of randomly generated graph files """
 
 import os
 import sys
 import random
 
 CWD = os.getcwd()
-DATA_SIZE = 20                      # Number of training files created.
-MIN_NODES, MAX_NODES = 100, 500     # Minimum and Maximum number of nodes.
-MIN_WEIGHT, MAX_WEIGHT = 100, 250   # Minimum and Maximum weight of the nodes.
-MIN_X, MAX_X = -100, 100            # Dimensions of the map in x coordinates
-MIN_Y, MAX_Y = -100, 100            # Dimensions of the map in y coordinates
-MIN_SPEED, MAX_SPEED = 20, 60       # Minimum and Maximum speed between two nodes.
+DATA_SIZE = 20
+MIN_NODES, MAX_NODES = 100, 500
+MIN_WEIGHT, MAX_WEIGHT = 100, 250
+MIN_X, MAX_X = -100, 100
+MIN_Y, MAX_Y = -100, 100
+MIN_SPEED, MAX_SPEED = 20, 60
 NEW_LINE = "\n"
 
-DECORATOR = "+---------------------------------------------------------------------------------+"
+DECORATOR = (
+                "+-----------------------------------------"
+                "-----------------------------------------+"
+            )
 
 
 def update_global():
@@ -21,7 +24,10 @@ def update_global():
     extraction constants (nº of nodes, weights, nº of files...)
     """
     if len(sys.argv) % 2 != 1:
-        print("Wrong number of arguments, please check your call to the module.")
+        print(
+                "Wrong number of arguments, " 
+                "please check your call to the module."
+             )
         print("Using default values.")
         return
     for flag, value in zip(sys.argv[1::2], sys.argv[2::2]):
@@ -63,56 +69,46 @@ def update_global():
                 continue
 
 
-def generate_nodes():
+def generate_nodes() -> tuple[set[int], int, float, str]:
     """ Generates a set of nodes 
     
-    This function generates $n$ nodes, where n is between MIN_NODES and
-    MAX_NODES and gives them a random weight between MIN_WEIGHT and
-    MAX_WEIGHT and random coordinates $(x \in [MIN_X, MAX_X], y \in 
-    [MIN_Y, MAX_Y])$, while creating the text that will be written to the
-    dataset file.
+    This function generates ``n`` nodes, where ``n`` is between ``MIN_NODES`` 
+    and ``MAX_NODES`` and gives them a random weight between ``MIN_WEIGHT`` 
+    and ``MAX_WEIGHT`` and random coordinates, while creating the text that 
+    will be written to the dataset file.
 
-    Returns
-    -------
-    nodes : set()
-        A set of the nodes generated.
-    len(nodes) : int
-        The number of nodes generated $n$.
-    weight : float
-        The sum of the weight of all nodes.
-    nodes_data : str
-        The node-related text to be written to the file
+    Returns:
+        A tuple containing a set of the nodes generated, the number of nodes 
+        generated, the sum of the weight of all nodes and the node-related text
+        to be written to the file.
     """
     num_nodes = random.randint(MIN_NODES, MAX_NODES)
     nodes = set(range(num_nodes))
     node_data = NEW_LINE.join(
-        f"{node} {random.uniform(MIN_WEIGHT, MAX_WEIGHT):.2f} {random.randint(MIN_X, MAX_X)} {random.randint(MIN_Y, MAX_Y)}" for node in nodes
+        f"{node} {random.uniform(MIN_WEIGHT, MAX_WEIGHT):.2f} " 
+        f"{random.randint(MIN_X, MAX_X)} " 
+        f"{random.randint(MIN_Y, MAX_Y)}" for node in nodes
     )
     weight = sum(float(line.split()[1]) for line in node_data.split("\n")[0:])
     nodes_data = f"{num_nodes}{NEW_LINE}{node_data}{NEW_LINE}"
     return nodes, len(nodes), weight, nodes_data
 
 
-def generate_edges(nodes):
+def generate_edges(nodes: set[int]) -> tuple[int, str]:
     """ Generates a set of edges
 
-    The function generates $m$ edges in two iterations. First, it generates
-    $(n - 1) \cdot 2$ edges, two for each node from and to the center to 
+    The function generates ``m`` edges in two iterations. First, it generates
+    ``(n - 1) · 2`` edges, two for each node from and to the center to 
     ensure all of them are accesible from the central node. Then, it 
     generates a random set of edges to achieve a density between 0.5 and
     0.75.
 
-    Parameters
-    ----------
-    nodes : set()
-        A set of all the nodes created.
+    Args
+        nodes: A set of all the nodes created.
 
     Returns
-    -------
-    len(edges) : int
-        The number of edges created $m$.
-    edge_data : str
-        The edge-related text to be written to the file.
+        A tuple containing the number of edges created and the edge-related 
+        text to be written to the file.
     """
     nodes_list = list(nodes)
     node_count = len(nodes_list)
@@ -123,12 +119,16 @@ def generate_edges(nodes):
         if node == 0: continue
         edge = node, 0
         edges.add(edge)
-        edge_data.append(f"{random.uniform(MIN_SPEED, MAX_SPEED):.1f} {node} {0}")
+        edge_data.append(
+                            f"{random.uniform(MIN_SPEED, MAX_SPEED):.1f} "
+                            f"{node} {0}"
+                        )
         edge = 0, node
         edges.add(edge)
-        edge_data.append(f"{random.uniform(MIN_SPEED, MAX_SPEED):.1f} {0} {node}")
-
-    # Eliminate - len(edges) bc loop starts at len(edges), not 0
+        edge_data.append(
+                            f"{random.uniform(MIN_SPEED, MAX_SPEED):.1f} "
+                            f"{0} {node}"
+                        )
     extra_edges = int(
         random.uniform(
             ((0.5 * (node_count * (node_count - 1)))),
@@ -156,38 +156,48 @@ def generate_edges(nodes):
     return len(edges), edge_data
 
 
-def create_log(data, tnodes, tedges, tdensity, tweight, path):
+def create_log(data: list[float], tnodes: int,
+               tedges: int, tdensity: float, 
+               tweight: float, path: str):
     """ Creates the text to be written to the log.
 
     Each time the script is run, a log is created where you can see for 
     each dataset generated the number of nodes, edges, total weight and 
     density, as well as the average of these values for the whole datasets.
 
-    Parameters
-    ----------
-    data : list()
-        A list containing the information for each dataset (nº of nodes,
-        nº of edges, density and total weight).
-    tnodes : int
-        The total number of nodes for all the datasets.
-    tedges: int
-        The total number of edges for all the datasets.
-    tdensity : int
-        The total density for all the datasets.
-    tweight : int
-        The total weight for all the datasets.
-    path : str
-        The path where the datasets are saved.
+    Args:
+        data: A list containing the information for each dataset (nº of nodes,
+            nº of edges, density and total weight).
+        tnodes: The total number of nodes for all the datasets.
+        tedges: The total number of edges for all the datasets.
+        tdensity: The total density for all the datasets.
+        tweight: The total weight for all the datasets.
+        path: The path where the datasets are saved.
     """
-    log_data = f"Generated {DATA_SIZE} datasets.{NEW_LINE}{DECORATOR}{NEW_LINE}"
+    log_data = (
+                f"Generated {DATA_SIZE} datasets.{NEW_LINE}"
+                f"{DECORATOR}{NEW_LINE}"
+               )
     log_data += NEW_LINE.join(
-        f"dataset{k}{NEW_LINE}    |{NEW_LINE}    |- Nodes: {nodes}{NEW_LINE}    |- Edges: {edges}{NEW_LINE}    |- Density: {density}{NEW_LINE}    |- Weight: {weight}{NEW_LINE}{NEW_LINE}{DECORATOR}"
-        for nodes, edges, density, weight, k in zip(
-            data[0::5], data[1::5], data[2::5], data[3::5], data[4::5]
-        )
-    )
-    log_data += f"{NEW_LINE}Averages{NEW_LINE}    |{NEW_LINE}    |- Nodes: {tnodes / DATA_SIZE}{NEW_LINE}    |- Edges: {tedges / DATA_SIZE}{NEW_LINE}    |- Density: {tdensity / DATA_SIZE}{NEW_LINE}    |- Weight: {tweight / DATA_SIZE}{NEW_LINE}"
-    # Write log
+                                f"dataset{k}{NEW_LINE}    |{NEW_LINE}    |- "
+                                f"Nodes: {nodes}{NEW_LINE}    |- "
+                                f"Edges: {edges}{NEW_LINE}    |- "
+                                f"Density: {density}{NEW_LINE}    "
+                                f"|- Weight: {weight}{NEW_LINE}"
+                                f"{NEW_LINE}{DECORATOR}"
+                                for nodes, edges, density, weight, k in zip(
+                                    data[0::5], data[1::5], data[2::5], 
+                                    data[3::5], data[4::5]
+                                )
+                             )
+    log_data += (
+                    f"{NEW_LINE}Averages{NEW_LINE}    |"f"{NEW_LINE}    "
+                    f"|- Nodes: {tnodes / DATA_SIZE}{NEW_LINE}    |- Edges: "
+                    f"{tedges / DATA_SIZE}{NEW_LINE}    |- Density: "
+                    f"{tdensity / DATA_SIZE}{NEW_LINE}    |- Weight: "
+                    f"{tweight / DATA_SIZE}{NEW_LINE}"
+                )
+
     with open(f"{path}/log.txt", "w") as file:
         file.write(log_data)
 
@@ -232,5 +242,11 @@ def create_dataset():
     create_log(log, tot_nodes, tot_edges, tot_density, tot_weight, path)
 
 
-if __name__ == "__main__":
+def main():
+    """Calls function to create datasets."""
     create_dataset()
+
+
+if __name__ == "__main__":
+    """Calls main and starts script."""
+    main()
