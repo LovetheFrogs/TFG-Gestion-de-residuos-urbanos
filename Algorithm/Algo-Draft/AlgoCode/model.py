@@ -17,6 +17,10 @@
 
 The module contains the definitions and methods of the ``Node`` and ``Edge`` 
 classes, both of which form a ``Graph`` object.
+
+The methods contained allow for search and division of a route setting and
+organizing problem, dividing a graph into similar-weighted zones and
+finding paths for a graph that minimize the value of the objective function.
 """
 
 import os
@@ -407,8 +411,24 @@ class Graph():
 
         return path
 
-    def dijkstra(self, start, end):
-        distances = {node: float('inf') for node in self.node_list + [self.center]}
+    def dijkstra(self, start: int, end: int) -> list[int]:
+        """Performs Dijkstra algorithm on a graph.
+        
+        Dijkstra is used to find the shortest path between any pair of nodes
+        (start, end) in a graph.
+
+        Args:
+            start: The index of the starting node.
+            end: The index of the final node.
+
+        Returns:
+            A list containing the indeces of the nodes that form the path, in 
+            the order they should be traversed.
+        """
+        distances = {
+                        node: float('inf') for node in self.node_list + 
+                        [self.center]
+                    }
         distances[start] = 0
         childs = {}
         pq = [(0, start)]
@@ -426,20 +446,37 @@ class Graph():
                     childs[next] = curr_node
                     heapq.heappush(pq, (new_dist, next))
         
-        return distances[end], []
+        return distances[end]
 
     def precompute_shortest_paths(self):
+        """Precomputes the shortest path between all node pairs in the graph.
+        
+        The function precomputes the shortest path between all node pairs to 
+        make the execution of the path-finding algorithm faster and sets 
+        ``self.shortest_paths`` to a dict containing this information.
+        
+        This could be performed using Floyd-Warshall's algorithm, which 
+        has a complexity of O(N^3). When compared to Dijkstra's complexity of 
+        O(NE + N^2log N), it in theory runs better on not-so-dense graphs, 
+        where (E < N^2) but given that our density will be at least 0.5, 
+        Dijkstra should (in theory) be faster, although the possibility of 
+        changing to Floyd-Warshall in the future might be reconsidered.
+        """
         self.shortest_paths = {}
         all_nodes = self.node_list + [self.center]
         for start in all_nodes:
             for end in all_nodes:
                 key = (start.index, end.index)
                 if start != end:
-                    distance, _ = self.dijkstra(start, end)
+                    distance = self.dijkstra(start, end)
                     self.shortest_paths[key] = distance
                 else: self.shortest_paths[key] = 0
 
-    def __create_zones__(self, angled_nodes, truck_capacity):
+    def create_zones(self, angled_nodes, truck_capacity):
+        """Divides the graph in zones.
+
+        This function is called by xxx
+        """
         zones = []
         current_weight = 0
         current_zone = []
@@ -458,8 +495,10 @@ class Graph():
 
         return zones
 
-    def __postprocess_zones__(self, zones, truck_capacity):
-        # Look at this function further
+    def postprocess_zones(self, zones, truck_capacity):
+        raise NotImplementedError
+
+    def experimental_postproccesing(self, zones, truck_capacity):
         improved = True
         while improved:
             improved = False
@@ -486,13 +525,50 @@ class Graph():
                     improved = True
                 i += 1
 
-    def divide_graph(self, truck_capacity, post = False):
+        return zones
+
+    def divide_graph(self, truck_capacity: float, 
+                    experimental: bool = False) -> list[list[int]]:
+        """Manages graph division in zones.
+
+        The division in zones tries to give out a result that minimizes the 
+        number of zones while making sure each zone can be fully picked up by 
+        one truck. It does not ensure the number of zones is the minimum, as 
+        this can yield not ideal zones (for example, zones that intersect 
+        others and make the distances between two nodes far too big).
+
+        The zones are divided radially, ordering the nodes depending on the 
+        angle they form with ``self.center``. This ensures there is no zone 
+        overlapping.
+
+        After division, the zones are post-processed. This looks at the created
+        zones and checks if moving the first and/or last node of each zone to 
+        a contiguous zone helps lower the total number of zones.
+        
+        Args:
+            truck_capacity: The maximum capacity of each truck.
+            experimental (optional): True to minimize the number of zones, 
+                can yield unoptimal zones so it defaults to False.
+
+        Returns:
+            A list of lists containing the diferent zones created, representing
+            each node as their index.
+
+        Raises:
+            NoCenterDefined: If the graph does not have a center node.
+            EmptyGraph: If the function is called on an empty graph.
+        """
         if self.center is None: raise NoCenterDefined()
         if not self.node_list: raise EmptyGraph()
-        for node in self.node_list: node.angle = math.atan2((node.coordinates[1] - self.center.coordinates[1]), (node.coordinates[0] - self.center.coordinates[0]))
+        for node in self.node_list:
+            x_coordinates = node.coordinates[0] - self.center.coordinates[0]
+            y_coordinates = node.coordinates[1] - self.center.coordinates[1]
+            node.angle = math.atan2(y, x)
         angled_nodes = sorted(self.node_list, key=lambda n: n.angle)
-        zones = self.__create_zones__(angled_nodes, truck_capacity)
-        if post: self.__postprocess_zones__(zones, truck_capacity)
+        zones = self.create_zones(angled_nodes, truck_capacity)
+        if post: zones = (self
+                          .experimental_postproccesing(zones, truck_capacity))
+        else: zones = self.postproccess_zones(zones, truck_capacity)
             
         return zones
 
