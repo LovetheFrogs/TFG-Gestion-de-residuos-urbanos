@@ -45,7 +45,8 @@ class Node():
         y: ``y`` coordinate of the node.
         center (optional): If the node is the center one. Defaults to False.
     """
-    def __init__(self, index: int, weight: float, x: float, y: float, center: bool = False):
+    def __init__(self, index: int, weight: float, 
+                x: float, y: float, center: bool = False):
         #: int: Index of the node to be created.
         self.index = int(index)
         #: float: Weight of the node. 0 if the node has center set to True.
@@ -69,77 +70,88 @@ class Node():
         Returns:
             The absolute value of the manhhatan distance.  
         """
-        return abs((abs(self.coordinates[0] - b.coordinates[0]) + abs(self.coordinates[1] - b.coordinates[1])))
+        return abs(
+            (abs(self.coordinates[0] - b.coordinates[0]) + 
+            abs(self.coordinates[1] - b.coordinates[1]))
+        )
         
     def change_status(self):
-        """Visits or unvisits the node depending on the previous visited status"""
+        """Visits or unvisits the node depending on the previous status"""
         self.visited = not self.visited
 
     def __repr__(self) -> str:
         """Changes the representation of the node.
         
-        When print is called on the node, this method is called so that the 
-        result is more readable.
+        When print is called on a node, this method is called so that the 
+        output is more readable.
 
         Returns:
             A string representing the node.
 
         Examples:
             >>> print(Node(1, 150, 10, 5))
-            Node 1 -> Weight: 150, location: (10, 5).
+            Node 1 -> Weight: 150, location: (10, 5)
             >>> print(Node(0, 0, 3, -2, True))
-            Node 0 -> Weight: 0, location: (3, -2). Center,
+            Node 0 -> Weight: 0, location: (3, -2). Center
         """
         msg = (
             f"Node {self.index} -> weight: {self.weight}, "
-            f"location: {self.coordinates}. {"Center" if self.center else ""}."
+            f"location: {self.coordinates}. {"Center" if self.center else ""}"
         )
         return msg
         
         
 class Edge():
-    """ Implements the custom Edge object that makes up a Graph.
+    """Implements the custom Edge object that makes up a Graph.
 
-    A custom Object is used in order to eaase the access to the data stored inside an Edge, such as the lenght, speed origin
-    abd destination of it. It has a few drawbacks, but the use of a class makes the code easier to follow, read and debug.
+    A custom Object is used in order to eaase the access to the data stored 
+    inside an Edge, such as the lenght, speed, origin and destination nodes 
+    of it. It has a few drawbacks, but the use of a class makes the code 
+    easier to follow, read and debug.
 
-    Parameters
-    ----------
-    lenght : float
-        The lenght of an Edge.
-    speed : float
-        The average speed of an Edge.
-    origin : Node
-        The Node object where this instance of an Edge will start.
-    dest : Node
-        The Node object where this instance of an Edge will end.
+    The cost of an edge is defined as the sum of the length and the time it
+    takes to traverse it, although in the future length or time could be
+    more important over the other. This attribute (``self.value``) allows 
+    to change this easily in the future.
 
-    Attributes
-    ----------
-    time : float
-        The time it takes to go from origin to dest.
-    value : float
-        The value (cost) of traversing the edge. Comes from the heuristic function,
-        making it so it is fixed, while the importance of each part of the objective
-        function cahnges its importance. That is, a node with value 100 will have that
-        value always, but trough diferent iterations, a lower time may be more important than
-        a lower length.
+    Args:
+        speed: The average speed to traverse the Edge.
+        origin: The Node object where this instance of Edge will start.
+        dest: The Node object where this instance of Edge will end.
 
-    See Also
-    --------
-    graph.Node()
-    graph.Graph()
     """
-    def __init__(self, speed, origin, dest):
+    def __init__(self, speed: float, origin: Node, dest: Node):
+        #: float: The length of the edge from origin to dest.
         self.length = origin.get_distance(dest)
+        #: float: The average speed to traverse the edge.
         self.speed = float(speed)
+        #: Node: The origin of the edge.
         self.origin = origin
+        #: Node: The destination of the edge.
         self.dest = dest
+        #: float: Time it takes to traverse the edge, given a speed and length.
         self.time = (float(self.length)/1000)/self.speed
+        #: float: The cost of the edge, as both length and time affect it.
         self.value = self.length + self.time
         
-    def __repr__(self):
-        return f"[ length = {self.length} | speed = {self.speed} | {self.origin.index} -> {self.dest.index} ]"
+    def __repr__(self) -> str:
+        """Changes the representation of the edge.
+        
+        When print is called on an edge, this method is called so that the
+        output is more readable.
+        
+        Returns:
+            A string representing the edge.
+
+        Examples:
+            >>> print(Edge(50, Node(1, 100, 0, 0), Node(2, 120, 10, 13)))
+            Edge 1 - 2 -> value: 23.46
+        """
+        msg = (
+            f"Edge {self.origin.index} - {self.dest.index} -> "
+            f"value: {self.value}"
+        )
+        return msg
 
 
 class Graph():
