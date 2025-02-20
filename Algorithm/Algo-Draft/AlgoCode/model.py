@@ -31,11 +31,10 @@ import math
 import random
 import heapq
 import exceptions
-from typing import TYPE_CHECKING
 
 
 class Node():
-    """ Implements the custom Node object.
+    """Implements the custom Node object.
 
     A custom Object is used in order to ease the access to the data stored 
     inside a Node, such as the weight of it. The drawback is this makes 
@@ -100,7 +99,7 @@ class Node():
         """
         msg = (
             f"Node {self.index} -> weight: {self.weight}, "
-            f"location: {self.coordinates}. {"Center" if self.center else ""}"
+            f"location: {self.coordinates}. {' Center' if self.center else ''}"
         )
         return msg
         
@@ -201,7 +200,7 @@ class Graph():
         Raises:
             NodeNotFound: If the node is not in the graph
         """
-        for node in self.graph.keys:
+        for node in self.graph:
             if node.index == idx: return node
         
         raise NodeNotFound(idx)
@@ -221,8 +220,8 @@ class Graph():
             NodeNotFound: If the origin/dest nodes are not in the graph.
             EdgeNotFound: If the edge is not in the graph.
         """
-        if origin not in self.graph.keys: raise NodeNotFound(origin.index)
-        if dest not in self.graph.keys: raise NodeNotFound(dest.index)
+        if origin not in self.graph: raise NodeNotFound(origin.index)
+        if dest not in self.graph: raise NodeNotFound(dest.index)
         for edge in self.graph[origin]:
             if edge.dest == dest: return edge
         
@@ -242,7 +241,7 @@ class Graph():
         Raises:
             DuplicateNode: If the node is already in the graph.        
         """
-        if node not in self.graph.keys: 
+        if node not in self.graph: 
             self.graph[node] = []
             self.nodes += 1
             if node.center: self.center = node
@@ -264,12 +263,12 @@ class Graph():
                 Graph.
             DuplicateEdge: If the edge is already in the Graph.
         """
-        if edge in self.graph.keys: raise DuplicateEdge()
-        if (edge.origin in self.graph.keys and edge.dest in self.graph.keys):
+        if edge in self.graph: raise DuplicateEdge()
+        if (edge.origin in self.graph and edge.dest in self.graph):
             self.graph[edge.origin].append(edge)
             self.edge_list.append(edge)
             self.edges += 1
-        elif (edge.origin not in self.graph.keys):
+        elif (edge.origin not in self.graph):
             raise NodeNotFound(edge.origin.index)
         else: raise NodeNotFound(edge.dest.index)
 
@@ -392,7 +391,7 @@ class Graph():
         Raises:
             NodeNotFound: If the start node is not in the Graph.
         """
-        if self.get_node(source) not in self.graph.keys:
+        if self.get_node(source) not in self.graph:
             raise NodeNotFound(source)
         q = deque()
         snode = self.get_node(source)
@@ -427,7 +426,7 @@ class Graph():
             the order they should be traversed.
         """
         distances = {
-                        node: float('inf') for node in self.node_list + 
+                        node.index: float('inf') for node in self.node_list + 
                         [self.center]
                     }
         distances[start] = 0
@@ -439,8 +438,8 @@ class Graph():
             if curr_node == end: break
             if curr_dist > distances[curr_node]: continue
 
-            for edge in self.graph.get(curr_node, []):
-                next = edge.dest
+            for edge in self.graph.get(self.get_node(curr_node), []):
+                next = edge.dest.index
                 new_dist = curr_dist + edge.value
                 if new_dist < distances[next]:
                     distances[next] = new_dist
@@ -452,16 +451,15 @@ class Graph():
     def precompute_shortest_paths(self):
         """Precomputes the shortest path between all node pairs in the graph.
         
-        The function precomputes the shortest path between all node pairs to 
-        make the execution of the path-finding algorithm faster and sets 
-        ``self.shortest_paths`` to a dict containing this information.
+        The function precomputes the shortest path between all node pairs and 
+        sets ``self.shortest_paths`` to a dict containing this information.
         
         This could be performed using Floyd-Warshall's algorithm, which 
         has a complexity of O(N^3). When compared to Dijkstra's complexity of 
         O(NE + N^2log N), it in theory runs better on not-so-dense graphs, 
-        where (E < N^2) but given that our density will be at least 0.5, 
-        Dijkstra should (in theory) be faster, although the possibility of 
-        changing to Floyd-Warshall in the future might be reconsidered.
+        where (E < N^2) but given that our density will be of 1, Dijkstra 
+        should (in theory) be faster, although the possibility of changing to 
+        Floyd-Warshall in the future might be reconsidered.
         """
         self.shortest_paths = {}
         all_nodes = self.node_list + [self.center]
@@ -469,7 +467,8 @@ class Graph():
             for end in all_nodes:
                 key = (start.index, end.index)
                 if start != end:
-                    distance = self.dijkstra(start, end)
+                    print("computing path from", start.index, "to", end.index)
+                    distance = self.dijkstra(start.index, end.index)
                     self.shortest_paths[key] = distance
                 else: self.shortest_paths[key] = 0
 
@@ -513,7 +512,11 @@ class Graph():
 
         return zones
 
-    def postprocess_zones(self, zones: list[list[Node]], truck_capacity: float) -> list[list[Node]]:
+    def postprocess_zones(
+        self, 
+        zones: list[list[Node]], 
+        truck_capacity: float
+    ) -> list[list[Node]]:
         """Evaluates zones to determine if a frontier node should be moved.
         
         A frontier node is a node that, while being part of a zone, is right 
@@ -529,6 +532,11 @@ class Graph():
         the weight of both zones, as it is not going to eliminate a zone (this 
         would only happen if a zone has at most 3 nodes, including the center).
 
+        To avoid increasing the size of small zones and help eliminate them, 
+        the function checks if the previous and next zones have more than 3
+        nodes (center, first and last). If not, it skips that zone, as it is 
+        possible that zone can be eliminated.
+
         Args:
             zones: The zones to be evaluated.
             truck_capacity: The maximum capacity of each truck.
@@ -537,7 +545,69 @@ class Graph():
             A list of lists containing the diferent zones created, each one 
             containing a set of ``Node`` instances.
         """
-        raise NotImplementedError
+        for i, zone in enumerate(zones):
+            prev_zone = zones[i - 1]
+            next_zone = zones[i + 1] if i + 1 < len(zones) else zones[0]
+            
+            prev_big = len(prev_zone) > 3
+            next_big = len(next_zone) > 3
+            zone_big = len(zone) - 1 > 2
+
+            prev_sum = sum(node.weight for node in prev_zone)
+            next_sum = sum(node.weight for node in next_zone)
+
+            first_w = zone[1].weight
+            last_w = zone[-1].weight
+
+            zone_empty = not (len(zone) - 1) > 0
+            # case 1 & 2
+            if ((prev_big or next_big) and (zone_big)):
+                # Try move first to prev
+                if (prev_sum + first_w) < truck_capacity and prev_big:
+                    prev_zone.append(zone[1])
+                    zone.remove(zone[1])
+                # Try move last to next
+                if (
+                    (next_sum + last_w) < truck_capacity and 
+                    zone_big and 
+                    next_big
+                ):
+                    next_zone.insert(1, zone[1])
+                    zone.remove(zone[-1])
+            # case 3
+            elif (len(zone) - 1) <= 2:
+                # Move first to previous and last to next
+                if (prev_sum + first_w) < truck_capacity:
+                    prev_zone.append(zone[1])
+                    zone.remove(zone[1])
+                    if len(zone) == 1:
+                        zones.remove(zone)
+                        zone_empty = True
+                        continue
+                if (next_sum + last_w) < truck_capacity and (not zone_empty):
+                    next_zone.insert(1, zone[1])
+                    zone.remove(zone[-1])
+                    if len(zone) == 1:
+                        zones.remove(zone)
+                        zone_empty = True
+                        continue
+                # Move first to next and last to previous
+                if (prev_sum + last_w) < truck_capacity and (not zone_empty):
+                    prev_zone.append(zone[-1])
+                    zone.remove(zone[-1])
+                    if len(zone) == 1:
+                        zones.remove(zone)
+                        zone_empty = True
+                        continue
+                if (next_sum + first_w) < truck_capacity and (not zone_empty):
+                    next_zone.insert(1, zone[1])
+                    zone.remove(zone[1])
+                    if len(zone) == 1:
+                        zones.remove(zone)
+                        zone_empty = True
+                        continue
+
+        return zones
 
     def divide_graph(self, truck_capacity: float) -> list[list[Node]]:
         """Manages graph division in zones.
@@ -558,7 +628,7 @@ class Graph():
         
         Args:
             truck_capacity: The maximum capacity of each truck.
-            
+
         Returns:
             A list of lists containing the diferent zones created, each one 
             containing a set of ``Node`` instances.
@@ -572,10 +642,10 @@ class Graph():
         for node in self.node_list:
             x_coordinates = node.coordinates[0] - self.center.coordinates[0]
             y_coordinates = node.coordinates[1] - self.center.coordinates[1]
-            node.angle = math.atan2(y, x)
+            node.angle = math.atan2(y_coordinates, x_coordinates)
         angled_nodes = sorted(self.node_list, key=lambda n: n.angle)
         zones = self.create_zones(angled_nodes, truck_capacity)
-        zones = self.postproccess_zones(zones, truck_capacity)
+        zones = self.postprocess_zones(zones, truck_capacity)
             
         return zones
 
@@ -601,64 +671,33 @@ class Graph():
         """
         g = Graph()
         for node in nodes: g.add_node(node)
-        for node in g.graph.keys:
-            if node not in self.graph.keys: raise NodeNotFound(node.index)
+        for node in g.graph:
+            if node not in self.graph: raise NodeNotFound(node.index)
             edges = self.graph[node]
             for edge in edges:
-                if edge.dest in g.graph.keys: g.add_edge(edge)
+                if edge.dest in g.graph: g.add_edge(edge)
         
         return g
 
-    def run_GA(self, pop_size=1000, ngen=1000, cxpb=0.6, mutpb=0.4):
-        # Reset DEAP classes to avoid conflicts
+    def run_GA(self, pop_size=200, ngen=100, cxpb=0.9, mutpb=0.1):
         if hasattr(creator, 'FitnessMin'):
             del creator.FitnessMin
         if hasattr(creator, 'Individual'):
             del creator.Individual
 
-        # Define FitnessMin with a tuple for weights
-        creator.create("FitnessMin", base.Fitness, weights=(-1.0,))  # <-- Tuple here
+        creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
         creator.create("Individual", list, fitness=creator.FitnessMin)
+
+        print("computing paths")
         self.precompute_shortest_paths()
-        # Get original non-center node indices (e.g., [1, 2, ..., 12])
-        non_center_nodes = [node.index for node in self.node_list]
+        print("paths computed")
+        nodes = [node.index for node in self.node_list]
+        genes = [i for i in range(len(nodes))]
+        convert = {i: node for i, node in enumerate(nodes)}
 
-        # Map GA indices (0-based) to original node indices
-        self.ga_to_original = {ga_idx: original_idx for ga_idx, original_idx in enumerate(non_center_nodes)}
-        # Map original node indices back to GA indices
-        self.original_to_ga = {original_idx: ga_idx for ga_idx, original_idx in self.ga_to_original.items()}
-
-        # Use 0-based GA indices for individuals (e.g., [0, 1, ..., 11])
-        non_center_ga_indices = list(self.ga_to_original.keys())
-
-        # DEAP Toolbox setup
         toolbox = base.Toolbox()
-        toolbox.register("indices", random.sample, non_center_ga_indices, len(non_center_ga_indices))
+        toolbox.register("indices", random.sample, genes, len(nodes))
         toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.indices)
-        def greedy_path():
-            """Generates a greedy path using precomputed shortest path costs."""
-            start = self.center
-            unvisited = self.node_list.copy()
-            path = []
-            
-            while unvisited:
-                # Find the next node with the smallest shortest path cost from the current node
-                next_node = min(
-                    unvisited,
-                    key=lambda node: self.shortest_paths.get((start.index, node.index), float('inf'))
-                )
-                
-                # Ensure a valid path exists (graph is connected per problem statement)
-                if self.shortest_paths.get((start.index, next_node.index), float('inf')) == float('inf'):
-                    raise ValueError(f"No path from {start.index} to {next_node.index}")
-                
-                # Add the node to the path and mark as visited
-                path.append(self.original_to_ga[next_node.index])
-                start = next_node
-                unvisited.remove(next_node)
-            
-            return path
-        toolbox.register("greedy", greedy_path)
         toolbox.register("population", tools.initRepeat, list, toolbox.individual, n=pop_size-1)
             
         def evaluate(individual):
@@ -666,7 +705,7 @@ class Graph():
             current = self.center
             for ga_idx in individual:
                 # Convert GA index to original node index
-                original_idx = self.ga_to_original[ga_idx]  # <-- Now valid for 0 ≤ ga_idx ≤ 11
+                original_idx = convert[ga_idx]
                 key = (current.index, original_idx)
                 total_value += self.shortest_paths.get(key, float('inf'))
                 current = self.get_node(original_idx)
@@ -675,7 +714,7 @@ class Graph():
             total_value += self.shortest_paths.get(key, float('inf'))
             # Node order penalty
             penalty = sum(
-                self.get_node(self.ga_to_original[ga_idx]).weight * (i + 1)
+                self.get_node(convert[ga_idx]).weight * (i + 1)
                 for i, ga_idx in enumerate(individual)
             )
             return (total_value + 0.01 * penalty,)
@@ -694,11 +733,11 @@ class Graph():
 
         toolbox.register("evaluate", evaluate)
         toolbox.register("mate", tools.cxPartialyMatched)
-        toolbox.register("mutate", tools.mutShuffleIndexes, indpb=0.5)
+        toolbox.register("mutate", tools.mutShuffleIndexes, indpb=0.1)
         toolbox.register("select", tools.selTournament, tournsize=3)
         toolbox.register("local_search", local_search)
 
-        pop = toolbox.population(n=pop_size) + [creator.Individual(toolbox.greedy())]
+        pop = toolbox.population(n=pop_size)
         hof = tools.HallOfFame(1)
         stats = tools.Statistics(lambda ind: ind.fitness.values)
         stats.register("avg", np.mean)
@@ -710,15 +749,16 @@ class Graph():
             halloffame=hof, verbose=True
         )
 
-        best_individual = [i + 1 for i in hof[0]]
+        best_individual = [convert[i] for i in hof[0]]
         best_path = [self.center.index] + best_individual + [self.center.index]
-        total_value = evaluate(best_individual[1:-1])[0]
+        total_value = evaluate(hof[0])[0]
 
         return best_path, total_value
 
     def __repr__(self):
         new_line = "\n"
-        return f'{new_line.join(f"{node} = {edges}" for node, edges in self.graph.items())}'
+        return f"{new_line.join(f'{node for node in self.graph}')}"
+        #return f"{new_line.join(f"{node} = {edges}" for node, edges in self.graph.items())}"
 
 
 if __name__ == '__main__':
@@ -728,13 +768,20 @@ if __name__ == '__main__':
     subgraphs and paths are calculated for each subgraph.
     """
     g = Graph()
-    g.populate_from_file(os.getcwd() + "/files/test2.txt")
+    #g.populate_from_file(os.getcwd() + "/files/test2.txt")
+    g.populate_from_file(os.getcwd() + "/Algorithm/Algo-Draft/AlgoCode/files/test2.txt")
     res = g.divide_graph(725)
     sg = []
     for z in res: sg.append(g.create_subgraph(z))
+    print(len(res))
+    for z in res: 
+        for n in z: print(n.index, end=' ')
+        print(f" - {sum(n.weight for n in z)}")
+        print()
     p, v = g.run_GA()
     print(f"Path: {p}\nValue: {v}")
-    for i, graph in enumerate(sg):
+    for graph in sg:
+        print(graph)
         p, v = graph.run_GA()
-        print(f"Path {i}: {p}\nValue: {v}")
+        print(f"Path: {p}\nValue: {v}")
 
