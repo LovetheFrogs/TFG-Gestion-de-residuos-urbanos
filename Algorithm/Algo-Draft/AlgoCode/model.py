@@ -26,11 +26,13 @@ finding paths for a graph that minimize the value of the objective function.
 import os
 from collections import deque
 from deap import base, creator, tools, algorithms
+import matplotlib.pyplot as plt
 import numpy as np
 import math
 import random
 import heapq
 import exceptions
+import plotter
 
 
 class Node():
@@ -537,6 +539,9 @@ class Graph():
         nodes (center, first and last). If not, it skips that zone, as it is 
         possible that zone can be eliminated.
 
+        When the zone being evaluated has one or two nodes, the function tries
+        to move this node(s) to contiguous zones to eliminate the current zone.
+
         Args:
             zones: The zones to be evaluated.
             truck_capacity: The maximum capacity of each truck.
@@ -649,6 +654,21 @@ class Graph():
             
         return zones
 
+    def create_points(self, path: list[int]) -> list[tuple[float, float]]:
+        """Generates a list of coordinates from a list of node indices.
+        
+        Args:
+            path: The list of indices of the nodes that form the path.
+
+        Returns:
+            The list of coordinates.
+        """
+        res = []
+        for idx in path:
+            res.append(self.get_node(idx).coordinates)
+
+        return res
+
     def create_subgraph(self, nodes: list[Node]) -> 'Graph':
         """Creates a new graph from an existing one.
 
@@ -678,6 +698,71 @@ class Graph():
                 if edge.dest in g.graph: g.add_edge(edge)
         
         return g
+
+    def run_ga_tsp(self, pop_size = 200, ngen = 100, cxpb = 0.9, mutpb = 0.1):
+        if hasattr(creator, 'FitnessMin'):
+            del creator.FitnessMin
+        if hasattr(creator, 'Individual'):
+            del creator.Individual
+
+        creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
+        nodes = [node.index for node in self.node_list]
+        genes = [i for i in range(len(nodes))]
+        convert = {i: node for i, node in enumerate(nodes)}
+
+        creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
+        creator.create("Individual", list, typecode='i', fitness=creator.FitnessMin)
+
+        toolbox = base.Toolbox()
+        toolbox.register("random_order", random.sample, genes, len(nodes))
+        toolbox.register("individual_creator", tools.initIterate, creator.Individual, toolbox.random_order)
+        toolbox.register("population_creator", tools.initRepeat, list, toolbox.individual_creator)
+
+        def evaluate(individual):
+            total_value = 0
+            current = self.center
+            for idx in individual:
+                original_idx = convert[idx]
+                total_value += self.get_edge(current, self.get_node(original_idx)).value
+                current = self.get_node(original_idx)
+            total_value += self.get_edge(current, self.center).value
+            penalty = sum(
+                self.get_node(convert[idx]).weight * (len(individual) - i)
+                for i, idx in enumerate(individual)
+            )
+            return (total_value + 0.2 * penalty,)
+
+        toolbox.register("evaluate", evaluate)
+        toolbox.register("select", tools.selTournament, tournsize=3)
+
+        toolbox.register("mate", tools.cxOrdered)
+        toolbox.register("mutate", tools.mutShuffleIndexes, indpb=1.0/self.nodes)
+
+        population = toolbox.population_creator(n=pop_size)
+        stats = tools.Statistics(lambda ind: ind.fitness.values)
+        stats.register("min", np.min)
+        stats.register("avg", np.mean)
+        hof = tools.HallOfFame(1)
+
+        population, logbook = algorithms.eaSimple(population, toolbox, cxpb=cxpb, mutpb=mutpb, ngen=ngen, stats=stats, halloffame=hof, verbose=True)
+
+        best = [convert[i] for i in hof.items[0]]
+        best_path = [self.center.index] + best + [self.center.index]
+        total_value = evaluate(hof[0])[0]
+
+        print("-- Best Ever Individual = ", best_path)
+        print("-- Best Ever Fitness = ", hof.items[0].fitness.values[0])
+
+        pltr = plotter.Plotter()
+        plt.figure(1)
+        pltr.plot_map(self.create_points(best_path))
+        plt.figure(2)
+        pltr.plot_evolution(logbook.select("min"), logbook.select("avg"))
+
+        plt.show()
+
+        return best_path, total_value
+
 
     def run_GA(self, pop_size=200, ngen=100, cxpb=0.9, mutpb=0.1):
         if hasattr(creator, 'FitnessMin'):
@@ -768,8 +853,8 @@ if __name__ == '__main__':
     subgraphs and paths are calculated for each subgraph.
     """
     g = Graph()
-    #g.populate_from_file(os.getcwd() + "/files/test2.txt")
-    g.populate_from_file(os.getcwd() + "/Algorithm/Algo-Draft/AlgoCode/files/test2.txt")
+    g.populate_from_file(os.getcwd() + "/files/test2.txt")
+    #g.populate_from_file(os.getcwd() + "/Algorithm/Algo-Draft/AlgoCode/files/test2.txt")
     res = g.divide_graph(725)
     sg = []
     for z in res: sg.append(g.create_subgraph(z))
@@ -778,10 +863,12 @@ if __name__ == '__main__':
         for n in z: print(n.index, end=' ')
         print(f" - {sum(n.weight for n in z)}")
         print()
-    p, v = g.run_GA()
-    print(f"Path: {p}\nValue: {v}")
+    #p, v = g.run_ga_tsp()
+    #print(f"Path: {p}\nValue: {v}")
+    t = 0
     for graph in sg:
         print(graph)
-        p, v = graph.run_GA()
+        p, v = graph.run_ga_tsp()
+        t += v
         print(f"Path: {p}\nValue: {v}")
-
+    print(f"Total value: {t}")
