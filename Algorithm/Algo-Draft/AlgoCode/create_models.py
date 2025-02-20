@@ -5,8 +5,8 @@ import sys
 import random
 
 CWD = os.getcwd()
-DATA_SIZE = 20
-MIN_NODES, MAX_NODES = 100, 500
+DATA_SIZE = 1
+MIN_NODES, MAX_NODES = 300, 500
 MIN_WEIGHT, MAX_WEIGHT = 100, 250
 MIN_X, MAX_X = -100, 100
 MIN_Y, MAX_Y = -100, 100
@@ -43,16 +43,16 @@ def update_global():
                 MAX_NODES = int(value)
             case "-x":
                 global MIN_X
-                MIN_X: int(value)
+                MIN_X = int(value)
             case "-X":
                 global MAX_X
-                MAX_X: int(value)
+                MAX_X = int(value)
             case "-y":
                 global MIN_Y
-                MIN_Y: int(value)
+                MIN_Y - int(value)
             case "-Y":
                 global MAX_Y
-                MAX_Y: int(value)
+                MAX_Y = int(value)
             case "-w":
                 global MIN_WEIGHT
                 MIN_WEIGHT = float(value)
@@ -100,8 +100,8 @@ def generate_edges(nodes: set[int]) -> tuple[int, str]:
     The function generates ``m`` edges in two iterations. First, it generates
     ``(n - 1) · 2`` edges, two for each node from and to the center to 
     ensure all of them are accesible from the central node. Then, it 
-    generates a random set of edges to achieve a density between 0.5 and
-    0.75.
+    generates a random set of edges to achieve a density of 1, although this
+    can be adjusting by changing the value of ``extra_edges``.
 
     Args
         nodes: A set of all the nodes created.
@@ -131,10 +131,11 @@ def generate_edges(nodes: set[int]) -> tuple[int, str]:
                         )
     extra_edges = int(
         random.uniform(
-            ((0.5 * (node_count * (node_count - 1)))),
-            ((0.75 * (node_count * (node_count - 1)))),
+            ((1 * (node_count * (node_count - 1)))),
+            ((1 * (node_count * (node_count - 1)))),
         )
     )
+
     while (len(edges)) < extra_edges:
         origin, dest = random.sample(nodes_list, 2)
         edge = (origin, dest)
