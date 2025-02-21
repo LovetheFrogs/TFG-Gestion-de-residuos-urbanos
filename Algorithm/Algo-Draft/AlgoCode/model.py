@@ -9,7 +9,7 @@
 # TO-DO: Add non-heuristic search functions (to check if our solution is faster/cheaper). added bfs & Dijkstra, left to test both
 # TO-DO: Create benchmark for time to execute & value of different aproaches.
 # TO-DO: Create file from database module FOR THE OTHER TFG.
-# NOTE: Having a node as visited or not allows for trucks to update the status of various nodes to false to request a new execution of the algorithm, changing the truck that had to visit them.
+# NOTE: Having a node as visited or not allows for trucks to update the status of various nodes to false to request a new execution of the algorithm, changing the truck that had to visit them. FOR THE OTHER TFG
 # Investigate 2opt inclusion on GA.
 # Restriction: Currently all trucks need to have the same capacity.
 
@@ -31,7 +31,7 @@ import numpy as np
 import math
 import random
 import heapq
-import exceptions
+from exceptions import *
 import plotter
 
 
@@ -577,7 +577,7 @@ class Graph():
                     zone_big and 
                     next_big
                 ):
-                    next_zone.insert(1, zone[1])
+                    next_zone.insert(1, zone[-1])
                     zone.remove(zone[-1])
             # case 3
             elif (len(zone) - 1) <= 2:
@@ -590,7 +590,7 @@ class Graph():
                         zone_empty = True
                         continue
                 if (next_sum + last_w) < truck_capacity and (not zone_empty):
-                    next_zone.insert(1, zone[1])
+                    next_zone.insert(1, zone[-1])
                     zone.remove(zone[-1])
                     if len(zone) == 1:
                         zones.remove(zone)
@@ -699,172 +699,278 @@ class Graph():
         
         return g
 
-    def run_ga_tsp(self, pop_size = 200, ngen = 100, cxpb = 0.9, mutpb = 0.1):
+    def evaluate(self, individual: list[int]) -> tuple[float, ...]:
+        """Evaluates the objective function value for a path.
+        
+        The algorithms used for this problem are genetic algorithms and, as 
+        such, try to minimize/maximize the value of a function to find a 
+        solution to a problem. In this case, the problem is finding the path
+        in a graph that optimizes a series of objectives. Those individual 
+        objectives form an objective function. The ``evaluate`` function checks
+        the result of evaluating said objective function for a given path.
+        
+        Currently, the objective function gives the cost of the path, which is
+        the sum of the values of the edges that form the path, and a penalty,
+        whose objective is to try and visit higher-weighted nodes later in the
+        path, as running for a longer distance with a heavier load increases
+        the maintenance cost of the truck.
+        
+        Args:
+            individual: The path to evaluate.
+
+        Returns:
+            A tuple containing the value of the objective function.
+        """
+        total_value = 0
+        current = self.center
+        for idx in individual:
+            original_idx = self.convert[idx]
+            total_value += self.get_edge(current, self.get_node(original_idx)).value
+            current = self.get_node(original_idx)
+        total_value += self.get_edge(current, self.center).value
+        penalty = sum(
+            self.get_node(self.convert[idx]).weight * (len(individual) - i)
+            for i, idx in enumerate(individual)
+        )
+        return (total_value + 0.2 * penalty,)
+    
+    def define_creator(self, vsp: bool = False) -> creator:
+        """Defines a deap creator for the genetic algorithms.
+        
+        The ``deap.creator`` module is part of the DEAP framework and it's used
+        to extend existing classes, adding new functionalities to them. This
+        function extracts the ``creator`` instantiation from the ``run_ga_tsp``
+        function so the code is easier to read and follow.
+        
+        Inside the ``creator`` object is where the objective of the genetic
+        algorithm is defined, as well as what will the individuals be like.
+        In this case, the objective is to minimize the value of the objective
+        function, and the individuals are lists of integers, containing the 
+        indices of the nodes of the graph in the order they will be visited.
+        
+        This wrapper function also allows us to define attributes depending on
+        which genetic algorithm we are running; the Genetic Algorithm designed 
+        to solve the Vehicle Scheduling Problem (VSP) or the one that solves
+        the Traveling Salesman Problem (TSP).
+
+        Args:
+            vsp (optional): True if running the VSP genetic algorithm. Defaults
+                to False.
+
+        Returns:
+            The creator defined for the genetic algorithm.
+        """
         if hasattr(creator, 'FitnessMin'):
             del creator.FitnessMin
         if hasattr(creator, 'Individual'):
             del creator.Individual
 
         creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
+        if not vsp:
+            creator.create(
+                                "Individual", 
+                                list, typecode='i', 
+                                fitness=creator.FitnessMin
+                           )
+
+        return creator
+
+    def define_toolbox(self, pop_size: int, vsp: bool = False) -> base.Toolbox:
+        """Defines a deap toolbox for the genetic algorithms.
+        
+        The ``deap.base.createor`` module is part of the DEAP framework. It's 
+        used as a container for functions, and enables the creation of new
+        operators by customizing existing ones. This function extracts the
+        ``toolbox`` instantiation from the ``run_ga_tsp`` function so the code
+        is easier to read and follow. 
+        
+        In the ``toolbox`` object is where the functions used by the genetic
+        algorithm are defined, such as the evaluation, selection, crossover
+        and mutation functions.
+        
+        This wrapper function also allows us to define functions depending on
+        which genetic algorithm we are running; the Genetic Algorithm designed 
+        to solve the Vehicle Scheduling Problem (VSP) or the one that solves
+        the Traveling Salesman Problem (TSP).
+        
+        Args:
+            pop_size: The size of the population.
+            vsp (optional): True if running the VSP genetic algorithm. Defaults
+                to False.
+
+        Returns:
+            The toolbox defined for the genetic algorithm.
+        """
         nodes = [node.index for node in self.node_list]
         genes = [i for i in range(len(nodes))]
-        convert = {i: node for i, node in enumerate(nodes)}
-
-        creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
-        creator.create("Individual", list, typecode='i', fitness=creator.FitnessMin)
+        self.convert = {i: node for i, node in enumerate(nodes)}
 
         toolbox = base.Toolbox()
         toolbox.register("random_order", random.sample, genes, len(nodes))
-        toolbox.register("individual_creator", tools.initIterate, creator.Individual, toolbox.random_order)
-        toolbox.register("population_creator", tools.initRepeat, list, toolbox.individual_creator)
+        toolbox.register(
+                            "individual_creator",
+                            tools.initIterate,
+                            creator.Individual,
+                            toolbox.random_order
+                         )
+        toolbox.register(
+                            "population_creator",
+                            tools.initRepeat,
+                            list,
+                            toolbox.individual_creator
+                         )
 
-        def evaluate(individual):
-            total_value = 0
-            current = self.center
-            for idx in individual:
-                original_idx = convert[idx]
-                total_value += self.get_edge(current, self.get_node(original_idx)).value
-                current = self.get_node(original_idx)
-            total_value += self.get_edge(current, self.center).value
-            penalty = sum(
-                self.get_node(convert[idx]).weight * (len(individual) - i)
-                for i, idx in enumerate(individual)
-            )
-            return (total_value + 0.2 * penalty,)
-
-        toolbox.register("evaluate", evaluate)
+        toolbox.register("evaluate", self.evaluate)
         toolbox.register("select", tools.selTournament, tournsize=3)
 
         toolbox.register("mate", tools.cxOrdered)
-        toolbox.register("mutate", tools.mutShuffleIndexes, indpb=1.0/self.nodes)
+        toolbox.register("mutate", tools.mutShuffleIndexes, 
+                         indpb=1.0/self.nodes)
 
+        return toolbox
+
+    def define_ga_tsp(self, toolbox: base.Toolbox,
+                      pop_size: int) -> tuple[list, dict, list]:
+        """Defines the attributes for the TSP Generic Algorithm.
+        
+        The function defines the population, statistics and hall of fame for
+        the Genetic Algorithm designed to solve the Traveling Salesman Problem.
+
+        Args:
+            toolbox: The toolbox for the genetic algorithm.
+            pop_size: The size of the population.
+
+        Returns:
+            A tuple containing the population, statistics and hall of fame.
+        """
         population = toolbox.population_creator(n=pop_size)
         stats = tools.Statistics(lambda ind: ind.fitness.values)
         stats.register("min", np.min)
         stats.register("avg", np.mean)
         hof = tools.HallOfFame(1)
 
-        population, logbook = algorithms.eaSimple(population, toolbox, cxpb=cxpb, mutpb=mutpb, ngen=ngen, stats=stats, halloffame=hof, verbose=True)
+        return population, stats, hof
 
-        best = [convert[i] for i in hof.items[0]]
+    def plot_ga_results(self, path: list[int], logbook: dict) -> plt:
+        """Sets up a plotter for the results of the Genetic Algorithm.
+        
+        This function uses the ``plotter`` module to plot the results of the
+        Genetic Algorithm using the ``matplotlib`` library. It creates two
+        plots, one showing the map with the path found and the other showing
+        the evolution of the best and average fitness values of the population
+        across generations.
+
+        Args:
+            path: The best path found by the Genetic Algorithm.
+            logbook: The logbook containing the statistics of the Genetic
+                Algorithm execution. 
+
+        Returns:
+            A ``matplotlib.pyplot`` object containing the plots.
+        """
+        pltr = plotter.Plotter()
+        plt.figure(1)
+        pltr.plot_map(self.create_points(path))
+        plt.figure(2)
+        pltr.plot_evolution(logbook.select("min"), logbook.select("avg"))
+
+        return plt
+
+    def run_ga_tsp(
+                    self, 
+                    ngen: int = 100,
+                    cxpb: float = 0.9,
+                    mutpb: float = 0.1,
+                    pop_size: int = 200
+                   ) -> tuple[list[int], float]:
+        """Runs the Genetic Algorithm for the Traveling Salesman Problem.
+        
+        This function calls the wrapper functions that define the creator, 
+        toolbox and the attributes for the Genetic Algorithm designed to solve
+        the Traveling Salesman Problem. It then runs the Genetic Algorithm and 
+        returns the best path found and its total value, while also calling the
+        wrapper function to plot the results.
+
+        Args:
+            ngen (optional): The number of generations. Defaults to 100.
+            cxpb (optional): The mating probability. Defaults to 0.9.
+            mutpb (optional): The mutation probability. Defaults to 0.1.
+            pop_size (optional): The size of the population. Defaults to 200.
+
+        Returns:
+            A tuple containing the best path found and its total value.
+        """
+        creator = self.define_creator()
+        toolbox = self.define_toolbox(pop_size)
+        population, stats, hof, = self.define_ga_tsp(toolbox, pop_size)
+
+        population, logbook = algorithms.eaSimple(
+                                                    population, 
+                                                    toolbox, 
+                                                    cxpb=cxpb, 
+                                                    mutpb=mutpb,
+                                                    ngen=ngen, 
+                                                    stats=stats, 
+                                                    halloffame=hof, 
+                                                    verbose=True
+                                                  )
+
+        best = [self.convert[i] for i in hof.items[0]]
         best_path = [self.center.index] + best + [self.center.index]
-        total_value = evaluate(hof[0])[0]
+        total_value = self.evaluate(hof[0])[0]
 
         print("-- Best Ever Individual = ", best_path)
         print("-- Best Ever Fitness = ", hof.items[0].fitness.values[0])
 
-        pltr = plotter.Plotter()
-        plt.figure(1)
-        pltr.plot_map(self.create_points(best_path))
-        plt.figure(2)
-        pltr.plot_evolution(logbook.select("min"), logbook.select("avg"))
-
-        plt.show()
+        self.plot_ga_results(best_path, logbook).show()
 
         return best_path, total_value
 
+    def __repr__(self) -> str:
+        """Changes the default representation of a graph.
 
-    def run_GA(self, pop_size=200, ngen=100, cxpb=0.9, mutpb=0.1):
-        if hasattr(creator, 'FitnessMin'):
-            del creator.FitnessMin
-        if hasattr(creator, 'Individual'):
-            del creator.Individual
+        When print is called on a graph, this method is called so that the 
+        output is more readable.
 
-        creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
-        creator.create("Individual", list, fitness=creator.FitnessMin)
-
-        print("computing paths")
-        self.precompute_shortest_paths()
-        print("paths computed")
-        nodes = [node.index for node in self.node_list]
-        genes = [i for i in range(len(nodes))]
-        convert = {i: node for i, node in enumerate(nodes)}
-
-        toolbox = base.Toolbox()
-        toolbox.register("indices", random.sample, genes, len(nodes))
-        toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.indices)
-        toolbox.register("population", tools.initRepeat, list, toolbox.individual, n=pop_size-1)
+        Returns:
+            A string representing the graph.
             
-        def evaluate(individual):
-            total_value = 0
-            current = self.center
-            for ga_idx in individual:
-                # Convert GA index to original node index
-                original_idx = convert[ga_idx]
-                key = (current.index, original_idx)
-                total_value += self.shortest_paths.get(key, float('inf'))
-                current = self.get_node(original_idx)
-            # Return to center
-            key = (current.index, self.center.index)
-            total_value += self.shortest_paths.get(key, float('inf'))
-            # Node order penalty
-            penalty = sum(
-                self.get_node(convert[ga_idx]).weight * (i + 1)
-                for i, ga_idx in enumerate(individual)
-            )
-            return (total_value + 0.01 * penalty,)
-        
-        def local_search(individual):
-            improved = True
-            while improved:
-                improved = False
-                for i in range(len(individual)):
-                    for j in range(i+2, len(individual)):
-                        new_ind = individual[:i] + individual[i:j][::-1] + individual[j:]
-                        if evaluate(new_ind)[0] < evaluate(individual)[0]:
-                            individual[:] = new_ind
-                            improved = True
-            return individual,
-
-        toolbox.register("evaluate", evaluate)
-        toolbox.register("mate", tools.cxPartialyMatched)
-        toolbox.register("mutate", tools.mutShuffleIndexes, indpb=0.1)
-        toolbox.register("select", tools.selTournament, tournsize=3)
-        toolbox.register("local_search", local_search)
-
-        pop = toolbox.population(n=pop_size)
-        hof = tools.HallOfFame(1)
-        stats = tools.Statistics(lambda ind: ind.fitness.values)
-        stats.register("avg", np.mean)
-        stats.register("min", np.min)
-
-        algorithms.eaMuPlusLambda(
-            pop, toolbox, mu=pop_size, lambda_=2*pop_size,
-            cxpb=cxpb, mutpb=mutpb, ngen=ngen, stats=stats,
-            halloffame=hof, verbose=True
-        )
-
-        best_individual = [convert[i] for i in hof[0]]
-        best_path = [self.center.index] + best_individual + [self.center.index]
-        total_value = evaluate(hof[0])[0]
-
-        return best_path, total_value
-
-    def __repr__(self):
+        Examples:
+            >>> print(Graph())
+            Graph with 0 nodes and 0 edges. Center: None
+            >>> print(Graph().populate_from_file("files/test2.txt"))
+            Graph with 13 nodes and 156 edges. Center: 0 
+        """
         new_line = "\n"
-        return f"{new_line.join(f'{node for node in self.graph}')}"
-        #return f"{new_line.join(f"{node} = {edges}" for node, edges in self.graph.items())}"
+        msg = (
+            f"Graph with {self.nodes} nodes and {self.edges} edges. "
+            f"Center: {self.center.index}\n"
+        )
+        return msg
+
 
 
 if __name__ == '__main__':
-    """An example of creating using the module.
+    """An example of using the module.
     
     In this example a graph is created from a file, divided in zones & 
     subgraphs and paths are calculated for each subgraph.
     """
     g = Graph()
+    print("Loading graph")
     g.populate_from_file(os.getcwd() + "/files/test2.txt")
-    #g.populate_from_file(os.getcwd() + "/Algorithm/Algo-Draft/AlgoCode/files/test2.txt")
+    #g.populate_from_file(os.getcwd() + "/Algorithm/Algo-Draft/AlgoCode/files/datasets/dataset1.txt")
+    print("Graph loaded")
+    print(g)
     res = g.divide_graph(725)
     sg = []
-    for z in res: sg.append(g.create_subgraph(z))
     print(len(res))
-    for z in res: 
+    for i, z in enumerate(res): 
         for n in z: print(n.index, end=' ')
-        print(f" - {sum(n.weight for n in z)}")
-        print()
-    #p, v = g.run_ga_tsp()
-    #print(f"Path: {p}\nValue: {v}")
+        print(f" - {sum(n.weight for n in z)} Zone {i}")
+        sg.append(g.create_subgraph(z))
+    p, v = g.run_ga_tsp()
+    print(f"Path: {p}\nValue: {v}")
     t = 0
     for graph in sg:
         print(graph)
