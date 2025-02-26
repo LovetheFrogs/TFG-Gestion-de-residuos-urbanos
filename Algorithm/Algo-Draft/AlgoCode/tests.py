@@ -136,7 +136,7 @@ class TestGraph(unittest.TestCase):
         self.assertTrue(self.g.center is not None)
         self.assertEqual(self.g.center, self.nodes[0])
 
-    def test_fromFile(self):
+    def test_from_file(self):
         """Tests generating nodes and edges from a file"""
         self.g.populate_from_file(os.getcwd() + "/files/test.txt")
         self.assertEqual(self.g.get_node(1).index, 1)
@@ -190,6 +190,19 @@ class TestGraph(unittest.TestCase):
         # Prob. test for stuff like if hof[0] <= hof[1] or if result is center + all nodes + center
         # Test total value is better than evaluating a random order of nodes?
         raise NotImplementedError
+
+    def test_save_and_load(self):
+        """Tests saving and loading a graph."""
+        for node in self.nodes: self.g.add_node(node)
+        for edge in self.edges: self.g.add_edge(edge)
+        self.g.save(f"{os.getcwd()}/files/data/gbkp")
+        aux = lg(f"{os.getcwd()}/files/data/gbkp")
+        self.assertNotEqual(aux, None)
+        self.assertTrue(aux.isinstance(Graph))
+        self.assertEqual(
+            [aux.nodes, aux.edges], 
+            [self.g.nodes, self.g.edges]
+        )
 
 
 class TestModelFileCreation(unittest.TestCase):

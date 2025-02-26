@@ -51,6 +51,7 @@ def load(path: str) -> 'Graph' | None:
         g = pickle.load(backup)
     return g if g.isinstance(Graph) else None
 
+
 class Node():
     """Implements the custom Node object.
 
@@ -982,7 +983,6 @@ class Graph():
             f"Center: {self.center.index}\n"
         )
         return msg
-
 
 
 if __name__ == '__main__':
