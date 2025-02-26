@@ -371,12 +371,12 @@ class Graph():
         n
         idx_1 weight_1 x_1 y_1
         idx_2 weight_2 x_2 y_2
-            ...
+                ...
         idx_n weight_n x_n y_n
         m
         speed_1 origin_1 dest_1
         speed_2 origin_2 dest_2
-                    ...
+                ...
         speed_m origin_m dest_m
         ```
         Where ``n`` is the number of nodes to be read, followed by the 
