@@ -31,9 +31,26 @@ import numpy as np
 import math
 import random
 import heapq
+import pickle
 from exceptions import *
 import plotter
 
+def load(path: str) -> 'Graph' | None:
+    """Loads a graph object from a file.
+
+    This function is extracted from the graph class because it should be used
+    to get a whole new instance of one.
+    
+    Args:
+        path: The path to load the graph from.
+
+    Returns:
+        The graph object inside the file. If the object returned is not an 
+        instance of the ``Graph`` class, the function returns ``None``
+    """
+    with open(path, 'rb') as backup:
+        g = pickle.load(backup)
+    return g if g.isinstance(Graph) else None
 
 class Node():
     """Implements the custom Node object.
@@ -331,6 +348,15 @@ class Graph():
             The minimum number of zones.
         """
         return math.ceil(self.total_weight() / truck_capacity)
+
+    def save(self, path: str):
+        """Saves a graph to a file.
+        
+        Args:
+            path: The path where the current graph will be saved.
+        """
+        with open(path, 'wb') as backup:
+            pickle.dump(self, backup, protocol = -1)
 
     def populate_from_file(self, file: str):
         """Populates a graph from the data in a file.
