@@ -851,7 +851,11 @@ class Graph():
 
         return population, stats, hof
 
-    def plot_ga_results(self, path: list[int], logbook: dict) -> plt:
+    def plot_ga_results(
+        self, 
+        path: list[int], 
+        logbook: dict, dir: str | None = None
+    ) -> plt:
         """Sets up a plotter for the results of the Genetic Algorithm.
         
         This function uses the ``plotter`` module to plot the results of the
@@ -863,7 +867,9 @@ class Graph():
         Args:
             path: The best path found by the Genetic Algorithm.
             logbook: The logbook containing the statistics of the Genetic
-                Algorithm execution. 
+                Algorithm execution.
+            dir (optional): The directory where the plots should be saved. Defaults to 
+                None, in which case the plot(s) won't be saved.
 
         Returns:
             A ``matplotlib.pyplot`` object containing the plots.
@@ -871,18 +877,21 @@ class Graph():
         pltr = plotter.Plotter()
         plt.figure(1)
         pltr.plot_map(self.create_points(path))
+        if dir: plt.savefig(f"{dir}/Path.png")
         plt.figure(2)
         pltr.plot_evolution(logbook.select("min"), logbook.select("avg"))
+        if dir: plt.savefig(f"{dir}/Evolution.png")
 
         return plt
 
     def run_ga_tsp(
-                    self, 
-                    ngen: int = 100,
-                    cxpb: float = 0.9,
-                    mutpb: float = 0.1,
-                    pop_size: int = 200
-                   ) -> tuple[list[int], float]:
+        self,
+        ngen: int = 100, 
+        cxpb: float = 0.9, 
+        mutpb: float = 0.1, 
+        pop_size: int = 200, 
+        dir: str | None = None
+    ) -> tuple[list[int], float]:
         """Runs the Genetic Algorithm for the Traveling Salesman Problem.
         
         This function calls the wrapper functions that define the creator, 
@@ -896,6 +905,8 @@ class Graph():
             cxpb (optional): The mating probability. Defaults to 0.9.
             mutpb (optional): The mutation probability. Defaults to 0.1.
             pop_size (optional): The size of the population. Defaults to 200.
+            dir (optional): The directory where the plots should be saved. Defaults to 
+                None, in which case the plot(s) won't be saved.
 
         Returns:
             A tuple containing the best path found and its total value.
@@ -922,7 +933,8 @@ class Graph():
         print("-- Best Ever Individual = ", best_path)
         print("-- Best Ever Fitness = ", hof.items[0].fitness.values[0])
 
-        self.plot_ga_results(best_path, logbook).show()
+        if dir: self.plot_ga_results(best_path, logbook, dir)
+        else: self.plot_ga_results(best_path, logbook, dir).show()
 
         return best_path, total_value
 
