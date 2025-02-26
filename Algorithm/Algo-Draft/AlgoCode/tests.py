@@ -1,17 +1,17 @@
 import unittest
 import os
 import shutil
-import model
+from model import *
 import create_models as cm
-import exceptions
+from exceptions import *
 
 """Multiple test cases for the functions coded for the project."""
 
 class TestNode(unittest.TestCase):
     """Node module tests."""
     def setUp(self):
-        self.node = Node(0, 10)
-        self.nodec = Node(1, 3, True)
+        self.node = Node(0, 10, 0, 0, True)
+        self.nodec = Node(1, 3, 1, 2)
 
     def test_create(self):
         """Tests the creation of a node."""
@@ -20,8 +20,20 @@ class TestNode(unittest.TestCase):
 
     def test_center(self):
         """Tests if a node has been assigned the `center` value."""
-        self.assertFalse(self.node.center)
-        self.assertTrue(self.nodec.center)
+        self.assertFalse(self.nodec.center)
+        self.assertTrue(self.node.center)
+
+    def test_change_status(self):
+        """Tests if a node changes its visited status"""
+        self.assertFalse(self.node.visited)
+        self.node.change_status()
+        self.assertTrue(self.node.visited)
+        self.node.change_status()
+        self.assertTrue(self.node.visited)
+
+    def test_distance(self):
+        """Tests calculating the distance between two nodes."""
+        self.assertEqual(self.node.getdistance(self.nodec), 3)
 
 
 class TestEdge(unittest.TestCase):
