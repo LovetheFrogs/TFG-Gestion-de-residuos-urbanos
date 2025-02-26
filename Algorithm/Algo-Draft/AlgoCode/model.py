@@ -6,7 +6,6 @@
 # reStructuredText - https://www.writethedocs.org/guide/writing/reStructuredText/
 # PEP 484 - https://www.writethedocs.org/guide/writing/reStructuredText/
 # Check https://stackoverflow.com/questions/14328406/tool-to-convert-python-code-to-be-pep8-compliant thread for linters/code style
-# TO-DO: Add non-heuristic search functions (to check if our solution is faster/cheaper). added bfs & Dijkstra, left to test both
 # TO-DO: Create benchmark for time to execute & value of different aproaches.
 # TO-DO: Create file from database module FOR THE OTHER TFG.
 # NOTE: Having a node as visited or not allows for trucks to update the status of various nodes to false to request a new execution of the algorithm, changing the truck that had to visit them. FOR THE OTHER TFG
@@ -439,19 +438,17 @@ class Graph():
 
         return path
 
-    def dijkstra(self, start: int, end: int) -> list[int]:
+    def dijkstra(self, start: int) -> list[float]:
         """Performs Dijkstra algorithm on a graph.
         
-        Dijkstra is used to find the shortest path between any pair of nodes
-        (start, end) in a graph.
+        Dijkstra is used to find the shortest path between a node and every
+        other node in a graph. 
 
         Args:
             start: The index of the starting node.
-            end: The index of the final node.
 
         Returns:
-            A list containing the indeces of the nodes that form the path, in 
-            the order they should be traversed.
+            The minimum cost of going from start any other node.
         """
         distances = {
                         node.index: float('inf') for node in self.node_list + 
@@ -474,7 +471,7 @@ class Graph():
                     childs[next] = curr_node
                     heapq.heappush(pq, (new_dist, next))
         
-        return distances[end]
+        return distances
 
     def precompute_shortest_paths(self):
         """Precomputes the shortest path between all node pairs in the graph.
@@ -492,13 +489,9 @@ class Graph():
         self.shortest_paths = {}
         all_nodes = self.node_list + [self.center]
         for start in all_nodes:
-            for end in all_nodes:
-                key = (start.index, end.index)
-                if start != end:
-                    print("computing path from", start.index, "to", end.index)
-                    distance = self.dijkstra(start.index, end.index)
-                    self.shortest_paths[key] = distance
-                else: self.shortest_paths[key] = 0
+            distances = self.dijkstra(start.index)
+            for i, n in enumerate(distances):
+                self.shortest_paths[start.index, i] = distances[i]
 
     def create_zones(
         self, 
