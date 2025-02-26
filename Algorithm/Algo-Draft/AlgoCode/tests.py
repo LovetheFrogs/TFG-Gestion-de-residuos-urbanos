@@ -39,9 +39,9 @@ class TestNode(unittest.TestCase):
 class TestEdge(unittest.TestCase):
     """Edge module tests."""
     def setUp(self):
-        self.node1 = Node(0, 10)
-        self.node2 = Node(1, 5)
-        self.edge = Edge(3, 10, self.node1, self.node2)
+        self.node1 = Node(0, 10, 0, 0, True)
+        self.node2 = Node(1, 3, 1, 2)
+        self.edge = Edge(10, self.node1, self.node2)
 
     def test_create(self):
         """Tests the creation of an edge."""
