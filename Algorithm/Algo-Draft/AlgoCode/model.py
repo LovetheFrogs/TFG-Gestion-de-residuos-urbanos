@@ -31,10 +31,11 @@ import math
 import random
 import heapq
 import pickle
+from typing import Union
 from exceptions import *
 import plotter
 
-def load(path: str) -> 'Graph' | None:
+def load(path: str) -> Union['Graph', None]:
     """Loads a graph object from a file.
 
     This function is extracted from the graph class because it should be used
@@ -49,7 +50,7 @@ def load(path: str) -> 'Graph' | None:
     """
     with open(path, 'rb') as backup:
         g = pickle.load(backup)
-    return g if g.isinstance(Graph) else None
+    return g if isinstance(g, Graph) else None
 
 
 class Node():
@@ -118,7 +119,7 @@ class Node():
         """
         msg = (
             f"Node {self.index} -> weight: {self.weight}, "
-            f"location: {self.coordinates}. {' Center' if self.center else ''}"
+            f"location: {self.coordinates}. {'Center' if self.center else ''}"
         )
         return msg
         
@@ -282,7 +283,7 @@ class Graph():
                 Graph.
             DuplicateEdge: If the edge is already in the Graph.
         """
-        if edge in self.graph: raise DuplicateEdge()
+        if edge in self.edge_list: raise DuplicateEdge()
         if (edge.origin in self.graph and edge.dest in self.graph):
             self.graph[edge.origin].append(edge)
             self.edge_list.append(edge)
@@ -364,6 +365,8 @@ class Graph():
         An new graph is created form the data available in a file. The file 
         should have a `.txt` extension and the data in it must be formatted 
         accordingly.
+        
+        Note that this function makes the node with index 0 the center one.
 
         The format of the data in the file must have the following format 
         in order to be readable by this function:
@@ -410,6 +413,9 @@ class Graph():
     def bfs(self, source: Node) -> list[int]:
         """Performs Breadth First Search on the graph from the node ``source``.
 
+        Note that this implementation visits nodes in the order they appear in
+        the parent node's adjadcency list.
+
         Args:
             source: The index of the start node.
 
@@ -419,12 +425,12 @@ class Graph():
         Raises:
             NodeNotFound: If the start node is not in the Graph.
         """
-        if self.get_node(source) not in self.graph:
+        if source not in self.graph:
             raise NodeNotFound(source)
         q = deque()
-        snode = self.get_node(source)
+        snode = source
         visited = [False] * self.nodes
-        visited[source - 1] = True
+        visited[source.index - 1] = True
         q.append(snode)
         path = []
         curr_val = 0
@@ -461,7 +467,6 @@ class Graph():
 
         while pq:
             curr_dist, curr_node = heapq.heappop(pq)
-            if curr_node == end: break
             if curr_dist > distances[curr_node]: continue
 
             for edge in self.graph.get(self.get_node(curr_node), []):
@@ -749,8 +754,10 @@ class Graph():
         current = self.center
         for idx in individual:
             original_idx = self.convert[idx]
+            total_value += self.get_edge(
+                current, self.get_node(original_idx)
+                                         ).value
             current = self.get_node(original_idx)
-            total_value += self.get_edge(current, current).value
         total_value += self.get_edge(current, self.center).value
         penalty = sum(
             self.get_node(self.convert[idx]).weight * (len(individual) - i)
@@ -993,8 +1000,8 @@ if __name__ == '__main__':
     """
     g = Graph()
     print("Loading graph")
-    g.populate_from_file(os.getcwd() + "/files/test2.txt")
-    #g.populate_from_file(os.getcwd() + "/Algorithm/Algo-Draft/AlgoCode/files/datasets/dataset1.txt")
+    #g.populate_from_file(os.getcwd() + "/files/test2.txt")
+    g.populate_from_file(os.getcwd() + "/Algorithm/Algo-Draft/AlgoCode/files/test2.txt")
     print("Graph loaded")
     print(g)
     res = g.divide_graph(725)

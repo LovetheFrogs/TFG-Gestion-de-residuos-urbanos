@@ -23,12 +23,7 @@ def update_global():
     """ Takes script call arguments (if any) and updates the value of the
     extraction constants (nº of nodes, weights, nº of files...)
     """
-    if len(sys.argv) % 2 != 1:
-        print(
-                "Wrong number of arguments, " 
-                "please check your call to the module."
-             )
-        print("Using default values.")
+    if len(sys.argv) % 2 != 1 and len(sys.argv) != 0:
         return
     for flag, value in zip(sys.argv[1::2], sys.argv[2::2]):
         match flag:

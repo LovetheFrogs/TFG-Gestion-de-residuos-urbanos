@@ -5,7 +5,8 @@ class NodeNotFound(Exception):
     
     Args:
         message (optional): Description of the error, default is 
-            ``The node of index {id} was not found in the structure``.
+            ``The node searched for was not found in the structure. Index 
+            searched:``.
         id: Id of the not found node.
         *args: Variable length argument list.
     """
@@ -13,12 +14,12 @@ class NodeNotFound(Exception):
         self, 
         id: int, 
         message: str = "The node searched for was not found in the structure."
-        "Index searched: ",
+        " Index searched:",
         *args
     ):
         self.message = message
         self.id = id
-        super(NodeNotFound, self).__init__(f"{message}{id}", *args)
+        super(NodeNotFound, self).__init__(f"{self.message} {self.id}", *args)
 
 
 class DuplicateNode(Exception):
@@ -63,7 +64,7 @@ class EdgeNotFound(Exception):
     def __init__(
         self,
         path: str,
-        message: str = "The edge for was not found in the structure.",
+        message: str = "The edge was not found in the structure.",
         *args
     ):
         self.message = message
