@@ -54,29 +54,34 @@ class TestEdge(unittest.TestCase):
 class TestGraph(unittest.TestCase):
     """Graph module tests."""
     def setUp(self):
-        self.nodes = [Node(i, i) for i in range(5)]
-        self.nodes.append(Node(5, 13, True))
+        self.nodes = [
+            Node(0, 0, 0, 0, True), 
+            Node(1, 1, 1, 2), 
+            Node(2, 2, 3, -2), 
+            Node(3, 3, 0, 5),
+            Node(4, 4, -7, 0)
+        ]
         self.edges = []
-        self.edges.append(Edge(5, 10, self.nodes[0], self.nodes[2]))
-        self.edges.append(Edge(15, 4, self.nodes[1], self.nodes[4]))
-        self.edges.append(Edge(8, 2, self.nodes[3], self.nodes[2]))
-        self.edges.append(Edge(17, 4, self.nodes[2], self.nodes[0]))
+        self.edges.append(Edge(10, self.nodes[0], self.nodes[2]))
+        self.edges.append(Edge(4, self.nodes[1], self.nodes[4]))
+        self.edges.append(Edge(2, self.nodes[3], self.nodes[2]))
+        self.edges.append(Edge(4, self.nodes[2], self.nodes[0]))
 
         self.g = Graph()
 
-    def test_addNode(self):
+    def test_add_node(self):
         """Tests adding a new node to the graph."""
         for node in self.nodes: 
             self.g.add_node(node)
             self.assertEqual(self.g.node_list[-1], node)
-        self.assertEqual(self.g.nodes, 6)
+        self.assertEqual(self.g.nodes, 5)
         with self.assertRaisesRegex(
             DuplicateNode, 
             "The node is already in the Graph"
         ):
             self.g.add_node(self.nodes[1])
 
-    def test_addEdge(self):
+    def test_add_edge(self):
         """ Tests adding a new edge between two nodes of a graph."""
         for node in self.nodes: self.g.add_node(node)
         for edge in self.edges:
@@ -85,12 +90,14 @@ class TestGraph(unittest.TestCase):
         self.assertEqual(self.g.edges, 4)
         with self.assertRaisesRegex(
             NodeNotFound, 
-            "The node searched for was not found in the structure. Index searched: 4"
+            "The node searched for was not found in the structure. "
+            "Index searched: 4"
         ):
             self.g.add_edge(Edge(1, 1, Node(4, 3), self.nodes[0]))
         with self.assertRaisesRegex(
             NodeNotFound, 
-            "The node searched for was not found in the structure. Index searched: 8"
+            "The node searched for was not found in the structure. "
+            "Index searched: 8"
         ):
             self.g.add_edge(Edge(1, 1, self.nodes[0], Node(8, 3)))
         with self.assertRaisesRegex(
@@ -99,7 +106,7 @@ class TestGraph(unittest.TestCase):
         ):
             self.g.add_edge(self.edges[1])
 
-    def test_getNode(self):
+    def test_get_node(self):
         """Tests getting a node from the graph."""
         for node in self.nodes: self.g.add_node(node)
         self.assertEqual(self.g.get_node(1), self.nodes[1])
@@ -110,16 +117,40 @@ class TestGraph(unittest.TestCase):
         ):
             self.g.get_node(10)
 
+    def test_get_edge(self):
+        for node in self.nodes: self.g.add_node(node)
+        for edge in self.edges: self.g.add_edge(edge)
+        self.assertEqual(
+            self.g.get_edge(self.nodes[0], self.nodes[2]).length, 5
+        )
+        with self.assertRaisesRegex(
+            EdgeNotFound,
+            "The edge was not found in the structure."
+        ):
+            self.g.get_edge(self.nodes[0], self.nodes[1])
+
     def test_center(self):
         """Tests if the center node has been assigned properly."""
         for node in self.nodes: self.g.add_node(node)
         self.assertTrue(self.g.center is not None)
-        self.assertEqual(self.g.center, self.nodes[len(self.nodes) - 1])
+        self.assertEqual(self.g.center, self.nodes[0])
+
+    def test_bfs(self):
+        """Tests bfs."""
+        for node in self.nodes: self.g.add_node(node)
+        for edge in self.edges: self.g.add_edge(edge)
+        self.assertEqual(self.g.bfs(self.nodes[0]), [0, 2])
+        self.g.add_edge(Edge(15, self.nodes[2], self.nodes[1]))
+        self.g.add_edge(Edge(15, self.nodes[0], self.nodes[1]))
+        self.g.add_edge(Edge(15, self.nodes[2], self.nodes[4]))
+        self.g.add_edge(Edge(15, self.nodes[4], self.nodes[3]))
+        self.assertEqual(self.g.bfs(self.nodes[0]), [0, 1, 2, 4, 3])
 
     def test_fromFile(self):
         """Tests generating nodes and edges from a file"""
         self.g.populate_from_file(os.getcwd() + "/files/test.txt")
         self.assertEqual(self.g.get_node(1).index, 1)
+
 
 
 class TestModelFileCreation(unittest.TestCase):
@@ -134,7 +165,7 @@ class TestModelFileCreation(unittest.TestCase):
         cm.create_dataset()
 
     def test_fileCreation(self):
-        """ Tests creating the correct number of files """
+        """Tests creating the correct number of files"""
         self.assertTrue(os.path.isfile(
             os.getcwd() + "/files/datasets/dataset2.txt"
         ))
@@ -172,5 +203,5 @@ def main():
 
 
 if __name__ == '__main__':
-    """Calls main function to run tests."""
+    """Calls main function to run selected tests."""
     main()
