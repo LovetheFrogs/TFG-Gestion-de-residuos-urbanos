@@ -77,7 +77,7 @@ class Node():
         """
         return abs(
             (abs(self.coordinates[0] - b.coordinates[0]) + 
-            abs(self.coordinates[1] - b.coordinates[1]))
+             abs(self.coordinates[1] - b.coordinates[1]))
         )
         
     def change_status(self):
@@ -474,7 +474,11 @@ class Graph():
                     self.shortest_paths[key] = distance
                 else: self.shortest_paths[key] = 0
 
-    def create_zones(self, angled_nodes: list[Node], truck_capacity: float) -> list[list[Node]]:
+    def create_zones(
+        self, 
+        angled_nodes: list[Node], 
+        truck_capacity: float
+    ) -> list[list[Node]]:
         """Divides the graph in zones.
 
         This function is called by ``divide_graph()``. It is in charge of 
@@ -725,8 +729,8 @@ class Graph():
         current = self.center
         for idx in individual:
             original_idx = self.convert[idx]
-            total_value += self.get_edge(current, self.get_node(original_idx)).value
             current = self.get_node(original_idx)
+            total_value += self.get_edge(current, current).value
         total_value += self.get_edge(current, self.center).value
         penalty = sum(
             self.get_node(self.convert[idx]).weight * (len(individual) - i)
