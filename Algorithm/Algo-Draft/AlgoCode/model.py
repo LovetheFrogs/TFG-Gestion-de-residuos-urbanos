@@ -644,7 +644,7 @@ class Graph():
         The division in zones tries to give out a result that minimizes the 
         number of zones while making sure each zone can be fully picked up by 
         one truck. It does not ensure the number of zones is the minimum, as 
-        this can yield not ideal zones (for example, zones that intersect 
+        this can yield not-so-ideal zones (for example, zones that intersect 
         others and make the distances between two nodes far too big).
 
         The zones are divided radially, ordering the nodes depending on the 
