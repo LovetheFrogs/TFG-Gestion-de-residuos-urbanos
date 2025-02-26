@@ -1,7 +1,8 @@
 import unittest
 import os
 import shutil
-from model import *
+from model import Node, Edge, Graph
+from model import load as lg
 import create_models as cm
 from exceptions import *
 
@@ -135,6 +136,11 @@ class TestGraph(unittest.TestCase):
         self.assertTrue(self.g.center is not None)
         self.assertEqual(self.g.center, self.nodes[0])
 
+    def test_fromFile(self):
+        """Tests generating nodes and edges from a file"""
+        self.g.populate_from_file(os.getcwd() + "/files/test.txt")
+        self.assertEqual(self.g.get_node(1).index, 1)
+
     def test_bfs(self):
         """Tests bfs."""
         for node in self.nodes: self.g.add_node(node)
@@ -146,11 +152,44 @@ class TestGraph(unittest.TestCase):
         self.g.add_edge(Edge(15, self.nodes[4], self.nodes[3]))
         self.assertEqual(self.g.bfs(self.nodes[0]), [0, 1, 2, 4, 3])
 
-    def test_fromFile(self):
-        """Tests generating nodes and edges from a file"""
-        self.g.populate_from_file(os.getcwd() + "/files/test.txt")
-        self.assertEqual(self.g.get_node(1).index, 1)
+    def test_dijkstra(self):
+        """Tests Dijkstra's algorithm."""
+        for node in self.nodes: self.g.add_node(node)
+        for edge in self.edges: self.g.add_edge(edge)
+        self.assertEqual(
+            self.g.dijkstra(self.nodes[0]),
+            [0, float('inf'), 3, float('inf'), float('inf')]
+        )
+        self.g.add_edge(Edge(15, self.nodes[2], self.nodes[1]))
+        self.g.add_edge(Edge(15, self.nodes[0], self.nodes[1]))
+        self.g.add_edge(Edge(15, self.nodes[2], self.nodes[4]))
+        self.g.add_edge(Edge(15, self.nodes[4], self.nodes[3]))
+        self.assertEqual(
+            self.g.dijkstra(self.nodes[0]),
+            [0, 3, 3, 25, 13]
+        )
 
+    # Test & complete methods that raise NotImplementedError at home
+    def test_divide_graph(self):
+        """Tests graph division into zones."""
+        raise NotImplementedError
+
+    def test_create_points(self):
+        """Tests getting coordinates from a list of node indeces."""
+        self.assertEqual(
+            self.g.create_points([0, 2, 3]),
+            [(0.0, 0.0), (3.0, -2.0), (0.0, 5.0)]
+        )
+
+    def test_create_subgraph(self):
+        """Tests creating a subgraph from a list of nodes."""
+        raise NotImplementedError
+
+    def test_ga_tsp(self):
+        """Tests the Genetic Algorithm (TSP)"""
+        # Prob. test for stuff like if hof[0] <= hof[1] or if result is center + all nodes + center
+        # Test total value is better than evaluating a random order of nodes?
+        raise NotImplementedError
 
 
 class TestModelFileCreation(unittest.TestCase):
