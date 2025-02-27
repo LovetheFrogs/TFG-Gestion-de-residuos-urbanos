@@ -185,8 +185,10 @@ class TestGraph(unittest.TestCase):
         """Tests graph division into zones."""
         g2 = Graph()
         g2.populate_from_file(f"{os.getcwd()}/files/test2.txt")
+        aux = g2.divide_graph(725)
+        zones = [[n.index for n in z] for z in aux]
         self.assertEqual(
-            g2.divide_graph(725),
+            zones,
             [[0, 9, 3, 4, 10], [0, 11, 2, 7, 8], [0, 5, 6, 1, 12]]
         )
 
@@ -208,14 +210,15 @@ class TestGraph(unittest.TestCase):
         """Tests the Genetic Algorithm (TSP)"""
         g2 = Graph()
         g2.populate_from_file(f"{os.getcwd()}/files/test2.txt")
-        p, v = g2.run_ga_tsp(f"{os.getcwd()}/files/plots")
-        shutil.rmtree(os.getcwd() + "/files/plots")
-        self.assertTrue(p[-1], p[0])
-        self.assertTrue(p[0], 0)
+        p, v = g2.run_ga_tsp(dir=f"{os.getcwd()}/files/plots")
+        os.remove(f"{os.getcwd()}/files/plots/Path.png")
+        os.remove(f"{os.getcwd()}/files/plots/Evolution.png")
+        self.assertEqual(p[-1], p[0])
+        self.assertEqual(p[0], 0)
         random_path = (
-            [0] + [n for n in random.sample(g2.node_list, g2.nodes - 1)] + [0]
+            [n.index - 1 for n in random.sample(g2.node_list, g2.nodes - 1)]
         )
-        self.assertTrue(g2.evaluate(random_path)[0], v)
+        self.assertTrue(g2.evaluate(random_path)[0] > v)
 
     def test_save_and_load(self):
         """Tests saving and loading a graph."""
@@ -276,8 +279,7 @@ class TestModelFileCreation(unittest.TestCase):
 
 def suite():
     suite = unittest.TestSuite()
-    suite.addTest(TestGraph('test_dijkstra'))
-    suite.addTest(TestModelFileCreation('test_file_creation'))
+    suite.addTest(TestGraph('test_ga_tsp'))
     return suite
 
 def main():
