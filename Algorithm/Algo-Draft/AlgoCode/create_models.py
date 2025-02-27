@@ -244,5 +244,5 @@ def main():
 
 
 if __name__ == "__main__":
-    """Calls main and starts script."""
+    """Entry point of the script."""
     main()
