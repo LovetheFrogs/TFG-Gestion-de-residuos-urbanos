@@ -1,6 +1,7 @@
 import unittest
 import os
 import shutil
+import random
 from model import Node, Edge, Graph
 from model import load as lg
 import create_models as cm
@@ -171,11 +172,6 @@ class TestGraph(unittest.TestCase):
             [3, 5, 25, 13, 0]
         )
 
-    # Test & complete methods that raise NotImplementedError at home
-    def test_divide_graph(self):
-        """Tests graph division into zones."""
-        raise NotImplementedError
-
     def test_create_points(self):
         """Tests getting coordinates from a list of node indeces."""
         for node in self.nodes: self.g.add_node(node)
@@ -185,15 +181,41 @@ class TestGraph(unittest.TestCase):
             [(0.0, 0.0), (3.0, -2.0), (0.0, 5.0)]
         )
 
+    def test_divide_graph(self):
+        """Tests graph division into zones."""
+        g2 = Graph()
+        g2.populate_from_file(f"{os.getcwd()}/files/test2.txt")
+        self.assertEqual(
+            g2.divide_graph(725),
+            [[0, 9, 3, 4, 10], [0, 11, 2, 7, 8], [0, 5, 6, 1, 12]]
+        )
+
     def test_create_subgraph(self):
         """Tests creating a subgraph from a list of nodes."""
-        raise NotImplementedError
+        g2 = Graph()
+        g2.populate_from_file(f"{os.getcwd()}/files/test2.txt")
+        aux = g2.divide_graph(725)
+        for i, zone in enumerate(aux):
+            with self.subTest(i=i):
+                subgraph = g2.create_subgraph(zone)
+                self.assertEqual(g2.center, subgraph.center)
+                self.assertEqual(len(zone), subgraph.nodes)
+                self.assertEqual(
+                    subgraph.nodes * (subgraph.nodes - 1), subgraph.edges
+                )
 
     def test_ga_tsp(self):
         """Tests the Genetic Algorithm (TSP)"""
-        # Prob. test for stuff like if hof[0] <= hof[1] or if result is center + all nodes + center
-        # Test total value is better than evaluating a random order of nodes?
-        raise NotImplementedError
+        g2 = Graph()
+        g2.populate_from_file(f"{os.getcwd()}/files/test2.txt")
+        p, v = g2.run_ga_tsp(f"{os.getcwd()}/files/plots")
+        shutil.rmtree(os.getcwd() + "/files/plots")
+        self.assertTrue(p[-1], p[0])
+        self.assertTrue(p[0], 0)
+        random_path = (
+            [0] + [n for n in random.sample(g2.node_list, g2.nodes - 1)] + [0]
+        )
+        self.assertTrue(g2.evaluate(random_path)[0], v)
 
     def test_save_and_load(self):
         """Tests saving and loading a graph."""

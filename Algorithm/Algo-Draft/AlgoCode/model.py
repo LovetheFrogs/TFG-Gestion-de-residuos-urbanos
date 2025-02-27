@@ -409,6 +409,7 @@ class Graph():
                             )
 
             self.set_center(self.get_node(0))
+            self.center.center = True
 
     def bfs(self, source: Node) -> list[int]:
         """Performs Breadth First Search on the graph from the node ``source``.
