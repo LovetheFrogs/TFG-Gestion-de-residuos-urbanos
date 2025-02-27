@@ -33,6 +33,7 @@ import heapq
 import pickle
 import sys
 from typing import Union
+import elitisim
 from exceptions import *
 import plotter
 
@@ -481,37 +482,6 @@ class Graph():
         
         return distances
 
-    def minKey(self, key, mstSet):
-        """Extracted from g4g"""
-        min = sys.maxsize
-
-        for v in range(self.nodes):
-            if key[v] < min and mstSet[v] == False:
-                min = key[v]
-                min_index = v
-
-        return min_index
-
-    def prim(self):
-        """Extracted from g4g, modified"""
-        key = [sys.maxsize] * self.nodes
-        parent = [None] * self.nodes
-        key[0] = 0
-        mstSet = [False] * self.nodes
-        parent[0] = -1
-
-        for i in range(self.nodes):
-            u = self.minKey(key, mstSet)
-            mstSet[u] = True
-            for n in self.g[u]:
-                if mstSet[n.dest] == False and key[n.dest] > n.value:
-                    key[n.dest] = n.value
-                    parent[n.dest] = u
-
-        # Create a tree using some library (tinytree looks good) and return its pre-order
-
-        return path
-
     def precompute_shortest_paths(self):
         """Precomputes the shortest path between all node pairs in the graph.
         
@@ -911,14 +881,15 @@ class Graph():
         stats = tools.Statistics(lambda ind: ind.fitness.values)
         stats.register("min", np.min)
         stats.register("avg", np.mean)
-        hof = tools.HallOfFame(1)
+        hof = tools.HallOfFame(30)
 
         return population, stats, hof
 
     def plot_ga_results(
         self, 
         path: list[int], 
-        logbook: dict, dir: str | None = None
+        logbook: dict, dir: str | None = None,
+        idx: int = 0
     ) -> plt:
         """Sets up a plotter for the results of the Genetic Algorithm.
         
@@ -934,6 +905,7 @@ class Graph():
                 Algorithm execution.
             dir (optional): The directory where the plots should be saved. Defaults to 
                 None, in which case the plot(s) won't be saved.
+            idx (optional): The index for the plot to save. Defaults to 0.
 
         Returns:
             A ``matplotlib.pyplot`` object containing the plots.
@@ -941,10 +913,10 @@ class Graph():
         pltr = plotter.Plotter()
         plt.figure(1)
         pltr.plot_map(self.create_points(path))
-        if dir: plt.savefig(f"{dir}/Path.png")
+        if dir: plt.savefig(f"{dir}/Path{idx}.png")
         plt.figure(2)
         pltr.plot_evolution(logbook.select("min"), logbook.select("avg"))
-        if dir: plt.savefig(f"{dir}/Evolution.png")
+        if dir: plt.savefig(f"{dir}/Evolution{idx}.png")
 
         return plt
 
@@ -954,7 +926,8 @@ class Graph():
         cxpb: float = 0.9, 
         mutpb: float = 0.1, 
         pop_size: int = 200, 
-        dir: str | None = None
+        dir: str | None = None,
+        idx: int = 0
     ) -> tuple[list[int], float]:
         """Runs the Genetic Algorithm for the Traveling Salesman Problem.
         
@@ -971,6 +944,7 @@ class Graph():
             pop_size (optional): The size of the population. Defaults to 200.
             dir (optional): The directory where the plots should be saved. Defaults to 
                 None, in which case the plot(s) won't be saved.
+            idx (optional): The index for the plot to save. Defaults to 0.
 
         Returns:
             A tuple containing the best path found and its total value.
@@ -978,8 +952,8 @@ class Graph():
         creator = self.define_creator()
         toolbox = self.define_toolbox(pop_size)
         population, stats, hof, = self.define_ga_tsp(toolbox, pop_size)
-
-        population, logbook = algorithms.eaSimple(
+        
+        population, logbook = elitisim.eaSimpleWithElitism(
                                                     population, 
                                                     toolbox, 
                                                     cxpb=cxpb, 
@@ -997,8 +971,8 @@ class Graph():
         print("-- Best Ever Individual = ", best_path)
         print("-- Best Ever Fitness = ", hof.items[0].fitness.values[0])
 
-        if dir: self.plot_ga_results(best_path, logbook, dir)
-        else: self.plot_ga_results(best_path, logbook, dir).show()
+        if dir: self.plot_ga_results(best_path, logbook, dir, idx)
+        else: self.plot_ga_results(best_path, logbook).show()
 
         return best_path, total_value
 
@@ -1033,8 +1007,8 @@ if __name__ == '__main__':
     """
     g = Graph()
     print("Loading graph")
-    #g.populate_from_file(os.getcwd() + "/files/test2.txt")
-    g.populate_from_file(os.getcwd() + "/Algorithm/Algo-Draft/AlgoCode/files/test2.txt")
+    g.populate_from_file(os.getcwd() + "/files/test2.txt")
+    #g.populate_from_file(os.getcwd() + "/Algorithm/Algo-Draft/AlgoCode/files/test2.txt")
     print("Graph loaded")
     print(g)
     res = g.divide_graph(725)
@@ -1044,12 +1018,12 @@ if __name__ == '__main__':
         for n in z: print(n.index, end=' ')
         print(f" - {sum(n.weight for n in z)} Zone {i}")
         sg.append(g.create_subgraph(z))
-    p, v = g.run_ga_tsp()
+    p, v = g.run_ga_tsp(dir=f"{os.getcwd()}/files/plots")
     print(f"Path: {p}\nValue: {v}")
-    t = 0
+    """t = 0
     for graph in sg:
         print(graph)
         p, v = graph.run_ga_tsp()
         t += v
         print(f"Path: {p}\nValue: {v}")
-    print(f"Total value: {t}")
+    print(f"Total value: {t}")"""
