@@ -210,9 +210,9 @@ class TestGraph(unittest.TestCase):
         """Tests the Genetic Algorithm (TSP)"""
         g2 = Graph()
         g2.populate_from_file(f"{os.getcwd()}/files/test2.txt")
-        p, v = g2.run_ga_tsp(dir=f"{os.getcwd()}/files/plots")
-        os.remove(f"{os.getcwd()}/files/plots/Path.png")
-        os.remove(f"{os.getcwd()}/files/plots/Evolution.png")
+        p, v = g2.run_ga_tsp(dir=f"{os.getcwd()}/files/plots", vrb=False)
+        os.remove(f"{os.getcwd()}/files/plots/Path0.png")
+        os.remove(f"{os.getcwd()}/files/plots/Evolution0.png")
         self.assertEqual(p[-1], p[0])
         self.assertEqual(p[0], 0)
         random_path = (

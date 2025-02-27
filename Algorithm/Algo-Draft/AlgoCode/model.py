@@ -3,13 +3,8 @@
 # Check YAPF (Yet Another Python Formatter)
 # Use google code-style - https://google.github.io/styleguide/pyguide.html
 # Use google docstrings - https://gist.github.com/redlotus/3bc387c2591e3e908c9b63b97b11d24e
-# reStructuredText - https://www.writethedocs.org/guide/writing/reStructuredText/
 # PEP 484 - https://www.writethedocs.org/guide/writing/reStructuredText/
-# Check https://stackoverflow.com/questions/14328406/tool-to-convert-python-code-to-be-pep8-compliant thread for linters/code style
-# TO-DO: Create benchmark for time to execute & value of different aproaches.
-# TO-DO: Create file from database module FOR THE OTHER TFG.
 # NOTE: Having a node as visited or not allows for trucks to update the status of various nodes to false to request a new execution of the algorithm, changing the truck that had to visit them. FOR THE OTHER TFG
-# Investigate 2opt inclusion on GA.
 # Restriction: Currently all trucks need to have the same capacity.
 
 """Data structures that model the problem and its solution.
@@ -927,7 +922,8 @@ class Graph():
         mutpb: float = 0.1, 
         pop_size: int = 200, 
         dir: str | None = None,
-        idx: int = 0
+        idx: int = 0,
+        vrb: bool = True
     ) -> tuple[list[int], float]:
         """Runs the Genetic Algorithm for the Traveling Salesman Problem.
         
@@ -942,9 +938,11 @@ class Graph():
             cxpb (optional): The mating probability. Defaults to 0.9.
             mutpb (optional): The mutation probability. Defaults to 0.1.
             pop_size (optional): The size of the population. Defaults to 200.
-            dir (optional): The directory where the plots should be saved. Defaults to 
-                None, in which case the plot(s) won't be saved.
+            dir (optional): The directory where the plots should be saved. 
+                Defaults to None, in which case the plot(s) won't be saved.
             idx (optional): The index for the plot to save. Defaults to 0.
+            vrb: (optional): Run the algorithm in verbose or non-verbose mode.
+                Defaults to True.
 
         Returns:
             A tuple containing the best path found and its total value.
@@ -961,7 +959,7 @@ class Graph():
                                                     ngen=ngen, 
                                                     stats=stats, 
                                                     halloffame=hof, 
-                                                    verbose=True
+                                                    verbose=vrb
                                                   )
 
         best = [self.convert[i] for i in hof.items[0]]
