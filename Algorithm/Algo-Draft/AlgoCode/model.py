@@ -766,7 +766,7 @@ class Graph():
         )
         return (total_value + 0.2 * penalty,)
     
-    def define_creator(self, vsp: bool = False) -> creator:
+    def define_creator(self, vrp: bool = False) -> creator:
         """Defines a deap creator for the genetic algorithms.
         
         The ``deap.creator`` module is part of the DEAP framework and it's used
@@ -782,11 +782,11 @@ class Graph():
         
         This wrapper function also allows us to define attributes depending on
         which genetic algorithm we are running; the Genetic Algorithm designed 
-        to solve the Vehicle Scheduling Problem (VSP) or the one that solves
+        to solve the Vehicle Routing Problem (VRP) or the one that solves
         the Traveling Salesman Problem (TSP).
 
         Args:
-            vsp (optional): True if running the VSP genetic algorithm. Defaults
+            vrp (optional): True if running the VRP genetic algorithm. Defaults
                 to False.
 
         Returns:
@@ -798,7 +798,7 @@ class Graph():
             del creator.Individual
 
         creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
-        if not vsp:
+        if not vrp:
             creator.create(
                                 "Individual", 
                                 list, typecode='i', 
@@ -807,7 +807,7 @@ class Graph():
 
         return creator
 
-    def define_toolbox(self, pop_size: int, vsp: bool = False) -> base.Toolbox:
+    def define_toolbox(self, pop_size: int, vrp: bool = False) -> base.Toolbox:
         """Defines a deap toolbox for the genetic algorithms.
         
         The ``deap.base.createor`` module is part of the DEAP framework. It's 
@@ -822,12 +822,12 @@ class Graph():
         
         This wrapper function also allows us to define functions depending on
         which genetic algorithm we are running; the Genetic Algorithm designed 
-        to solve the Vehicle Scheduling Problem (VSP) or the one that solves
+        to solve the Vehicle Routing Problem (VRP) or the one that solves
         the Traveling Salesman Problem (TSP).
         
         Args:
             pop_size: The size of the population.
-            vsp (optional): True if running the VSP genetic algorithm. Defaults
+            vrp (optional): True if running the VRP genetic algorithm. Defaults
                 to False.
 
         Returns:
