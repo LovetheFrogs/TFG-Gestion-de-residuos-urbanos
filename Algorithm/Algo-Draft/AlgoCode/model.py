@@ -31,6 +31,7 @@ import math
 import random
 import heapq
 import pickle
+import sys
 from typing import Union
 from exceptions import *
 import plotter
@@ -479,6 +480,37 @@ class Graph():
                     heapq.heappush(pq, (new_dist, next))
         
         return distances
+
+    def minKey(self, key, mstSet):
+        """Extracted from g4g"""
+        min = sys.maxsize
+
+        for v in range(self.nodes):
+            if key[v] < min and mstSet[v] == False:
+                min = key[v]
+                min_index = v
+
+        return min_index
+
+    def prim(self):
+        """Extracted from g4g, modified"""
+        key = [sys.maxsize] * self.nodes
+        parent = [None] * self.nodes
+        key[0] = 0
+        mstSet = [False] * self.nodes
+        parent[0] = -1
+
+        for i in range(self.nodes):
+            u = self.minKey(key, mstSet)
+            mstSet[u] = True
+            for n in self.g[u]:
+                if mstSet[n.dest] == False and key[n.dest] > n.value:
+                    key[n.dest] = n.value
+                    parent[n.dest] = u
+
+        # Create a tree using some library (tinytree looks good) and return its pre-order
+
+        return path
 
     def precompute_shortest_paths(self):
         """Precomputes the shortest path between all node pairs in the graph.
