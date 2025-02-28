@@ -1,4 +1,4 @@
-# :no_entry: [DEPRECATED] -> New documentation under development
+# :no_entry: [DEPRECATED] -> New documentation located on /reports/model (28.02.2025)
 ## Algorithm and model 
 
 The following document aims to explain the model created for the proposed problem, as well as the algorithm developed to find a solution, the tests defined for the codebase and other code created within the project.

@@ -1,0 +1,1 @@
+Folder where plots are saved. Deleting this folder may make some parts of the algorithm fail.
