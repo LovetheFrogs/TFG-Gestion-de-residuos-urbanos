@@ -966,8 +966,9 @@ class Graph():
         best_path = [self.center.index] + best + [self.center.index]
         total_value = self.evaluate(hof[0])[0]
 
-        print("-- Best Ever Individual = ", best_path)
-        print("-- Best Ever Fitness = ", hof.items[0].fitness.values[0])
+        if vrb:
+            print("-- Best Ever Individual = ", best_path)
+            print("-- Best Ever Fitness = ", hof.items[0].fitness.values[0])
 
         if dir: self.plot_ga_results(best_path, logbook, dir, idx)
         else: self.plot_ga_results(best_path, logbook).show()
