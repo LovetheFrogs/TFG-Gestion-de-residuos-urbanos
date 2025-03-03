@@ -4,6 +4,7 @@ import os
 import time
 import shutil
 from model import Graph
+import utils
 import create_models
 
 class Benchmark():
@@ -24,45 +25,6 @@ class Benchmark():
         print(self.benchmark_bfs(n))
         print(self.benchmark_ga_tsp(n))
         print("-#- Benchmark completed -#-")
-        
-    def printProgressBar(
-        self,
-        iteration: int, 
-        total: int, 
-        prefix: str = '', 
-        suffix: str = '', 
-        decimals: int = 1,
-        length: int = 100,
-        fill: str = '█',
-        printEnd: str = "\r"
-    ):
-        """Call in a loop to create terminal progress bar
-        
-        Thanks to StackOverflow's Greenstick user for this function, extracted
-        from an answer to a thread about progressbars in python.
-
-        Args:
-            iteration: Current iteration.
-            total: Total iterations.
-            prefix (optional): Prefix string. Defaults to ''.
-            suffix (optional): Suffix string. Defaults to ''.
-            decimals (optional): positive number of decimals in percent 
-                complete. Defaults to 1.
-            length (optional): character length of bar. Defaults to 100.
-            fill (optional): bar fill character. Defaults to '█'.
-            printEnd (optional): end character (e.g. "\r", "\r\n").
-                Defaults to "\r".
-        """
-        percent = (
-            "{0:." + str(decimals) + "f}"
-        ).format(100 * (iteration / float(total)))
-        filledLength = int(length * iteration // total)
-        bar = fill * filledLength + '-' * (length - filledLength)
-        print(f'\r{prefix} |{bar}| {percent}% {suffix}', end = printEnd)
-        # Print New Line on Complete
-        if iteration == total: 
-            print()
-
 
     def benchmark_bfs(self, n: int) -> str:
         """Benchmarks the BFS function
@@ -76,7 +38,7 @@ class Benchmark():
         print("Benchmarking BFS...")
         cummulative_time = 0
         cummulative_value = 0
-        self.printProgressBar(
+        utils.printProgressBar(
             0, n, prefix="Progress:", suffix="Complete", length=50
         )
         for i in range(n):
@@ -93,7 +55,7 @@ class Benchmark():
             cummulative_value += g.evaluate(
                 [n - 1 for n in path[1:]]
                                             )[0]
-            self.printProgressBar(
+            utils.printProgressBar(
                 i + 1, n, prefix="Progress:", suffix="Complete", length=50
             )
         
@@ -114,7 +76,7 @@ class Benchmark():
         print("Benchmarking Genetic Algorithm (TSP)...")
         cummulative_time = 0
         cummulative_value = 0
-        self.printProgressBar(
+        utils.printProgressBar(
             0, n, prefix="Progress:", suffix="Complete", length=50
         )
         for i in range(n):
@@ -130,7 +92,7 @@ class Benchmark():
 
             cummulative_time += (end- start)
             cummulative_value += value
-            self.printProgressBar(
+            utils.printProgressBar(
                 i + 1, n, prefix="Progress:", suffix="Complete", length=50
             )
 

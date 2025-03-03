@@ -3,6 +3,7 @@
 import os
 import sys
 import random
+import utils
 
 CWD = os.getcwd()
 DATA_SIZE = 1
@@ -11,6 +12,7 @@ MIN_WEIGHT, MAX_WEIGHT = 100, 250
 MIN_X, MAX_X = -100, 100
 MIN_Y, MAX_Y = -100, 100
 MIN_SPEED, MAX_SPEED = 20, 60
+VERBOSE = False 
 NEW_LINE = "\n"
 
 DECORATOR = (
@@ -23,8 +25,6 @@ def update_global():
     """ Takes script call arguments (if any) and updates the value of the
     extraction constants (nº of nodes, weights, nº of files...)
     """
-    if len(sys.argv) % 2 != 1 and len(sys.argv) != 0:
-        return
     for flag, value in zip(sys.argv[1::2], sys.argv[2::2]):
         match flag:
             case "-f":
@@ -60,6 +60,9 @@ def update_global():
             case "-S":
                 global MAX_SPEED
                 MAX_SPEED = float(value)
+            case "-v":
+                global VERBOSE
+                VERBOSE = True
             case _:
                 continue
 
@@ -216,6 +219,11 @@ def create_dataset():
     tot_nodes, tot_edges, tot_density, tot_weight = 0, 0, 0, 0
     log = []
 
+    if VERBOSE: 
+        print("Generating files...")
+        utils.printProgressBar(
+            0, DATA_SIZE + 1, prefix="Progress:", suffix="Complete", length=50
+        )
     for k in range(1, DATA_SIZE + 1):
         nodes, node_count, weight, node_data = generate_nodes()
         edge_count, edges_data = generate_edges(nodes)
@@ -231,11 +239,22 @@ def create_dataset():
         log.append(edge_count / (node_count * (node_count - 1)))
         log.append(weight)
         log.append(k)
-
+        
         with open(f"{path}/dataset{str(k)}.txt", "w") as file:
             file.write(dataset_content)
+        
+        if VERBOSE:
+            utils.printProgressBar(
+                    k + 1,
+                    DATA_SIZE + 1, 
+                    prefix="Progress:", 
+                    suffix="Complete", 
+                    length=50
+                )
 
     create_log(log, tot_nodes, tot_edges, tot_density, tot_weight, path)
+
+    if VERBOSE: print("File generation completed ☺")
 
 
 def main():
