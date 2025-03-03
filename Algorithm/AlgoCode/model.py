@@ -28,6 +28,7 @@ import heapq
 import pickle
 import sys
 from typing import Union
+import statistics
 import elitisim
 from exceptions import *
 import plotter
@@ -681,18 +682,33 @@ class Graph():
             
         return zones
 
-    def create_points(self, path: list[int]) -> list[tuple[float, float]]:
+    def create_points(
+        self,
+        path: list[int] | list[list[int]],
+        vrp: bool = False
+    ) -> list[tuple[float, float]] | list[list[tuple, tuple]]:
         """Generates a list of coordinates from a list of node indices.
         
         Args:
             path: The list of indices of the nodes that form the path.
+            vrp: If the points should be generated for a VSP instance result.
+                Defaults to False.
 
         Returns:
             The list of coordinates.
         """
         res = []
-        for idx in path:
-            res.append(self.get_node(idx).coordinates)
+        if not vrp:
+            for idx in path:
+                res.append(self.get_node(idx).coordinates)
+        else:
+            res_vrp = []
+            for zone in path:
+                res = []
+                aux = self.center.index + [zone] + self.center.index
+                for idx in aux:
+                    res.append(self.get_node(idx).coordinates)
+                res_vrp.append(res)
 
         return res
 
@@ -726,7 +742,36 @@ class Graph():
         
         return g
 
-    def evaluate(self, individual: list[int]) -> tuple[float, ...]:
+    def extract_zones(self, individual: list[int]) -> list[list[int]]:
+        """Extracts zones from an individual and creates a list of zones.
+
+        A zone is divided by the index of a truck. For example, in a graph with
+        12 nodes and 3 trucks, indexes 0-11 would be node indexes, and indexes
+        12, 13 & 14 would be truck indexes (delimiters). This function also 
+        removes the center node from the zones it appears on, so for that 
+        example, if the center is node 11, the list ``[0, 5, 6, 8, 12, 3, 11, 
+        4, 2, 13, 1, 7, 9, 10, 14]`` would return the list of lists ``[[0, 5, 
+        6, 8][3, 4, 2][1, 7, 9, 10]]``
+
+        Args:
+            individual: The individual from where the zones will be extracted.
+
+        Returns:
+            A list of lists containing all the zones.
+        """
+        zones = []
+        zone = []
+        for node in individual:
+            if node >= self.nodes:
+                zones.append(zone)
+                zone = []
+            elif node == self.center.index:
+                continue
+            else: zone.append(node)
+
+        return zones
+
+    def evaluate(self, individual: list[int]) -> tuple[float, _]:
         """Evaluates the objective function value for a path.
         
         The algorithms used for this problem are genetic algorithms and, as 
@@ -758,12 +803,104 @@ class Graph():
             current = self.get_node(original_idx)
         total_value += self.get_edge(current, self.center).value
         penalty = sum(
-            self.get_node(self.convert[idx]).weight * (len(individual) - i)
-            for i, idx in enumerate(individual)
+            self.get_node(self.convert[node]).weight * (len(individual) - i)
+            for i, node in enumerate(individual)
         )
         return (total_value + 0.2 * penalty,)
     
-    def define_creator(self, vrp: bool = False) -> creator:
+    def zone_likeness(self, zone_weights: list[float]) -> float:
+        """Returns the likeliness index of a list of zones.
+        
+        The zone likeliness is defined as how similar are zones between them.
+        Currently, all zones that differ 20% or more from the average zone's
+        weight are considered not similar. To calculate the likeliness factor
+        of a list of zones, we first calculate the average weight, then, the 
+        diference percentage between each zone's weight and the average, and
+        then we apply the likeliness function to each percentage (in base 1)
+        to get the likeliness factor.
+
+        Our likeliness function is defined as: $likeliness(x) = 100 · (5x)^2$,
+        as using a cuadratic function to get the likeliness values allows us 
+        to get a big jump in results when x > 0.2.
+        
+        For example, for a list of zones with weights = [954, 870, 642, 326, 
+        1.250, 2.000, 790, 825], the average weight would be 957, the diference
+        percentages are obtained from $|1 - 957/x|$, and are [0.004, 0.091, 
+        0.329, 0.66, 0.306, 1.09, 0.175, 0.138] and the likeliness factors
+        are [0.04, 20.7, 270.6, 1089, 239.1, 2500, 76.56, 47.61], thus giving 
+        us a total likeliness factor of 4.243,61, making this zone division 
+        highly unlikely to pass on to the next generation.
+        """
+        avg_weight = statistics.fmean(zone_weights)
+        avg_difs = [abs(1 - (z / avg_weight)) for z in zone_weights]
+        likeliness_factors = [100 * pow(5 * ad, 2) for ad in avg_difs]
+        
+        return sum(likeliness_factors)
+
+    def evaluate_vrp(self, individual: list[int]) -> tuple[float, _]:
+        """Evaluates the objective function value for a path.
+
+        This version of the ``evaluate`` function is the one used for the 
+        Vehicle Routing Problem (VRP), as while the individuals are represented
+        similarly, the fitness function for it should take into account both 
+        the total lenght of the path, as well as the lenght of the longest path
+
+        The algorithms used for this problem are genetic algorithms and, as 
+        such, try to minimize/maximize the value of a function to find a 
+        solution to a problem. In this case, the problem is finding the path
+        in a graph that optimizes a series of objectives. Those individual 
+        objectives form an objective function. The ``evaluate`` function checks
+        the result of evaluating said objective function for a given path.
+
+        Currently, the objective function gives the cost of the paths, which is
+        the sum of the values of the edges that form the path, and a penalty,
+        whose objective is to try and visit higher-weighted nodes later in the
+        path, as running for a longer distance with a heavier load increases
+        the maintenance cost of the truck. It also gives paths with similarly
+        weighted zones a better finess value, and tries to minimize the 
+        maximum value of a zone, as well as giving the maximum penalty to zones
+        whose total weight exceeds the maximum weight a truck can pick up (this
+        one is a hard constraint we have to consider).
+
+        Args:
+            individual: The path to evaluate.
+
+        Returns:
+            A tuple containing the value of the objective function.
+        """
+        zones = self.extract_zones()
+        max_value = -1
+        total_value = 0
+        weights = []
+        for zone in zones:
+            aux = [self.center.index] + zone + [self.center.index]
+            new_value = 0
+            total_weight = 0
+            for i, node in enumerate(aux):
+                if i == len(aux) - 1: continue
+                if (
+                    total_weight + self.get_edge(node).weight
+                ) >= self.truck_capacity: 
+                    new_value = float('inf')
+                total_weight += self.get_edge(node).weight
+                new_value += self.get_edge(
+                    self.get_node(node),
+                    self.get_node(aux[i + 1])
+                ).value
+            weights.append(total_weight)
+            if new_value > max_value: max_value = new_value
+            total_value += new_value
+            penalty = sum(
+                self.get_node(node).weight * (len(individual) - i)
+                for i, node in enumerate(individual)
+            )
+            total_value += 0.2 * penalty
+        total_value += 0.5 * max_value * len(zones)
+        total_value += 1.0 * self.zone_likeliness(weights)
+
+        return (total_value, )
+
+    def define_creator(self) -> creator:
         """Defines a deap creator for the genetic algorithms.
         
         The ``deap.creator`` module is part of the DEAP framework and it's used
@@ -777,15 +914,6 @@ class Graph():
         function, and the individuals are lists of integers, containing the 
         indices of the nodes of the graph in the order they will be visited.
         
-        This wrapper function also allows us to define attributes depending on
-        which genetic algorithm we are running; the Genetic Algorithm designed 
-        to solve the Vehicle Routing Problem (VRP) or the one that solves
-        the Traveling Salesman Problem (TSP).
-
-        Args:
-            vrp (optional): True if running the VRP genetic algorithm. Defaults
-                to False.
-
         Returns:
             The creator defined for the genetic algorithm.
         """
@@ -804,7 +932,7 @@ class Graph():
 
         return creator
 
-    def define_toolbox(self, pop_size: int, vrp: bool = False) -> base.Toolbox:
+    def define_toolbox(self, pop_size: int) -> base.Toolbox:
         """Defines a deap toolbox for the genetic algorithms.
         
         The ``deap.base.createor`` module is part of the DEAP framework. It's 
@@ -816,16 +944,9 @@ class Graph():
         In the ``toolbox`` object is where the functions used by the genetic
         algorithm are defined, such as the evaluation, selection, crossover
         and mutation functions.
-        
-        This wrapper function also allows us to define functions depending on
-        which genetic algorithm we are running; the Genetic Algorithm designed 
-        to solve the Vehicle Routing Problem (VRP) or the one that solves
-        the Traveling Salesman Problem (TSP).
-        
+
         Args:
-            pop_size: The size of the population.
-            vrp (optional): True if running the VRP genetic algorithm. Defaults
-                to False.
+            pop_size: Size of the population.
 
         Returns:
             The toolbox defined for the genetic algorithm.
@@ -849,8 +970,9 @@ class Graph():
                             toolbox.individual_creator
                          )
 
-        toolbox.register("evaluate", self.evaluate)
-        toolbox.register("select", tools.selTournament, tournsize=3)
+        if vrp: toolbox.register("evaluate", self.evaluate) 
+        else: toolbox.register("evaluate", self.evaluate_vrp)
+        toolbox.register("select", tools.selTournament, tournsize=2)
 
         toolbox.register("mate", tools.cxOrdered)
         toolbox.register("mutate", tools.mutShuffleIndexes, 
@@ -883,8 +1005,10 @@ class Graph():
     def plot_ga_results(
         self, 
         path: list[int], 
-        logbook: dict, dir: str | None = None,
-        idx: int = 0
+        logbook: dict, 
+        dir: str | None = None,
+        idx: int = 0,
+        vrp: bool = False
     ) -> plt:
         """Sets up a plotter for the results of the Genetic Algorithm.
         
@@ -901,13 +1025,15 @@ class Graph():
             dir (optional): The directory where the plots should be saved. Defaults to 
                 None, in which case the plot(s) won't be saved.
             idx (optional): The index for the plot to save. Defaults to 0.
+            vrp (optional): If the result to plot is for a VRP or a TSP. 
+                Defaults to False.
 
         Returns:
             A ``matplotlib.pyplot`` object containing the plots.
         """
         pltr = plotter.Plotter()
         plt.figure(1)
-        pltr.plot_map(self.create_points(path))
+        pltr.plot_map(self.create_points(path, vrp=vrp), vrp, self.center.coordinates)
         if dir: plt.savefig(f"{dir}/Path{idx}.png")
         plt.figure(2)
         pltr.plot_evolution(logbook.select("min"), logbook.select("avg"))
@@ -975,6 +1101,129 @@ class Graph():
 
         return best_path, total_value
 
+    def define_toolbox_vrp(
+        self, pop_size: int, agent_num: int
+    ) -> base.Toolbox:
+        """Defines a deap toolbox for the genetic algorithms.
+        
+        The ``deap.base.createor`` module is part of the DEAP framework. It's 
+        used as a container for functions, and enables the creation of new
+        operators by customizing existing ones. This function extracts the
+        ``toolbox`` instantiation from the ``run_ga_tsp`` function so the code
+        is easier to read and follow. 
+        
+        In the ``toolbox`` object is where the functions used by the genetic
+        algorithm are defined, such as the evaluation, selection, crossover
+        and mutation functions.
+
+        Args:
+            pop_size: Size of the population.
+            agent_num: Number of agents (trucks).
+
+        Returns:
+            The toolbox defined for the genetic algorithm.
+        """
+
+        toolbox = base.Toolbox()
+        toolbox.register(
+                            "random_order", 
+                            random.sample, 
+                            range(self.nodes + agent_num), 
+                            len(nodes)
+                        )
+        toolbox.register(
+                            "individual_creator",
+                            tools.initIterate,
+                            creator.Individual,
+                            toolbox.random_order
+                         )
+        toolbox.register(
+                            "population_creator",
+                            tools.initRepeat,
+                            list,
+                            toolbox.individual_creator
+                         )
+
+        toolbox.register("evaluate", self.evaluate_vrp)
+        toolbox.register("select", tools.selTournament, tournsize=2)
+        toolbox.register(
+                            "mate", 
+                            tools.cxUniformPartialyMatched, 
+                            indpb=2.0/(self.nodes + agent_num)
+                        )
+        toolbox.register(
+                            "mutate",
+                            tools.mutShuffleIndexes,
+                            indpb=1.0/((self.nodes + agent_num))
+                        )
+
+        return toolbox
+
+    def run_ga_vrp(
+        self,
+        agent_num: int,
+        truck_capacity: int,
+        ngen: int = 300, 
+        cxpb: float = 0.9, 
+        mutpb: float = 0.1, 
+        pop_size: int = 500, 
+        dir: str | None = None,
+        idx: int = 0,
+        vrb: bool = True
+    ) -> tuple[list[int], float]:
+        """Runs the Genetic Algorithm for the Vehicle Routing Problem.
+        
+        This function calls the wrapper functions that define the creator, 
+        toolbox and the attributes for the Genetic Algorithm designed to solve
+        the Vehicle Routing Problem. It then runs the Genetic Algorithm and 
+        returns the best paths found and its total value, while also calling the
+        wrapper function to plot the results.
+
+        Args:
+            agent_num: The number of agents (trucks).
+            truck_capacity: The maximum capacity of a truck.
+            ngen (optional): The number of generations. Defaults to 300.
+            cxpb (optional): The mating probability. Defaults to 0.9.
+            mutpb (optional): The mutation probability. Defaults to 0.1.
+            pop_size (optional): The size of the population. Defaults to 500.
+            dir (optional): The directory where the plots should be saved. 
+                Defaults to None, in which case the plot(s) won't be saved.
+            idx (optional): The index for the plot to save. Defaults to 0.
+            vrb: (optional): Run the algorithm in verbose or non-verbose mode.
+                Defaults to True.
+
+        Returns:
+            A tuple containing the best paths found and its total value.
+        """
+        self.truck_capacity = truck_capacity
+        creator = self.define_creator()
+        toolbox = self.define_toolbox_vrp(pop_size, agent_num)
+        population, stats, hof, = self.define_ga_tsp(toolbox, pop_size)
+        
+        population, logbook = elitisim.eaSimpleWithElitism(
+                                                    population, 
+                                                    toolbox, 
+                                                    cxpb=cxpb, 
+                                                    mutpb=mutpb,
+                                                    ngen=ngen, 
+                                                    stats=stats, 
+                                                    halloffame=hof, 
+                                                    verbose=vrb
+                                                  )
+
+        best = hof.items[0]
+        best_path = [self.center.index] + best + [self.center.index]
+        total_value = self.evaluate_vrp(hof[0])[0]
+
+        if vrb:
+            print("-- Best Ever Individual = ", best_path)
+            print("-- Best Ever Fitness = ", hof.items[0].fitness.values[0])
+
+        if dir: self.plot_ga_results(best_path, logbook, dir, idx, True)
+        else: self.plot_ga_results(best_path, logbook, vrp=True).show()
+
+        return best_path, total_value
+
     def __repr__(self) -> str:
         """Changes the default representation of a graph.
 
@@ -1006,7 +1255,7 @@ if __name__ == '__main__':
     """
     g = Graph()
     print("Loading graph")
-    g.populate_from_file(os.getcwd() + "/files/test2.txt")
+    g.populate_from_file(os.getcwd() + "/files/test.txt")
     #g.populate_from_file(os.getcwd() + "/Algorithm/Algo-Draft/AlgoCode/files/test2.txt")
     print("Graph loaded")
     print(g)
