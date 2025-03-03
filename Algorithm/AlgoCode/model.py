@@ -771,7 +771,7 @@ class Graph():
 
         return zones
 
-    def evaluate(self, individual: list[int]) -> tuple[float, _]:
+    def evaluate(self, individual: list[int]) -> tuple[float, ...]:
         """Evaluates the objective function value for a path.
         
         The algorithms used for this problem are genetic algorithms and, as 
@@ -837,7 +837,7 @@ class Graph():
         
         return sum(likeliness_factors)
 
-    def evaluate_vrp(self, individual: list[int]) -> tuple[float, _]:
+    def evaluate_vrp(self, individual: list[int]) -> tuple[float, ...]:
         """Evaluates the objective function value for a path.
 
         This version of the ``evaluate`` function is the one used for the 
@@ -1257,7 +1257,7 @@ class Graph():
 
     def __contains__(self, node: Node | int):
         """Checks if the graph contains a node."""
-        if isinstance(node, int): return self.get_node(node) in sself.graph
+        if isinstance(node, int): return self.get_node(node) in self.graph
         elif isinstance(node, Node): return node in self.graph
 
     def __iter__(self) -> iter:
