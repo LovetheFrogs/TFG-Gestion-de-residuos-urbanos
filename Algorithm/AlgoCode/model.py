@@ -1224,6 +1224,58 @@ class Graph():
 
         return best_path, total_value
 
+    def __len__(self):
+        """Returns the length of a Graph instance.
+        
+        This method will return the number of nodes as knowing that the density
+        of a graph should be 1, calculating the number of edges is as easy as
+        calculating $E = N * (N - 1)$.
+
+        Returns:
+            The number of nodes of a graph instance.
+        """
+        return self.nodes
+
+    def __getitem__(self, node: Node | int) -> list[Edge]:
+        """Gets an item from a graph.
+        
+        Args:
+            node: Either a Node object or the index of a node.
+        """
+        if isinstance(node, int): return self.graph[self.get_node(node)]
+        elif isinstance(node, Node): return self.graph[node]
+
+    def __setitem__(self, node: Node | int, edge: Edge):
+        """Allows for setting items in a graph.
+        
+        Example
+            >>> g = Graph()
+            >>> g[0] = Edge(...)
+        """
+        if isinstance(node, int): self.graph[self.get_node(node)].append(edge)
+        elif isinstance(node, Node): self.graph[node].append(edge)
+
+    def __contains__(self, node: Node | int):
+        """Checks if the graph contains a node."""
+        if isinstance(node, int): return self.get_node(node) in sself.graph
+        elif isinstance(node, Node): return node in self.graph
+
+    def __iter__(self) -> iter:
+        """Retruns an iterator for the graph.
+        
+        Yields:
+            Iterator for the graph object.
+        """
+        yield from self.graph
+
+    def __bool__(self) -> bool:
+        """Checks if the graph is empty
+        
+        Return:
+            True if the graph is not empty, False otherwise.
+        """
+        return not self.nodes == 0
+
     def __repr__(self) -> str:
         """Changes the default representation of a graph.
 
