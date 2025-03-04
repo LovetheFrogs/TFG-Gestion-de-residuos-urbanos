@@ -3,9 +3,10 @@
 import os
 import time
 import shutil
-from model import Graph
 import utils
 import create_models
+from algorithms import Algorithms
+from model import Graph
 
 
 class Benchmark():
@@ -49,13 +50,14 @@ class Benchmark():
             g = Graph()
             g.populate_from_file(
                 f"{os.getcwd()}/files/datasets/dataset{i + 1}.txt")
+            algo = Algorithms(g)
             start = time.time()
             path = g.bfs(g.center)
             end = time.time()
             cummulative_time += (end - start)
             nodes = [node.index for node in g.node_list]
-            g.convert = {i: node for i, node in enumerate(nodes)}
-            cummulative_value += g.evaluate([n - 1 for n in path[1:]])[0]
+            algo.convert = {i: node for i, node in enumerate(nodes)}
+            cummulative_value += algo.evaluate([n - 1 for n in path[1:]])[0]
             utils.printProgressBar(i + 1,
                                    n,
                                    prefix="Progress:",
@@ -88,8 +90,9 @@ class Benchmark():
             g = Graph()
             g.populate_from_file(
                 f"{os.getcwd()}/files/datasets/dataset{i + 1}.txt")
+            algo = Algorithms(g)
             start = time.time()
-            _, value = g.run_ga_tsp(dir=f"{os.getcwd()}/plots", vrb=False)
+            _, value = algo.run_ga_tsp(dir=f"{os.getcwd()}/plots", vrb=False)
             end = time.time()
             os.remove(f"{os.getcwd()}/plots/Path0.png")
             os.remove(f"{os.getcwd()}/plots/Evolution0.png")
