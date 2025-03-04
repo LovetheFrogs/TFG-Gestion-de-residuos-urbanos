@@ -6,11 +6,12 @@ from model import Node, Edge, Graph
 from model import load as lg
 import create_models as cm
 from exceptions import *
-
 """Multiple test cases for the functions coded for the project."""
+
 
 class TestNode(unittest.TestCase):
     """Node module tests."""
+
     def setUp(self):
         self.node = Node(0, 0, 0, 0, True)
         self.nodec = Node(1, 3, 1, 2)
@@ -40,6 +41,7 @@ class TestNode(unittest.TestCase):
 
 class TestEdge(unittest.TestCase):
     """Edge module tests."""
+
     def setUp(self):
         self.node1 = Node(0, 10, 0, 0, True)
         self.node2 = Node(1, 3, 1, 2)
@@ -55,11 +57,12 @@ class TestEdge(unittest.TestCase):
 
 class TestGraph(unittest.TestCase):
     """Graph module tests."""
+
     def setUp(self):
         self.nodes = [
-            Node(0, 0, 0, 0, True), 
-            Node(1, 1, 1, 2), 
-            Node(2, 2, 3, -2), 
+            Node(0, 0, 0, 0, True),
+            Node(1, 1, 1, 2),
+            Node(2, 2, 3, -2),
             Node(3, 3, 0, 5),
             Node(4, 4, -7, 0)
         ]
@@ -73,68 +76,66 @@ class TestGraph(unittest.TestCase):
 
     def test_add_node(self):
         """Tests adding a new node to the graph."""
-        for node in self.nodes: 
+        for node in self.nodes:
             self.g.add_node(node)
-            if node.center: self.assertEqual(self.g.center, node)
-            else: self.assertEqual(self.g.node_list[-1], node)
+            if node.center:
+                self.assertEqual(self.g.center, node)
+            else:
+                self.assertEqual(self.g.node_list[-1], node)
         self.assertEqual(self.g.nodes, 5)
-        with self.assertRaisesRegex(
-            DuplicateNode, 
-            "The node is already in the Graph"
-        ):
+        with self.assertRaisesRegex(DuplicateNode,
+                                    "The node is already in the Graph"):
             self.g.add_node(self.nodes[1])
 
     def test_add_edge(self):
         """ Tests adding a new edge between two nodes of a graph."""
-        for node in self.nodes: self.g.add_node(node)
+        for node in self.nodes:
+            self.g.add_node(node)
         for edge in self.edges:
             self.g.add_edge(edge)
             self.assertEqual(self.g.edge_list[-1], edge)
         self.assertEqual(self.g.edges, 4)
         with self.assertRaisesRegex(
-            NodeNotFound, 
-            "The node searched for was not found in the structure. "
-            "Index searched: 4"
-        ):
+                NodeNotFound,
+                "The node searched for was not found in the structure. "
+                "Index searched: 4"):
             self.g.add_edge(Edge(1, Node(4, 3, 4, 4), self.nodes[0]))
         with self.assertRaisesRegex(
-            NodeNotFound, 
-            "The node searched for was not found in the structure. "
-            "Index searched: 8"
-        ):
+                NodeNotFound,
+                "The node searched for was not found in the structure. "
+                "Index searched: 8"):
             self.g.add_edge(Edge(1, self.nodes[0], Node(8, 3, 8, 8)))
-        with self.assertRaisesRegex(
-            DuplicateEdge, 
-            "The edge is already in the Graph"
-        ):
+        with self.assertRaisesRegex(DuplicateEdge,
+                                    "The edge is already in the Graph"):
             self.g.add_edge(self.edges[1])
 
     def test_get_node(self):
         """Tests getting a node from the graph."""
-        for node in self.nodes: self.g.add_node(node)
+        for node in self.nodes:
+            self.g.add_node(node)
         self.assertEqual(self.g.get_node(1), self.nodes[1])
         with self.assertRaisesRegex(
-            NodeNotFound, 
-            "The node searched for was not found in the structure. "
-            "Index searched: 10"
-        ):
+                NodeNotFound,
+                "The node searched for was not found in the structure. "
+                "Index searched: 10"):
             self.g.get_node(10)
 
     def test_get_edge(self):
-        for node in self.nodes: self.g.add_node(node)
-        for edge in self.edges: self.g.add_edge(edge)
+        for node in self.nodes:
+            self.g.add_node(node)
+        for edge in self.edges:
+            self.g.add_edge(edge)
         self.assertEqual(
-            self.g.get_edge(self.nodes[0], self.nodes[2]).length, 5
-        )
+            self.g.get_edge(self.nodes[0], self.nodes[2]).length, 5)
         with self.assertRaisesRegex(
-            EdgeNotFound,
-            "The edge was not found in the structure. Edge 0 -> 1"
-        ):
+                EdgeNotFound,
+                "The edge was not found in the structure. Edge 0 -> 1"):
             self.g.get_edge(self.nodes[0], self.nodes[1])
 
     def test_center(self):
         """Tests if the center node has been assigned properly."""
-        for node in self.nodes: self.g.add_node(node)
+        for node in self.nodes:
+            self.g.add_node(node)
         self.assertTrue(self.g.center is not None)
         self.assertEqual(self.g.center, self.nodes[0])
 
@@ -145,8 +146,10 @@ class TestGraph(unittest.TestCase):
 
     def test_bfs(self):
         """Tests bfs."""
-        for node in self.nodes: self.g.add_node(node)
-        for edge in self.edges: self.g.add_edge(edge)
+        for node in self.nodes:
+            self.g.add_node(node)
+        for edge in self.edges:
+            self.g.add_edge(edge)
         self.assertEqual(self.g.bfs(self.nodes[0]), [0, 2])
         self.g.add_edge(Edge(15, self.nodes[2], self.nodes[1]))
         self.g.add_edge(Edge(15, self.nodes[0], self.nodes[1]))
@@ -156,30 +159,30 @@ class TestGraph(unittest.TestCase):
 
     def test_dijkstra(self):
         """Tests Dijkstra's algorithm."""
-        for node in self.nodes: self.g.add_node(node)
-        for edge in self.edges: self.g.add_edge(edge)
-        self.assertEqual(
-            [int(v) if v != float('inf') else 300 
-                for v in list(self.g.dijkstra(0).values())],
-            [300, 5, 300, 300, 0]
-        )
+        for node in self.nodes:
+            self.g.add_node(node)
+        for edge in self.edges:
+            self.g.add_edge(edge)
+        self.assertEqual([
+            int(v) if v != float('inf') else 300
+            for v in list(self.g.dijkstra(0).values())
+        ], [300, 5, 300, 300, 0])
         self.g.add_edge(Edge(15, self.nodes[2], self.nodes[1]))
         self.g.add_edge(Edge(15, self.nodes[0], self.nodes[1]))
         self.g.add_edge(Edge(15, self.nodes[2], self.nodes[4]))
         self.g.add_edge(Edge(15, self.nodes[4], self.nodes[3]))
-        self.assertEqual(
-            [int(v) for v in list(self.g.dijkstra(0).values())],
-            [3, 5, 25, 13, 0]
-        )
+        self.assertEqual([int(v) for v in list(self.g.dijkstra(0).values())],
+                         [3, 5, 25, 13, 0])
 
     def test_create_points(self):
         """Tests getting coordinates from a list of node indeces."""
-        for node in self.nodes: self.g.add_node(node)
-        for edge in self.edges: self.g.add_edge(edge)
-        self.assertEqual(
-            self.g.create_points([0, 2, 3]),
-            [(0.0, 0.0), (3.0, -2.0), (0.0, 5.0)]
-        )
+        for node in self.nodes:
+            self.g.add_node(node)
+        for edge in self.edges:
+            self.g.add_edge(edge)
+        self.assertEqual(self.g.create_points([0, 2, 3]), [(0.0, 0.0),
+                                                           (3.0, -2.0),
+                                                           (0.0, 5.0)])
 
     def test_divide_graph(self):
         """Tests graph division into zones."""
@@ -187,10 +190,8 @@ class TestGraph(unittest.TestCase):
         g2.populate_from_file(f"{os.getcwd()}/files/test2.txt")
         aux = g2.divide_graph(725)
         zones = [[n.index for n in z] for z in aux]
-        self.assertEqual(
-            zones,
-            [[0, 9, 3, 4, 10], [0, 11, 2, 7, 8], [0, 5, 6, 1, 12]]
-        )
+        self.assertEqual(zones,
+                         [[0, 9, 3, 4, 10], [0, 11, 2, 7, 8], [0, 5, 6, 1, 12]])
 
     def test_create_subgraph(self):
         """Tests creating a subgraph from a list of nodes."""
@@ -202,9 +203,8 @@ class TestGraph(unittest.TestCase):
                 subgraph = g2.create_subgraph(zone)
                 self.assertEqual(g2.center, subgraph.center)
                 self.assertEqual(len(zone), subgraph.nodes)
-                self.assertEqual(
-                    subgraph.nodes * (subgraph.nodes - 1), subgraph.edges
-                )
+                self.assertEqual(subgraph.nodes * (subgraph.nodes - 1),
+                                 subgraph.edges)
 
     def test_ga_tsp(self):
         """Tests the Genetic Algorithm (TSP)"""
@@ -215,21 +215,16 @@ class TestGraph(unittest.TestCase):
         os.remove(f"{os.getcwd()}/plots/Evolution0.png")
         self.assertEqual(p[-1], p[0])
         self.assertEqual(p[0], 0)
-        random_path = (
-            [n.index - 1 for n in random.sample(g2.node_list, g2.nodes - 1)]
-        )
+        random_path = ([
+            n.index - 1 for n in random.sample(g2.node_list, g2.nodes - 1)
+        ])
         self.assertTrue(g2.evaluate(random_path)[0] > v)
 
     def test_ga_vrp(self):
         """Tests the Genetic Algorithm (VSP)"""
         g2 = Graph()
         g2.populate_from_file(f"{os.getcwd()}/files/test2.txt")
-        p, v = g2.run_ga_vrp(
-            3,
-            725,
-            dir=f"{os.getcwd()}/plots", 
-            vrb=False
-                             )
+        p, v = g2.run_ga_vrp(3, 725, dir=f"{os.getcwd()}/plots", vrb=False)
         os.remove(f"{os.getcwd()}/plots/Path0.png")
         os.remove(f"{os.getcwd()}/plots/Evolution0.png")
         self.assertEqual(len(p), 3)
@@ -237,29 +232,29 @@ class TestGraph(unittest.TestCase):
             with self.subTest(i=i):
                 self.assertEqual(zone[0], zone[-1])
                 self.assertEqual(zone[0], 0)
-        random_path = (
-            [n.index - 1 for n in random.sample(g2.node_list, g2.nodes - 1)]
-        )
+        random_path = ([
+            n.index - 1 for n in random.sample(g2.node_list, g2.nodes - 1)
+        ])
         g2.convert = {i: node + 1 for i, node in enumerate(random_path)}
         self.assertTrue(g2.evaluate(random_path)[0] > v)
 
     def test_save_and_load(self):
         """Tests saving and loading a graph."""
-        for node in self.nodes: self.g.add_node(node)
-        for edge in self.edges: self.g.add_edge(edge)
+        for node in self.nodes:
+            self.g.add_node(node)
+        for edge in self.edges:
+            self.g.add_edge(edge)
         self.g.save(f"{os.getcwd()}/data/gbkp")
         aux = lg(f"{os.getcwd()}/data/gbkp")
         self.assertNotEqual(aux, None)
         self.assertTrue(isinstance(aux, Graph))
-        self.assertEqual(
-            [aux.nodes, aux.edges], 
-            [self.g.nodes, self.g.edges]
-        )
+        self.assertEqual([aux.nodes, aux.edges], [self.g.nodes, self.g.edges])
         os.remove(f"{os.getcwd()}/data/gbkp")
 
 
 class TestModelFileCreation(unittest.TestCase):
     """Training file creation script testing"""
+
     def setUp(self):
         shutil.rmtree(os.getcwd() + "/files/datasets")
 
@@ -271,29 +266,24 @@ class TestModelFileCreation(unittest.TestCase):
 
     def test_file_creation(self):
         """Tests creating the correct number of files"""
-        self.assertTrue(os.path.isfile(
-            os.getcwd() + "/files/datasets/dataset2.txt"
-        ))
-        self.assertFalse(os.path.isfile(
-            os.getcwd() + "/files/datasets/dataset3.txt"
-        ))
+        self.assertTrue(
+            os.path.isfile(os.getcwd() + "/files/datasets/dataset2.txt"))
+        self.assertFalse(
+            os.path.isfile(os.getcwd() + "/files/datasets/dataset3.txt"))
 
     def test_number_of_nodes(self):
         """Tests the number of nodes `n` is between given constraints"""
         for i in range(1, 3):
             with self.subTest(i=i):
                 with open(
-                    os.getcwd() + "/files/datasets/dataset" + str(i) + ".txt", 
-                    "r"
-                ) as file:
+                        os.getcwd() + "/files/datasets/dataset" + str(i) +
+                        ".txt", "r") as file:
                     n = (int(file.readline().strip()))
                     self.assertTrue(n >= 50 and n <= 100)
 
     def test_log_creation(self):
         """Tests the log file has been created."""
-        self.assertTrue(os.path.isfile(
-            os.getcwd() + "/files/datasets/log.txt"
-        ))
+        self.assertTrue(os.path.isfile(os.getcwd() + "/files/datasets/log.txt"))
 
     def tearDown(self):
         os.remove(os.getcwd() + "/files/datasets/dataset1.txt")
@@ -305,6 +295,7 @@ def suite():
     suite = unittest.TestSuite()
     suite.addTest(TestGraph('test_ga_tsp'))
     return suite
+
 
 def main():
     """Runs all the tests."""

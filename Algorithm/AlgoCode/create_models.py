@@ -15,10 +15,8 @@ MIN_SPEED, MAX_SPEED = 20, 60
 VERBOSE = False
 NEW_LINE = "\n"
 
-DECORATOR = (
-                "+-----------------------------------------"
-                "-----------------------------------------+"
-            )
+DECORATOR = ("+-----------------------------------------"
+             "-----------------------------------------+")
 
 
 def update_global():
@@ -62,8 +60,10 @@ def update_global():
                 MAX_SPEED = float(value)
             case "-v":
                 global VERBOSE
-                if value == "True" or value == "1": VERBOSE = True
-                else: VERBOSE = False
+                if value == "True" or value == "1":
+                    VERBOSE = True
+                else:
+                    VERBOSE = False
             case _:
                 continue
 
@@ -84,10 +84,9 @@ def generate_nodes() -> tuple[set[int], int, float, str]:
     num_nodes = random.randint(MIN_NODES, MAX_NODES)
     nodes = set(range(num_nodes))
     node_data = NEW_LINE.join(
-        f"{node} {random.uniform(MIN_WEIGHT, MAX_WEIGHT):.2f} " 
-        f"{random.randint(MIN_X, MAX_X)} " 
-        f"{random.randint(MIN_Y, MAX_Y)}" for node in nodes
-    )
+        f"{node} {random.uniform(MIN_WEIGHT, MAX_WEIGHT):.2f} "
+        f"{random.randint(MIN_X, MAX_X)} "
+        f"{random.randint(MIN_Y, MAX_Y)}" for node in nodes)
     weight = sum(float(line.split()[1]) for line in node_data.split("\n")[0:])
     nodes_data = f"{num_nodes}{NEW_LINE}{node_data}{NEW_LINE}"
     return nodes, len(nodes), weight, nodes_data
@@ -115,25 +114,21 @@ def generate_edges(nodes: set[int]) -> tuple[int, str]:
     edge_data = []
 
     for node in nodes:
-        if node == 0: continue
+        if node == 0:
+            continue
         edge = node, 0
         edges.add(edge)
-        edge_data.append(
-                            f"{random.uniform(MIN_SPEED, MAX_SPEED):.1f} "
-                            f"{node} {0}"
-                        )
+        edge_data.append(f"{random.uniform(MIN_SPEED, MAX_SPEED):.1f} "
+                         f"{node} {0}")
         edge = 0, node
         edges.add(edge)
-        edge_data.append(
-                            f"{random.uniform(MIN_SPEED, MAX_SPEED):.1f} "
-                            f"{0} {node}"
-                        )
+        edge_data.append(f"{random.uniform(MIN_SPEED, MAX_SPEED):.1f} "
+                         f"{0} {node}")
     extra_edges = int(
         random.uniform(
             ((1 * (node_count * (node_count - 1)))),
             ((1 * (node_count * (node_count - 1)))),
-        )
-    )
+        ))
 
     while (len(edges)) < extra_edges:
         origin, dest = random.sample(nodes_list, 2)
@@ -143,21 +138,18 @@ def generate_edges(nodes: set[int]) -> tuple[int, str]:
             edge = (origin, dest)
         edges.add(edge)
         edge_data.append(
-            f"{random.uniform(MIN_SPEED, MAX_SPEED):.1f} {origin} {dest}"
-        )
+            f"{random.uniform(MIN_SPEED, MAX_SPEED):.1f} {origin} {dest}")
         edge = (dest, origin)
         edges.add(edge)
         edge_data.append(
-            f"{random.uniform(MIN_SPEED, MAX_SPEED):.1f} {dest} {origin}"
-        )
+            f"{random.uniform(MIN_SPEED, MAX_SPEED):.1f} {dest} {origin}")
 
     edge_data = f"{len(edges)}{NEW_LINE}" + NEW_LINE.join(edge_data) + NEW_LINE
 
     return len(edges), edge_data
 
 
-def create_log(data: list[float], tnodes: int,
-               tedges: int, tdensity: float, 
+def create_log(data: list[float], tnodes: int, tedges: int, tdensity: float,
                tweight: float, path: str):
     """ Creates the text to be written to the log.
 
@@ -174,29 +166,22 @@ def create_log(data: list[float], tnodes: int,
         tweight: The total weight for all the datasets.
         path: The path where the datasets are saved.
     """
-    log_data = (
-                f"Generated {DATA_SIZE} datasets.{NEW_LINE}"
-                f"{DECORATOR}{NEW_LINE}"
-               )
+    log_data = (f"Generated {DATA_SIZE} datasets.{NEW_LINE}"
+                f"{DECORATOR}{NEW_LINE}")
     log_data += NEW_LINE.join(
-                                f"dataset{k}{NEW_LINE}    |{NEW_LINE}    |- "
-                                f"Nodes: {nodes}{NEW_LINE}    |- "
-                                f"Edges: {edges}{NEW_LINE}    |- "
-                                f"Density: {density}{NEW_LINE}    "
-                                f"|- Weight: {weight}{NEW_LINE}"
-                                f"{NEW_LINE}{DECORATOR}"
-                                for nodes, edges, density, weight, k in zip(
-                                    data[0::5], data[1::5], data[2::5], 
-                                    data[3::5], data[4::5]
-                                )
-                             )
-    log_data += (
-                    f"{NEW_LINE}Averages{NEW_LINE}    |"f"{NEW_LINE}    "
-                    f"|- Nodes: {tnodes / DATA_SIZE}{NEW_LINE}    |- Edges: "
-                    f"{tedges / DATA_SIZE}{NEW_LINE}    |- Density: "
-                    f"{tdensity / DATA_SIZE}{NEW_LINE}    |- Weight: "
-                    f"{tweight / DATA_SIZE}{NEW_LINE}"
-                )
+        f"dataset{k}{NEW_LINE}    |{NEW_LINE}    |- "
+        f"Nodes: {nodes}{NEW_LINE}    |- "
+        f"Edges: {edges}{NEW_LINE}    |- "
+        f"Density: {density}{NEW_LINE}    "
+        f"|- Weight: {weight}{NEW_LINE}"
+        f"{NEW_LINE}{DECORATOR}" for nodes, edges, density, weight, k in zip(
+            data[0::5], data[1::5], data[2::5], data[3::5], data[4::5]))
+    log_data += (f"{NEW_LINE}Averages{NEW_LINE}    |"
+                 f"{NEW_LINE}    "
+                 f"|- Nodes: {tnodes / DATA_SIZE}{NEW_LINE}    |- Edges: "
+                 f"{tedges / DATA_SIZE}{NEW_LINE}    |- Density: "
+                 f"{tdensity / DATA_SIZE}{NEW_LINE}    |- Weight: "
+                 f"{tweight / DATA_SIZE}{NEW_LINE}")
 
     with open(f"{path}/log.txt", "w") as file:
         file.write(log_data)
@@ -220,11 +205,13 @@ def create_dataset():
     tot_nodes, tot_edges, tot_density, tot_weight = 0, 0, 0, 0
     log = []
 
-    if VERBOSE: 
+    if VERBOSE:
         print("Generating files...")
-        utils.printProgressBar(
-            0, DATA_SIZE + 1, prefix="Progress:", suffix="Complete", length=50
-        )
+        utils.printProgressBar(0,
+                               DATA_SIZE + 1,
+                               prefix="Progress:",
+                               suffix="Complete",
+                               length=50)
     for k in range(1, DATA_SIZE + 1):
         nodes, node_count, weight, node_data = generate_nodes()
         edge_count, edges_data = generate_edges(nodes)
@@ -240,22 +227,21 @@ def create_dataset():
         log.append(edge_count / (node_count * (node_count - 1)))
         log.append(weight)
         log.append(k)
-        
+
         with open(f"{path}/dataset{str(k)}.txt", "w") as file:
             file.write(dataset_content)
-        
+
         if VERBOSE:
-            utils.printProgressBar(
-                    k + 1,
-                    DATA_SIZE + 1, 
-                    prefix="Progress:", 
-                    suffix="Complete", 
-                    length=50
-                )
+            utils.printProgressBar(k + 1,
+                                   DATA_SIZE + 1,
+                                   prefix="Progress:",
+                                   suffix="Complete",
+                                   length=50)
 
     create_log(log, tot_nodes, tot_edges, tot_density, tot_weight, path)
 
-    if VERBOSE: print("File generation completed ☺")
+    if VERBOSE:
+        print("File generation completed ☺")
 
 
 def main():

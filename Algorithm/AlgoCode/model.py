@@ -6,7 +6,6 @@
 # PEP 484 - https://www.writethedocs.org/guide/writing/reStructuredText/
 # NOTE: Having a node as visited or not allows for trucks to update the status of various nodes to false to request a new execution of the algorithm, changing the truck that had to visit them. FOR THE OTHER TFG
 # Restriction: Currently all trucks need to have the same capacity.
-
 """Data structures that model the problem and its solution.
 
 The module contains the definitions and methods of the ``Node`` and ``Edge`` 
@@ -32,6 +31,7 @@ import statistics
 import elitisim
 from exceptions import *
 import plotter
+
 
 def load(path: str) -> Union['Graph', None]:
     """Loads a graph object from a file.
@@ -66,8 +66,13 @@ class Node():
         y: ``y`` coordinate of the node.
         center (optional): If the node is the center one. Defaults to False.
     """
-    def __init__(self, index: int, weight: float, 
-                x: float, y: float, center: bool = False):
+
+    def __init__(self,
+                 index: int,
+                 weight: float,
+                 x: float,
+                 y: float,
+                 center: bool = False):
         #: int: Index of the node to be created.
         self.index = int(index)
         #: float: Weight of the node. 0 if the node has center set to True.
@@ -91,11 +96,9 @@ class Node():
         Returns:
             The absolute value of the manhhatan distance.  
         """
-        return abs(
-            (abs(self.coordinates[0] - b.coordinates[0]) + 
-             abs(self.coordinates[1] - b.coordinates[1]))
-        )
-        
+        return abs((abs(self.coordinates[0] - b.coordinates[0]) +
+                    abs(self.coordinates[1] - b.coordinates[1])))
+
     def change_status(self):
         """Visits or unvisits the a depending on the previous status"""
         self.visited = not self.visited
@@ -117,11 +120,10 @@ class Node():
         """
         msg = (
             f"Node {self.index} -> weight: {self.weight}, "
-            f"location: {self.coordinates}. {'Center' if self.center else ''}"
-        )
+            f"location: {self.coordinates}. {'Center' if self.center else ''}")
         return msg
-        
-        
+
+
 class Edge():
     """Implements the custom Edge object.
 
@@ -141,6 +143,7 @@ class Edge():
         dest: The Node object where this instance of Edge will end.
 
     """
+
     def __init__(self, speed: float, origin: Node, dest: Node):
         #: float: The length of the edge from origin to dest.
         self.length = origin.get_distance(dest)
@@ -151,10 +154,10 @@ class Edge():
         #: Node: The destination of the edge.
         self.dest = dest
         #: float: Time it takes to traverse the edge, given a speed and length.
-        self.time = (float(self.length)/1000)/self.speed
+        self.time = (float(self.length) / 1000) / self.speed
         #: float: The cost of the edge, as both length and time affect it.
         self.value = self.length + self.time
-        
+
     def __repr__(self) -> str:
         """Changes the default representation of an edge.
         
@@ -168,10 +171,8 @@ class Edge():
             >>> print(Edge(50, Node(1, 100, 0, 0), Node(2, 120, 10, 13)))
             Edge 1 - 2 -> value: 23.46
         """
-        msg = (
-            f"Edge {self.origin.index} - {self.dest.index} -> "
-            f"value: {self.value}"
-        )
+        msg = (f"Edge {self.origin.index} - {self.dest.index} -> "
+               f"value: {self.value}")
         return msg
 
 
@@ -198,6 +199,7 @@ class Graph():
         center (Node): Central node of the graph. The central node is the start
             of every path (the "distribution center"). 
     """
+
     def __init__(self):
         self.graph = {}
         self.node_list = []
@@ -205,7 +207,7 @@ class Graph():
         self.nodes = 0
         self.edges = 0
         self.center = None
-        
+
     def get_node(self, idx: int) -> Node:
         """Gets a node from the graph.
 
@@ -219,10 +221,11 @@ class Graph():
             NodeNotFound: If the node is not in the graph
         """
         for node in self.graph:
-            if node.index == idx: return node
-        
+            if node.index == idx:
+                return node
+
         raise NodeNotFound(idx)
-          
+
     def get_edge(self, origin: Node, dest: Node) -> Edge:
         """Gets an edge from the graph.
         
@@ -238,11 +241,14 @@ class Graph():
             NodeNotFound: If the origin/dest nodes are not in the graph.
             EdgeNotFound: If the edge is not in the graph.
         """
-        if origin not in self.graph: raise NodeNotFound(origin.index)
-        if dest not in self.graph: raise NodeNotFound(dest.index)
+        if origin not in self.graph:
+            raise NodeNotFound(origin.index)
+        if dest not in self.graph:
+            raise NodeNotFound(dest.index)
         for edge in self.graph[origin]:
-            if edge.dest == dest: return edge
-        
+            if edge.dest == dest:
+                return edge
+
         raise EdgeNotFound(f"{origin.index} -> {dest.index}")
 
     def add_node(self, node: Node):
@@ -259,13 +265,16 @@ class Graph():
         Raises:
             DuplicateNode: If the node is already in the graph.        
         """
-        if node not in self.graph: 
+        if node not in self.graph:
             self.graph[node] = []
             self.nodes += 1
-            if node.center: self.center = node
-            else: self.node_list.append(node)
-        else: raise DuplicateNode()
-    
+            if node.center:
+                self.center = node
+            else:
+                self.node_list.append(node)
+        else:
+            raise DuplicateNode()
+
     def add_edge(self, edge: Edge):
         """Adds an edge to the graph.
 
@@ -281,14 +290,16 @@ class Graph():
                 Graph.
             DuplicateEdge: If the edge is already in the Graph.
         """
-        if edge in self.edge_list: raise DuplicateEdge()
+        if edge in self.edge_list:
+            raise DuplicateEdge()
         if (edge.origin in self.graph and edge.dest in self.graph):
             self.graph[edge.origin].append(edge)
             self.edge_list.append(edge)
             self.edges += 1
         elif (edge.origin not in self.graph):
             raise NodeNotFound(edge.origin.index)
-        else: raise NodeNotFound(edge.dest.index)
+        else:
+            raise NodeNotFound(edge.dest.index)
 
     def set_center(self, node: Node):
         """Sets the central node of the graph.
@@ -304,7 +315,8 @@ class Graph():
         Raises:
             NodeNotFound: If the node is not in the graph.
         """
-        if node not in self.node_list: raise NodeNotFound(node.index)
+        if node not in self.node_list:
+            raise NodeNotFound(node.index)
         self.center = node
         self.center.weight = 0
         self.center.center = True
@@ -355,7 +367,7 @@ class Graph():
             path: The path where the current graph will be saved.
         """
         with open(path, 'wb') as backup:
-            pickle.dump(self, backup, protocol = -1)
+            pickle.dump(self, backup, protocol=-1)
 
     def populate_from_file(self, file: str):
         """Populates a graph from the data in a file.
@@ -397,14 +409,13 @@ class Graph():
             for _ in range(n):
                 aux = f.readline().strip().split()
                 self.add_node(Node(aux[0], aux[1], aux[2], aux[3]))
-            
+
             m = int(f.readline().strip())
             for _ in range(m):
                 aux = f.readline().strip().split()
-                self.add_edge(Edge(aux[0], 
-                            self.get_node(int(aux[1])), 
-                            self.get_node(int(aux[2])))
-                            )
+                self.add_edge(
+                    Edge(aux[0], self.get_node(int(aux[1])),
+                         self.get_node(int(aux[2]))))
 
             self.set_center(self.get_node(0))
             self.center.center = True
@@ -457,16 +468,16 @@ class Graph():
             The minimum cost of going from start any other node.
         """
         distances = {
-                        node.index: float('inf') for node in self.node_list + 
-                        [self.center]
-                    }
+            node.index: float('inf') for node in self.node_list + [self.center]
+        }
         distances[start] = 0
         childs = {}
         pq = [(0, start)]
 
         while pq:
             curr_dist, curr_node = heapq.heappop(pq)
-            if curr_dist > distances[curr_node]: continue
+            if curr_dist > distances[curr_node]:
+                continue
 
             for edge in self.graph.get(self.get_node(curr_node), []):
                 next = edge.dest.index
@@ -475,7 +486,7 @@ class Graph():
                     distances[next] = new_dist
                     childs[next] = curr_node
                     heapq.heappush(pq, (new_dist, next))
-        
+
         return distances
 
     def precompute_shortest_paths(self):
@@ -498,11 +509,8 @@ class Graph():
             for i, n in enumerate(distances):
                 self.shortest_paths[start.index, i] = distances[i]
 
-    def create_zones(
-        self, 
-        angled_nodes: list[Node], 
-        truck_capacity: float
-    ) -> list[list[Node]]:
+    def create_zones(self, angled_nodes: list[Node],
+                     truck_capacity: float) -> list[list[Node]]:
         """Divides the graph in zones.
 
         This function is called by ``divide_graph()``. It is in charge of 
@@ -538,15 +546,13 @@ class Graph():
                 current_zone.append(node)
                 current_weight += node.weight
 
-        if current_zone: zones.append([self.center] + current_zone)
+        if current_zone:
+            zones.append([self.center] + current_zone)
 
         return zones
 
-    def postprocess_zones(
-        self, 
-        zones: list[list[Node]], 
-        truck_capacity: float
-    ) -> list[list[Node]]:
+    def postprocess_zones(self, zones: list[list[Node]],
+                          truck_capacity: float) -> list[list[Node]]:
         """Evaluates zones to determine if a frontier node should be moved.
         
         A frontier node is a node that, while being part of a zone, is right 
@@ -581,7 +587,7 @@ class Graph():
         for i, zone in enumerate(zones):
             prev_zone = zones[i - 1]
             next_zone = zones[i + 1] if i + 1 < len(zones) else zones[0]
-            
+
             prev_big = len(prev_zone) > 3
             next_big = len(next_zone) > 3
             zone_big = len(zone) - 1 > 2
@@ -600,11 +606,8 @@ class Graph():
                     prev_zone.append(zone[1])
                     zone.remove(zone[1])
                 # Try move last to next
-                if (
-                    (next_sum + last_w) < truck_capacity and 
-                    zone_big and 
-                    next_big
-                ):
+                if ((next_sum + last_w) < truck_capacity and zone_big and
+                        next_big):
                     next_zone.insert(1, zone[-1])
                     zone.remove(zone[-1])
             # case 3
@@ -670,8 +673,10 @@ class Graph():
             NoCenterDefined: If the graph does not have a center node.
             EmptyGraph: If the function is called on an empty graph.
         """
-        if self.center is None: raise NoCenterDefined()
-        if not self.node_list: raise EmptyGraph()
+        if self.center is None:
+            raise NoCenterDefined()
+        if not self.node_list:
+            raise EmptyGraph()
         for node in self.node_list:
             x_coordinates = node.coordinates[0] - self.center.coordinates[0]
             y_coordinates = node.coordinates[1] - self.center.coordinates[1]
@@ -679,14 +684,13 @@ class Graph():
         angled_nodes = sorted(self.node_list, key=lambda n: n.angle)
         zones = self.create_zones(angled_nodes, truck_capacity)
         zones = self.postprocess_zones(zones, truck_capacity)
-            
+
         return zones
 
-    def create_points(
-        self,
-        path: list[int] | list[list[int]],
-        vrp: bool = False
-    ) -> list[tuple[float, float]] | list[list[tuple, tuple]]:
+    def create_points(self,
+                      path: list[int] | list[list[int]],
+                      vrp: bool = False
+                     ) -> list[tuple[float, float]] | list[list[tuple, tuple]]:
         """Generates a list of coordinates from a list of node indices.
         
         Args:
@@ -733,13 +737,16 @@ class Graph():
             NodeNotFound: If the node is not in the graph
         """
         g = Graph()
-        for node in nodes: g.add_node(node)
+        for node in nodes:
+            g.add_node(node)
         for node in g.graph:
-            if node not in self.graph: raise NodeNotFound(node.index)
+            if node not in self.graph:
+                raise NodeNotFound(node.index)
             edges = self.graph[node]
             for edge in edges:
-                if edge.dest in g.graph: g.add_edge(edge)
-        
+                if edge.dest in g.graph:
+                    g.add_edge(edge)
+
         return g
 
     def extract_zones(self, individual: list[int]) -> list[list[int]]:
@@ -767,7 +774,8 @@ class Graph():
                 zone = []
             elif node == self.center.index:
                 continue
-            else: zone.append(node)
+            else:
+                zone.append(node)
         zones.append(zone)
 
         return zones
@@ -798,17 +806,15 @@ class Graph():
         current = self.center
         for idx in individual:
             original_idx = self.convert[idx]
-            total_value += self.get_edge(
-                current, self.get_node(original_idx)
-                                         ).value
+            total_value += self.get_edge(current,
+                                         self.get_node(original_idx)).value
             current = self.get_node(original_idx)
         total_value += self.get_edge(current, self.center).value
         penalty = sum(
             self.get_node(self.convert[node]).weight * (len(individual) - i)
-            for i, node in enumerate(individual)
-        )
+            for i, node in enumerate(individual))
         return (total_value + 0.2 * penalty,)
-    
+
     def zone_likeness(self, zone_weights: list[float]) -> float:
         """Returns the likeliness index of a list of zones.
         
@@ -835,7 +841,7 @@ class Graph():
         avg_weight = statistics.fmean(zone_weights) + 1
         avg_difs = [abs(1 - (z / avg_weight)) for z in zone_weights]
         likeliness_factors = [100 * pow(5 * ad, 2) for ad in avg_difs]
-        
+
         return sum(likeliness_factors)
 
     def evaluate_vrp(self, individual: list[int]) -> tuple[float, ...]:
@@ -878,26 +884,19 @@ class Graph():
             total_weight = 0
             current = self.center
             for node in zone:
-                if (
-                    total_weight + self.get_edge(
-                        self.get_node(node),
-                        current
-                                                 ).value
-                ) >= self.truck_capacity: 
+                if (total_weight +
+                        self.get_edge(self.get_node(node),
+                                      current).value) >= self.truck_capacity:
                     new_value = 100000
-                total_weight += self.get_edge(
-                    self.get_node(node),
-                    current
-                                              ).value
-                new_value += self.get_edge(
-                    self.get_node(node),
-                    current
-                ).value
+                total_weight += self.get_edge(self.get_node(node),
+                                              current).value
+                new_value += self.get_edge(self.get_node(node), current).value
                 current = self.get_node(node)
             weights.append(total_weight)
-            if new_value > max_value: max_value = new_value
+            if new_value > max_value:
+                max_value = new_value
             total_value += new_value
-            
+
         penalty = 0
         for z in zones:
             for i, node in enumerate(z):
@@ -906,7 +905,7 @@ class Graph():
         total_value += 0.5 * max_value * len(zones)
         total_value += 1.0 * self.zone_likeness(weights)
 
-        return (total_value, )
+        return (total_value,)
 
     def define_creator(self) -> creator:
         """Defines a deap creator for the genetic algorithms.
@@ -931,11 +930,10 @@ class Graph():
             del creator.Individual
 
         creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
-        creator.create(
-                            "Individual", 
-                            list, typecode='i', 
-                            fitness=creator.FitnessMin
-                        )
+        creator.create("Individual",
+                       list,
+                       typecode='i',
+                       fitness=creator.FitnessMin)
 
         return creator
 
@@ -964,25 +962,18 @@ class Graph():
 
         toolbox = base.Toolbox()
         toolbox.register("random_order", random.sample, genes, len(nodes))
-        toolbox.register(
-                            "individual_creator",
-                            tools.initIterate,
-                            creator.Individual,
-                            toolbox.random_order
-                         )
-        toolbox.register(
-                            "population_creator",
-                            tools.initRepeat,
-                            list,
-                            toolbox.individual_creator
-                         )
+        toolbox.register("individual_creator", tools.initIterate,
+                         creator.Individual, toolbox.random_order)
+        toolbox.register("population_creator", tools.initRepeat, list,
+                         toolbox.individual_creator)
 
         toolbox.register("evaluate", self.evaluate)
         toolbox.register("select", tools.selTournament, tournsize=2)
 
         toolbox.register("mate", tools.cxOrdered)
-        toolbox.register("mutate", tools.mutShuffleIndexes, 
-                         indpb=1.0/self.nodes)
+        toolbox.register("mutate",
+                         tools.mutShuffleIndexes,
+                         indpb=1.0 / self.nodes)
 
         return toolbox
 
@@ -1008,14 +999,12 @@ class Graph():
 
         return population, stats, hof
 
-    def plot_ga_results(
-        self, 
-        path: list[int], 
-        logbook: dict, 
-        dir: str | None = None,
-        idx: int = 0,
-        vrp: bool = False
-    ) -> plt:
+    def plot_ga_results(self,
+                        path: list[int],
+                        logbook: dict,
+                        dir: str | None = None,
+                        idx: int = 0,
+                        vrp: bool = False) -> plt:
         """Sets up a plotter for the results of the Genetic Algorithm.
         
         This function uses the ``plotter`` module to plot the results of the
@@ -1039,34 +1028,31 @@ class Graph():
         """
         pltr = plotter.Plotter()
         plt.figure(1)
-        if vrp: 
-            path = [
-                [self.center.index] + z + [self.center.index] 
-                for z in self.extract_zones(path)
-                    ]
+        if vrp:
+            path = [[self.center.index] + z + [self.center.index]
+                    for z in self.extract_zones(path)]
             pltr.numOfVehicles = len(path)
-        pltr.plot_map(self.create_points(path, vrp=vrp), vrp, self.center.coordinates)
-        if dir: 
+        pltr.plot_map(self.create_points(path, vrp=vrp), vrp,
+                      self.center.coordinates)
+        if dir:
             plt.savefig(f"{dir}/Path{idx}.png")
             plt.clf()
         plt.figure(2)
         pltr.plot_evolution(logbook.select("min"), logbook.select("avg"))
-        if dir: 
+        if dir:
             plt.savefig(f"{dir}/Evolution{idx}.png")
             plt.clf()
 
         return plt
 
-    def run_ga_tsp(
-        self,
-        ngen: int = 100, 
-        cxpb: float = 0.9, 
-        mutpb: float = 0.1, 
-        pop_size: int = 200, 
-        dir: str | None = None,
-        idx: int = 0,
-        vrb: bool = True
-    ) -> tuple[list[int], float]:
+    def run_ga_tsp(self,
+                   ngen: int = 100,
+                   cxpb: float = 0.9,
+                   mutpb: float = 0.1,
+                   pop_size: int = 200,
+                   dir: str | None = None,
+                   idx: int = 0,
+                   vrb: bool = True) -> tuple[list[int], float]:
         """Runs the Genetic Algorithm for the Traveling Salesman Problem.
         
         This function calls the wrapper functions that define the creator, 
@@ -1092,17 +1078,15 @@ class Graph():
         creator = self.define_creator()
         toolbox = self.define_toolbox(pop_size)
         population, stats, hof, = self.define_ga_tsp(toolbox, pop_size)
-        
-        population, logbook = elitisim.eaSimpleWithElitism(
-                                                    population, 
-                                                    toolbox, 
-                                                    cxpb=cxpb, 
-                                                    mutpb=mutpb,
-                                                    ngen=ngen, 
-                                                    stats=stats, 
-                                                    halloffame=hof, 
-                                                    verbose=vrb
-                                                  )
+
+        population, logbook = elitisim.eaSimpleWithElitism(population,
+                                                           toolbox,
+                                                           cxpb=cxpb,
+                                                           mutpb=mutpb,
+                                                           ngen=ngen,
+                                                           stats=stats,
+                                                           halloffame=hof,
+                                                           verbose=vrb)
 
         best = [self.convert[i] for i in hof.items[0]]
         best_path = [self.center.index] + best + [self.center.index]
@@ -1112,14 +1096,14 @@ class Graph():
             print("-- Best Ever Individual = ", best_path)
             print("-- Best Ever Fitness = ", hof.items[0].fitness.values[0])
 
-        if dir: self.plot_ga_results(best_path, logbook, dir, idx)
-        else: self.plot_ga_results(best_path, logbook).show()
+        if dir:
+            self.plot_ga_results(best_path, logbook, dir, idx)
+        else:
+            self.plot_ga_results(best_path, logbook).show()
 
         return best_path, total_value
 
-    def define_toolbox_vrp(
-        self, pop_size: int, agent_num: int
-    ) -> base.Toolbox:
+    def define_toolbox_vrp(self, pop_size: int, agent_num: int) -> base.Toolbox:
         """Defines a deap toolbox for the genetic algorithms.
         
         The ``deap.base.createor`` module is part of the DEAP framework. It's 
@@ -1140,52 +1124,35 @@ class Graph():
             The toolbox defined for the genetic algorithm.
         """
         toolbox = base.Toolbox()
-        toolbox.register(
-                            "random_order", 
-                            random.sample, 
-                            range(self.nodes + agent_num - 1), 
-                            self.nodes + agent_num - 1
-                        )
-        toolbox.register(
-                            "individual_creator",
-                            tools.initIterate,
-                            creator.Individual,
-                            toolbox.random_order
-                         )
-        toolbox.register(
-                            "population_creator",
-                            tools.initRepeat,
-                            list,
-                            toolbox.individual_creator
-                         )
+        toolbox.register("random_order", random.sample,
+                         range(self.nodes + agent_num - 1),
+                         self.nodes + agent_num - 1)
+        toolbox.register("individual_creator", tools.initIterate,
+                         creator.Individual, toolbox.random_order)
+        toolbox.register("population_creator", tools.initRepeat, list,
+                         toolbox.individual_creator)
 
         toolbox.register("evaluate", self.evaluate_vrp)
         toolbox.register("select", tools.selTournament, tournsize=2)
-        toolbox.register(
-                            "mate", 
-                            tools.cxUniformPartialyMatched, 
-                            indpb=2.0/(self.nodes + agent_num)
-                        )
-        toolbox.register(
-                            "mutate",
-                            tools.mutShuffleIndexes,
-                            indpb=1.0/((self.nodes + agent_num))
-                        )
+        toolbox.register("mate",
+                         tools.cxUniformPartialyMatched,
+                         indpb=2.0 / (self.nodes + agent_num))
+        toolbox.register("mutate",
+                         tools.mutShuffleIndexes,
+                         indpb=1.0 / ((self.nodes + agent_num)))
 
         return toolbox
 
-    def run_ga_vrp(
-        self,
-        agent_num: int,
-        truck_capacity: int,
-        ngen: int = 300, 
-        cxpb: float = 0.9, 
-        mutpb: float = 0.1, 
-        pop_size: int = 500, 
-        dir: str | None = None,
-        idx: int = 0,
-        vrb: bool = True
-    ) -> tuple[list[int], float]:
+    def run_ga_vrp(self,
+                   agent_num: int,
+                   truck_capacity: int,
+                   ngen: int = 300,
+                   cxpb: float = 0.9,
+                   mutpb: float = 0.1,
+                   pop_size: int = 500,
+                   dir: str | None = None,
+                   idx: int = 0,
+                   vrb: bool = True) -> tuple[list[int], float]:
         """Runs the Genetic Algorithm for the Vehicle Routing Problem.
         
         This function calls the wrapper functions that define the creator, 
@@ -1214,32 +1181,31 @@ class Graph():
         creator = self.define_creator()
         toolbox = self.define_toolbox_vrp(pop_size, agent_num)
         population, stats, hof, = self.define_ga_tsp(toolbox, pop_size)
-        
-        population, logbook = elitisim.eaSimpleWithElitism(
-                                                    population, 
-                                                    toolbox, 
-                                                    cxpb=cxpb, 
-                                                    mutpb=mutpb,
-                                                    ngen=ngen, 
-                                                    stats=stats, 
-                                                    halloffame=hof, 
-                                                    verbose=vrb
-                                                  )
+
+        population, logbook = elitisim.eaSimpleWithElitism(population,
+                                                           toolbox,
+                                                           cxpb=cxpb,
+                                                           mutpb=mutpb,
+                                                           ngen=ngen,
+                                                           stats=stats,
+                                                           halloffame=hof,
+                                                           verbose=vrb)
 
         best = hof.items[0]
         zones = self.extract_zones(best)
         best_path = [
-            [self.center.index] + zone + [self.center.index] 
-            for zone in zones
-                     ]
+            [self.center.index] + zone + [self.center.index] for zone in zones
+        ]
         total_value = self.evaluate_vrp(hof[0])[0]
 
         if vrb:
             print("-- Best Ever Individual = ", best_path)
             print("-- Best Ever Fitness = ", hof.items[0].fitness.values[0])
 
-        if dir: self.plot_ga_results(best, logbook, dir, idx, True)
-        else: self.plot_ga_results(best, logbook, vrp=True).show()
+        if dir:
+            self.plot_ga_results(best, logbook, dir, idx, True)
+        else:
+            self.plot_ga_results(best, logbook, vrp=True).show()
 
         return best_path, total_value
 
@@ -1261,8 +1227,10 @@ class Graph():
         Args:
             node: Either a Node object or the index of a node.
         """
-        if isinstance(node, int): return self.graph[self.get_node(node)]
-        elif isinstance(node, Node): return self.graph[node]
+        if isinstance(node, int):
+            return self.graph[self.get_node(node)]
+        elif isinstance(node, Node):
+            return self.graph[node]
 
     def __setitem__(self, node: Node | int, edge: Edge):
         """Allows for setting items in a graph.
@@ -1271,13 +1239,17 @@ class Graph():
             >>> g = Graph()
             >>> g[0] = Edge(...)
         """
-        if isinstance(node, int): self.graph[self.get_node(node)].append(edge)
-        elif isinstance(node, Node): self.graph[node].append(edge)
+        if isinstance(node, int):
+            self.graph[self.get_node(node)].append(edge)
+        elif isinstance(node, Node):
+            self.graph[node].append(edge)
 
     def __contains__(self, node: Node | int):
         """Checks if the graph contains a node."""
-        if isinstance(node, int): return self.get_node(node) in self.graph
-        elif isinstance(node, Node): return node in self.graph
+        if isinstance(node, int):
+            return self.get_node(node) in self.graph
+        elif isinstance(node, Node):
+            return node in self.graph
 
     def __iter__(self) -> iter:
         """Retruns an iterator for the graph.
@@ -1311,10 +1283,8 @@ class Graph():
             Graph with 13 nodes and 156 edges. Center: 0 
         """
         new_line = "\n"
-        msg = (
-            f"Graph with {self.nodes} nodes and {self.edges} edges. "
-            f"Center: {self.center.index}\n"
-        )
+        msg = (f"Graph with {self.nodes} nodes and {self.edges} edges. "
+               f"Center: {self.center.index}\n")
         return msg
 
 
@@ -1329,16 +1299,22 @@ if __name__ == '__main__':
     g.populate_from_file(os.getcwd() + "/files/test2.txt")
     #g.populate_from_file(os.getcwd() + "/Algorithm/AlgoCode/files/test3.txt")
     print("Graph loaded")
-    _, v = g.run_ga_tsp(ngen=500, pop_size=500, idx=0, dir=os.getcwd() + "/plots")
+    _, v = g.run_ga_tsp(ngen=500,
+                        pop_size=500,
+                        idx=0,
+                        dir=os.getcwd() + "/plots",
+                        vrb=False)
     print(f"Total value (TSP): {v}")
     res = g.divide_graph(725)
     print(f"Zone count (TSP): {len(res)}")
     sg = []
-    for i, z in enumerate(res): 
+    for i, z in enumerate(res):
         sg.append(g.create_subgraph(z))
     t = 0
     for i, graph in enumerate(sg):
-        p, v = graph.run_ga_tsp(idx=i + 1, vrb=False, dir=os.getcwd() + "/plots")
+        p, v = graph.run_ga_tsp(idx=i + 1,
+                                vrb=False,
+                                dir=os.getcwd() + "/plots")
         print(p)
         t += v
     print(f"Total value (TSP zoned): {t}")
@@ -1346,16 +1322,18 @@ if __name__ == '__main__':
     t = 0
     n = g.set_num_zones(725) + int(g.set_num_zones(725) * 0.1) + 1
     print(f"Zone count (VRP): {n}")
-    p, v = g.run_ga_vrp(n, 725, ngen=1000, idx=len(sg) + 1, dir=os.getcwd() + "/plots")
+    p, v = g.run_ga_vrp(n,
+                        725,
+                        ngen=1000,
+                        idx=len(sg) + 1,
+                        dir=os.getcwd() + "/plots",
+                        vrb=False)
     for sp in p:
         current = g.get_node(sp[0])
         for idx in sp[1:]:
-            t += g.get_edge(
-                current, g.get_node(idx)
-                                         ).value
+            t += g.get_edge(current, g.get_node(idx)).value
             current = g.get_node(idx)
         penalty = sum(
             g.get_node(node).weight * (len(sp) - i)
-            for i, node in enumerate(sp)
-        )
+            for i, node in enumerate(sp))
     print(f"Total value (VRP): {t}")

@@ -1,5 +1,6 @@
 """Definition of custom exceptions used in the codebase"""
 
+
 class NodeNotFound(Exception):
     """Used when searching for an object that is not found in the structure
     
@@ -10,13 +11,13 @@ class NodeNotFound(Exception):
         id: Id of the not found node.
         *args: Variable length argument list.
     """
+
     def __init__(
-        self, 
-        id: int, 
-        message: str = "The node searched for was not found in the structure."
+            self,
+            id: int,
+            message: str = "The node searched for was not found in the structure."
         " Index searched:",
-        *args
-    ):
+            *args):
         self.message = message
         self.id = id
         super(NodeNotFound, self).__init__(f"{self.message} {self.id}", *args)
@@ -30,9 +31,10 @@ class DuplicateNode(Exception):
             `The node is already in the Graph`.
         *args: Variable length argument list.
     """
-    def __init__(self, message: str = "The node is already in the Graph", 
-        *args
-    ):
+
+    def __init__(self,
+                 message: str = "The node is already in the Graph",
+                 *args):
         self.message = message
         super(DuplicateNode, self).__init__(message, *args)
 
@@ -45,9 +47,10 @@ class DuplicateEdge(Exception):
             default is `The edge is already in the Graph`.
         *args: Variable length argument list.
     """
-    def __init__(self, message: str = "The edge is already in the Graph", 
-        *args
-    ):
+
+    def __init__(self,
+                 message: str = "The edge is already in the Graph",
+                 *args):
         self.message = message
         super(DuplicateEdge, self).__init__(message, *args)
 
@@ -61,12 +64,11 @@ class EdgeNotFound(Exception):
             default is `The edge was not found in the structure.`
         *args: Variable length argument list.
     """
-    def __init__(
-        self,
-        path: str,
-        message: str = "The edge was not found in the structure.",
-        *args
-    ):
+
+    def __init__(self,
+                 path: str,
+                 message: str = "The edge was not found in the structure.",
+                 *args):
         self.message = message
         super(EdgeNotFound, self).__init__(f"{message} Edge {path}", *args)
 
@@ -79,11 +81,11 @@ class NoCenterDefined(Exception):
             default is `A node has not been set to be the center of the graph.`
         *args: Variable length argument list.
     """
-    def __init__(
-        self,
-        message: str = "A node has not been set to be the center of the graph.",
-        *args
-    ):
+
+    def __init__(self,
+                 message:
+                 str = "A node has not been set to be the center of the graph.",
+                 *args):
         self.message = message
         super(NoCenterDefined, self).__init__(message, *args)
 
@@ -96,10 +98,10 @@ class EmptyGraph(Exception):
             default is `The graph does not have any edges or nodes in it.`
         *args: Variable length argument list.
     """
+
     def __init__(
-        self, 
-        message: str = "The graph does not have any edges or nodes in it.", 
-        *args
-    ):
+            self,
+            message: str = "The graph does not have any edges or nodes in it.",
+            *args):
         self.message = message
         super(EmptyGraph, self).__init__(message, *args)

@@ -4,17 +4,16 @@ import seaborn as sns
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 class Plotter():
     """Class containing different plotting methods."""
+
     def __init__(self):
         pass
 
-    def plot_map(
-        self,
-        data: list[tuple[float, float]] | list[list[tuple[float, float]]],
-        vrp: bool,
-        center: tuple[float, float]
-    ) -> plt:
+    def plot_map(self, data: list[tuple[float, float]] |
+                 list[list[tuple[float, float]]], vrp: bool,
+                 center: tuple[float, float]) -> plt:
         """Creates a plot of the nodes in a path.
 
         Shows how the best route joins each node to each other.
@@ -38,9 +37,7 @@ class Plotter():
                 stops = [i for i in route]
                 plt.plot(*zip(*stops), linestyle='-', color=next(color))
             plt.title('Best paths found')
-        plt.plot(
-            center[0], center[1], marker='x', markersize=10, color='green'
-        )
+        plt.plot(center[0], center[1], marker='x', markersize=10, color='green')
 
         return plt
 

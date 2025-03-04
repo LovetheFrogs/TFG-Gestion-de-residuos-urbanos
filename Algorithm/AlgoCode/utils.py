@@ -1,16 +1,15 @@
 """Module containing utility functions."""
 
-def printProgressBar(
-        iteration: int, 
-        total: int, 
-        prefix: str = '', 
-        suffix: str = '', 
-        decimals: int = 1,
-        length: int = 100,
-        fill: str = '█',
-        printEnd: str = "\r"
-    ):
-        """Call in a loop to create terminal progress bar
+
+def printProgressBar(iteration: int,
+                     total: int,
+                     prefix: str = '',
+                     suffix: str = '',
+                     decimals: int = 1,
+                     length: int = 100,
+                     fill: str = '█',
+                     printEnd: str = "\r"):
+    """Call in a loop to create terminal progress bar
         
         Thanks to StackOverflow's Greenstick user for this function, extracted
         from an answer to a thread about progressbars in python.
@@ -27,13 +26,11 @@ def printProgressBar(
             printEnd (optional): end character (e.g. "\r", "\r\n").
                 Defaults to "\r".
         """
-        percent = (
-            "{0:." + str(decimals) + "f}"
-        ).format(100 * (iteration / float(total)))
-        filledLength = int(length * iteration // total)
-        bar = fill * filledLength + '-' * (length - filledLength)
-        print(f'\r{prefix} |{bar}| {percent}% {suffix}', end = printEnd)
-        # Print New Line on Complete
-        if iteration == total: 
-            print()
-            
+    percent = ("{0:." + str(decimals) + "f}").format(100 *
+                                                     (iteration / float(total)))
+    filledLength = int(length * iteration // total)
+    bar = fill * filledLength + '-' * (length - filledLength)
+    print(f'\r{prefix} |{bar}| {percent}% {suffix}', end=printEnd)
+    # Print New Line on Complete
+    if iteration == total:
+        print()
