@@ -12,7 +12,7 @@ MIN_WEIGHT, MAX_WEIGHT = 100, 250
 MIN_X, MAX_X = -100, 100
 MIN_Y, MAX_Y = -100, 100
 MIN_SPEED, MAX_SPEED = 20, 60
-VERBOSE = False 
+VERBOSE = False
 NEW_LINE = "\n"
 
 DECORATOR = (
@@ -62,7 +62,8 @@ def update_global():
                 MAX_SPEED = float(value)
             case "-v":
                 global VERBOSE
-                VERBOSE = True
+                if value == "True" or value == "1": VERBOSE = True
+                else: VERBOSE = False
             case _:
                 continue
 

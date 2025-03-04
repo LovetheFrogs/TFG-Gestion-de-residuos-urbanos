@@ -133,6 +133,7 @@ def main():
     create_models.DATA_SIZE = 10
     create_models.MAX_NODES = 300
     create_models.MIN_NODES = 200
+    create_models.VERBOSE = True
     print("Creating datasets...")
     create_models.create_dataset()
     
