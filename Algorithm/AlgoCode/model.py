@@ -126,8 +126,9 @@ class Edge():
     easier to follow, read and debug.
 
     The cost of an edge is defined as the sum of the length and the time it
-    takes to traverse it, although in the future length or time could be
-    more important over the other. This attribute (``self.value``) allows 
+    takes to traverse  times 2.5, as this time is an estimate and does not 
+    account for traffic stops, it, although in the future length or time could 
+    be more important over the other. This attribute (``self.value``) allows 
     to change this easily in the future.
 
     Args:
@@ -147,7 +148,7 @@ class Edge():
         #: Node: The destination of the edge.
         self.dest = dest
         #: float: Time it takes to traverse the edge, given a speed and length.
-        self.time = (float(self.length) / 1000) / self.speed
+        self.time = 2.5 * ((float(self.length) / 1000) / self.speed)
         #: float: The cost of the edge, as both length and time affect it.
         self.value = self.length + self.time
 
