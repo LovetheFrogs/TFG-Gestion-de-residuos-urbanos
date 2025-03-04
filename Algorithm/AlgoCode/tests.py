@@ -220,7 +220,7 @@ class TestGraphMethods(unittest.TestCase):
         random_path = ([
             n.index - 1 for n in random.sample(g2.node_list, g2.nodes - 1)
         ])
-        self.assertTrue(algo.evaluate(random_path)[0] > v)
+        self.assertTrue(algo.evaluate_tsp(random_path)[0] > v)
 
     def test_ga_vrp(self):
         """Tests the Genetic Algorithm (VSP)"""
@@ -239,7 +239,7 @@ class TestGraphMethods(unittest.TestCase):
             n.index - 1 for n in random.sample(g2.node_list, g2.nodes - 1)
         ])
         algo.convert = {i: node + 1 for i, node in enumerate(random_path)}
-        self.assertTrue(algo.evaluate(random_path)[0] > v)
+        self.assertTrue(algo.evaluate_tsp(random_path)[0] > v)
 
     def test_save_and_load(self):
         """Tests saving and loading a graph."""

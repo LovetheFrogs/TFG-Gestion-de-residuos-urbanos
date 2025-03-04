@@ -23,7 +23,20 @@ class Algorithms():
         self.convert = None
         self.truck_capacity = None
 
-    def evaluate(self, individual: list[int]) -> tuple[float, ...]:
+    def evaluate(self, individual: list[int]) -> float:
+        total_value = 0
+        current = self.graph.center
+        for idx in individual:
+            total_value += self.graph.get_edge(
+                current, self.graph.get_node(idx)).value
+            current = self.graph.get_node(idx)
+        total_value += self.graph.get_edge(current, self.graph.center).value
+        penalty = sum(
+            self.graph.get_node(node).weight *
+            (len(individual) - i) for i, node in enumerate(individual))
+        return (total_value + 0.2 * penalty)
+
+    def evaluate_tsp(self, individual: list[int]) -> tuple[float, ...]:
         """Evaluates the objective function value for a path.
         
         The algorithms used for this problem are genetic algorithms and, as 
@@ -45,18 +58,7 @@ class Algorithms():
         Returns:
             A tuple containing the value of the objective function.
         """
-        total_value = 0
-        current = self.graph.center
-        for idx in individual:
-            original_idx = self.convert[idx]
-            total_value += self.graph.get_edge(
-                current, self.graph.get_node(original_idx)).value
-            current = self.graph.get_node(original_idx)
-        total_value += self.graph.get_edge(current, self.graph.center).value
-        penalty = sum(
-            self.graph.get_node(self.convert[node]).weight *
-            (len(individual) - i) for i, node in enumerate(individual))
-        return (total_value + 0.2 * penalty,)
+        return (self.evaluate([self.convert[node] for node in individual])),
 
     def evaluate_vrp(self, individual: list[int]) -> tuple[float, ...]:
         """Evaluates the objective function value for a path.
@@ -96,27 +98,17 @@ class Algorithms():
         for zone in zones:
             new_value = 0
             total_weight = 0
-            current = self.graph.center
-            for node in zone:
-                if (total_weight + self.graph.get_edge(
-                        self.graph.get_node(node),
-                        current).value) >= self.truck_capacity:
-                    new_value = 100000
-                total_weight += self.graph.get_edge(self.graph.get_node(node),
-                                                    current).value
-                new_value += self.graph.get_edge(self.graph.get_node(node),
-                                                 current).value
-                current = self.graph.get_node(node)
+            total_weight = sum(
+                self.graph.get_node(idx).weight for idx in zone)
+            if total_weight > self.truck_capacity or not zone:
+                new_value = 100000
+            elif zone: 
+                new_value = self.evaluate(zone)
             weights.append(total_weight)
             if new_value > max_value:
                 max_value = new_value
             total_value += new_value
 
-        penalty = 0
-        for z in zones:
-            for i, node in enumerate(z):
-                penalty += (self.graph.get_node(node).weight * (len(z) - i))
-        total_value += 0.2 * penalty
         total_value += 0.5 * max_value * len(zones)
         total_value += 1.0 * self.zone_likeness(weights)
 
@@ -208,7 +200,7 @@ class Algorithms():
         toolbox.register("population_creator", tools.initRepeat, list,
                          toolbox.individual_creator)
 
-        toolbox.register("evaluate", self.evaluate)
+        toolbox.register("evaluate", self.evaluate_tsp)
         toolbox.register("select", tools.selTournament, tournsize=2)
 
         toolbox.register("mate", tools.cxOrdered)
@@ -391,7 +383,7 @@ class Algorithms():
         best = [self.convert[i] for i in hof.items[0]]
         best_path = ([self.graph.center.index] + best +
                      [self.graph.center.index])
-        total_value = self.evaluate(hof[0])[0]
+        total_value = self.evaluate_tsp(hof[0])[0]
 
         if vrb:
             print("-- Best Ever Individual = ", best_path)

@@ -15,6 +15,7 @@ def run():
     g = Graph()
     print("Loading graph")
     g.populate_from_file(os.getcwd() + "/files/test2.txt")
+    #g.populate_from_file(os.getcwd() + "/Algorithm/AlgoCode/files/test2.txt")
     print("Graph loaded")
     algo = Algorithms(g)
     _, v = algo.run_ga_tsp(ngen=500,
