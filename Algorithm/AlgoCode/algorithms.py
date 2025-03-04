@@ -30,12 +30,13 @@ class Algorithms():
         total_time = 0
         current = self.graph.center
         for idx in individual:
+            aux = self.graph.get_node(idx)
             curr_edge = self.graph.get_edge(
-                current, self.graph.get_node(idx))
+                current, aux)
             total_value += curr_edge.value
             total_time += curr_edge.time + 0.03
             if total_time > self.max_time: return 100000
-            current = self.graph.get_node(idx)
+            current = aux
         total_value += self.graph.get_edge(current, self.graph.center).value
         penalty = sum(
             self.graph.get_node(node).weight *
@@ -103,7 +104,6 @@ class Algorithms():
         weights = []
         for zone in zones:
             new_value = 0
-            total_weight = 0
             total_weight = sum(
                 self.graph.get_node(idx).weight for idx in zone)
             if total_weight > self.truck_capacity or not zone:
