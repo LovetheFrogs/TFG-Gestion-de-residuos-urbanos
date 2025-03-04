@@ -797,7 +797,7 @@ class Graph():
             return self.graph[node]
 
     def __setitem__(self, node: Node | int, edge: Edge):
-        """Allows for setting items in a graph.
+        """Allows for adding items in a graph.
         
         Example
             >>> g = Graph()
@@ -814,14 +814,6 @@ class Graph():
             return self.get_node(node) in self.graph
         elif isinstance(node, Node):
             return node in self.graph
-
-    def __iter__(self) -> iter:
-        """Retruns an iterator for the graph.
-        
-        Yields:
-            Iterator for the graph object.
-        """
-        yield from self.graph
 
     def __bool__(self) -> bool:
         """Checks if the graph is empty
