@@ -1,3 +1,5 @@
+"""Multiple test cases for the functions coded for the project."""
+
 import unittest
 import os
 import shutil
@@ -6,7 +8,7 @@ from model import Node, Edge, Graph
 from model import load as lg
 import create_models as cm
 from exceptions import *
-"""Multiple test cases for the functions coded for the project."""
+from algorithms import Algorithms
 
 
 class TestNode(unittest.TestCase):
@@ -210,7 +212,8 @@ class TestGraph(unittest.TestCase):
         """Tests the Genetic Algorithm (TSP)"""
         g2 = Graph()
         g2.populate_from_file(f"{os.getcwd()}/files/test2.txt")
-        p, v = g2.run_ga_tsp(dir=f"{os.getcwd()}/plots", vrb=False)
+        algo = Algorithms(g2)
+        p, v = algo.run_ga_tsp(dir=f"{os.getcwd()}/plots", vrb=False)
         os.remove(f"{os.getcwd()}/plots/Path0.png")
         os.remove(f"{os.getcwd()}/plots/Evolution0.png")
         self.assertEqual(p[-1], p[0])
@@ -218,13 +221,14 @@ class TestGraph(unittest.TestCase):
         random_path = ([
             n.index - 1 for n in random.sample(g2.node_list, g2.nodes - 1)
         ])
-        self.assertTrue(g2.evaluate(random_path)[0] > v)
+        self.assertTrue(algo.evaluate(random_path)[0] > v)
 
     def test_ga_vrp(self):
         """Tests the Genetic Algorithm (VSP)"""
         g2 = Graph()
         g2.populate_from_file(f"{os.getcwd()}/files/test2.txt")
-        p, v = g2.run_ga_vrp(3, 725, dir=f"{os.getcwd()}/plots", vrb=False)
+        algo = Algorithms(g2)
+        p, v = algo.run_ga_vrp(3, 725, dir=f"{os.getcwd()}/plots", vrb=False)
         os.remove(f"{os.getcwd()}/plots/Path0.png")
         os.remove(f"{os.getcwd()}/plots/Evolution0.png")
         self.assertEqual(len(p), 3)
@@ -235,8 +239,8 @@ class TestGraph(unittest.TestCase):
         random_path = ([
             n.index - 1 for n in random.sample(g2.node_list, g2.nodes - 1)
         ])
-        g2.convert = {i: node + 1 for i, node in enumerate(random_path)}
-        self.assertTrue(g2.evaluate(random_path)[0] > v)
+        algo.convert = {i: node + 1 for i, node in enumerate(random_path)}
+        self.assertTrue(algo.evaluate(random_path)[0] > v)
 
     def test_save_and_load(self):
         """Tests saving and loading a graph."""
