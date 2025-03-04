@@ -865,10 +865,10 @@ if __name__ == '__main__':
     print("Graph loaded")
     algo = algorithms.Algorithms(g)
     _, v = algo.run_ga_tsp(ngen=500,
-                        pop_size=500,
-                        idx=0,
-                        dir=os.getcwd() + "/plots",
-                        vrb=False)
+                           pop_size=500,
+                           idx=0,
+                           dir=os.getcwd() + "/plots",
+                           vrb=False)
     print(f"Total value (TSP): {v}")
     res = g.divide_graph(725)
     print(f"Zone count (TSP): {len(res)}")
@@ -889,11 +889,11 @@ if __name__ == '__main__':
     n = g.set_num_zones(725) + int(g.set_num_zones(725) * 0.1) + 1
     print(f"Zone count (VRP): {n}")
     p, v = algo.run_ga_vrp(n,
-                        725,
-                        ngen=1000,
-                        idx=len(sg) + 1,
-                        dir=os.getcwd() + "/plots",
-                        vrb=False)
+                           725,
+                           ngen=1000,
+                           idx=len(sg) + 1,
+                           dir=os.getcwd() + "/plots",
+                           vrb=False)
     for sp in p:
         current = g.get_node(sp[0])
         for idx in sp[1:]:

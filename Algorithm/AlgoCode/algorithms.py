@@ -10,12 +10,14 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from model import Graph
 
+
 class Algorithms():
     """Class containing the diferent path-finding algorithms.
     
     Args:
         graph: The graph object where the paths will be calculated on.
     """
+
     def __init__(self, graph: 'Graph'):
         self.graph = graph
         self.convert = None
@@ -47,17 +49,15 @@ class Algorithms():
         current = self.graph.center
         for idx in individual:
             original_idx = self.convert[idx]
-            total_value += self.graph.get_edge(current,
-                                         self.graph.get_node(original_idx)
-                                        ).value
+            total_value += self.graph.get_edge(
+                current, self.graph.get_node(original_idx)).value
             current = self.graph.get_node(original_idx)
         total_value += self.graph.get_edge(current, self.graph.center).value
         penalty = sum(
-            self.graph.get_node(self.convert[node]).weight * 
-            (len(individual) - i)
-            for i, node in enumerate(individual))
+            self.graph.get_node(self.convert[node]).weight *
+            (len(individual) - i) for i, node in enumerate(individual))
         return (total_value + 0.2 * penalty,)
-    
+
     def evaluate_vrp(self, individual: list[int]) -> tuple[float, ...]:
         """Evaluates the objective function value for a path.
 
@@ -98,15 +98,14 @@ class Algorithms():
             total_weight = 0
             current = self.graph.center
             for node in zone:
-                if (total_weight +
-                        self.graph.get_edge(self.graph.get_node(node),
-                                      current).value) >= self.truck_capacity:
+                if (total_weight + self.graph.get_edge(
+                        self.graph.get_node(node),
+                        current).value) >= self.truck_capacity:
                     new_value = 100000
                 total_weight += self.graph.get_edge(self.graph.get_node(node),
-                                              current).value
-                new_value += self.graph.get_edge(
-                    self.graph.get_node(node), 
-                    current).value
+                                                    current).value
+                new_value += self.graph.get_edge(self.graph.get_node(node),
+                                                 current).value
                 current = self.graph.get_node(node)
             weights.append(total_weight)
             if new_value > max_value:
@@ -122,7 +121,7 @@ class Algorithms():
         total_value += 1.0 * self.zone_likeness(weights)
 
         return (total_value,)
-    
+
     def zone_likeness(self, zone_weights: list[float]) -> float:
         """Returns the likeliness index of a list of zones.
         
@@ -151,7 +150,7 @@ class Algorithms():
         likeliness_factors = [100 * pow(5 * ad, 2) for ad in avg_difs]
 
         return sum(likeliness_factors)
-    
+
     def _define_creator(self) -> creator:
         """Defines a deap creator for the genetic algorithms.
         
@@ -181,7 +180,7 @@ class Algorithms():
                        fitness=creator.FitnessMin)
 
         return creator
-    
+
     def _define_toolbox(self) -> base.Toolbox:
         """Defines a deap toolbox for the genetic algorithms.
         
@@ -218,7 +217,7 @@ class Algorithms():
                          indpb=1.0 / self.graph.nodes)
 
         return toolbox
-    
+
     def _define_toolbox_vrp(self, agent_num: int) -> base.Toolbox:
         """Defines a deap toolbox for the genetic algorithms.
         
@@ -257,9 +256,9 @@ class Algorithms():
                          indpb=1.0 / ((self.graph.nodes + agent_num)))
 
         return toolbox
-    
+
     def _define_ga(self, toolbox: base.Toolbox,
-                      pop_size: int) -> tuple[list, dict, list]:
+                   pop_size: int) -> tuple[list, dict, list]:
         """Defines the attributes for the Generic Algorithm.
         
         The function defines the population, statistics and hall of fame for
@@ -281,14 +280,14 @@ class Algorithms():
         return population, stats, hof
 
     def eaSimpleWithElitism(self,
-                        population,
-                        toolbox,
-                        cxpb,
-                        mutpb,
-                        ngen,
-                        stats=None,
-                        halloffame=None,
-                        verbose=__debug__):
+                            population,
+                            toolbox,
+                            cxpb,
+                            mutpb,
+                            ngen,
+                            stats=None,
+                            halloffame=None,
+                            verbose=__debug__):
         """This algorithm is similar to DEAP eaSimple() algorithm, with the modification that
         halloffame is used to implement an elitism mechanism. The individuals contained in the
         halloffame are directly injected into the next generation and are not subject to the
@@ -381,18 +380,17 @@ class Algorithms():
         population, stats, hof, = self._define_ga(toolbox, pop_size)
 
         population, logbook = self.eaSimpleWithElitism(population,
-                                                           toolbox,
-                                                           cxpb=cxpb,
-                                                           mutpb=mutpb,
-                                                           ngen=ngen,
-                                                           stats=stats,
-                                                           halloffame=hof,
-                                                           verbose=vrb)
+                                                       toolbox,
+                                                       cxpb=cxpb,
+                                                       mutpb=mutpb,
+                                                       ngen=ngen,
+                                                       stats=stats,
+                                                       halloffame=hof,
+                                                       verbose=vrb)
 
         best = [self.convert[i] for i in hof.items[0]]
-        best_path = ([self.graph.center.index] + 
-            best + 
-            [self.graph.center.index])
+        best_path = ([self.graph.center.index] + best +
+                     [self.graph.center.index])
         total_value = self.evaluate(hof[0])[0]
 
         if vrb:
@@ -405,7 +403,7 @@ class Algorithms():
             self._plot_ga_results(best_path, logbook).show()
 
         return best_path, total_value
-    
+
     def run_ga_vrp(self,
                    agent_num: int,
                    truck_capacity: int,
@@ -446,21 +444,18 @@ class Algorithms():
         population, stats, hof, = self._define_ga(toolbox, pop_size)
 
         population, logbook = self.eaSimpleWithElitism(population,
-                                                           toolbox,
-                                                           cxpb=cxpb,
-                                                           mutpb=mutpb,
-                                                           ngen=ngen,
-                                                           stats=stats,
-                                                           halloffame=hof,
-                                                           verbose=vrb)
+                                                       toolbox,
+                                                       cxpb=cxpb,
+                                                       mutpb=mutpb,
+                                                       ngen=ngen,
+                                                       stats=stats,
+                                                       halloffame=hof,
+                                                       verbose=vrb)
 
         best = hof.items[0]
         zones = self.graph.extract_zones(best)
-        best_path = [
-            [self.graph.center.index] + 
-            zone + 
-            [self.graph.center.index] for zone in zones
-        ]
+        best_path = [[self.graph.center.index] + zone +
+                     [self.graph.center.index] for zone in zones]
         total_value = self.evaluate_vrp(hof[0])[0]
 
         if vrb:
@@ -473,13 +468,13 @@ class Algorithms():
             self._plot_ga_results(best, logbook, vrp=True).show()
 
         return best_path, total_value
-    
+
     def _plot_ga_results(self,
-                        path: list[int],
-                        logbook: dict,
-                        dir: str | None = None,
-                        idx: int = 0,
-                        vrp: bool = False) -> plt:
+                         path: list[int],
+                         logbook: dict,
+                         dir: str | None = None,
+                         idx: int = 0,
+                         vrp: bool = False) -> plt:
         """Sets up a plotter for the results of the Genetic Algorithm.
         
         This function uses the ``plotter`` module to plot the results of the
@@ -504,13 +499,11 @@ class Algorithms():
         pltr = plotter.Plotter()
         plt.figure(1)
         if vrp:
-            path = [[self.graph.center.index] + 
-                    z + 
-                    [self.graph.center.index]
+            path = [[self.graph.center.index] + z + [self.graph.center.index]
                     for z in self.graph.extract_zones(path)]
             pltr.numOfVehicles = len(path)
         pltr.plot_map(self.graph.create_points(path, vrp=vrp), vrp,
-                        self.graph.center.coordinates)
+                      self.graph.center.coordinates)
         if dir:
             plt.savefig(f"{dir}/Path{idx}.png")
             plt.clf()
