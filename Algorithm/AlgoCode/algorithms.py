@@ -22,19 +22,25 @@ class Algorithms():
         self.graph = graph
         self.convert = None
         self.truck_capacity = None
+        self.max_time = 8
 
     def evaluate(self, individual: list[int]) -> float:
+        # total time = edge time + 2minutes to pick up bin.
         total_value = 0
+        total_time = 0
         current = self.graph.center
         for idx in individual:
-            total_value += self.graph.get_edge(
-                current, self.graph.get_node(idx)).value
+            curr_edge = self.graph.get_edge(
+                current, self.graph.get_node(idx))
+            total_value += curr_edge.value
+            total_time += curr_edge.time + 0.03
+            if total_time > self.max_time: return 100000
             current = self.graph.get_node(idx)
         total_value += self.graph.get_edge(current, self.graph.center).value
         penalty = sum(
             self.graph.get_node(node).weight *
             (len(individual) - i) for i, node in enumerate(individual))
-        return (total_value + 0.2 * penalty)
+        return (total_value + 0.2 * penalty + 0.5 * total_time)
 
     def evaluate_tsp(self, individual: list[int]) -> tuple[float, ...]:
         """Evaluates the objective function value for a path.

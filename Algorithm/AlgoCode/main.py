@@ -50,13 +50,7 @@ def run():
                            vrb=False)
     for sp in p:
         current = g.get_node(sp[0])
-        for idx in sp[1:]:
-            t += g.get_edge(current, g.get_node(idx)).value
-            current = g.get_node(idx)
-        penalty = sum(
-            g.get_node(node).weight * (len(sp) - i)
-            for i, node in enumerate(sp))
-        t += penalty
+        t += algo.evaluate(sp[1:])
     print(f"Total value (VRP): {t}")
 
 
