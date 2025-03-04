@@ -200,6 +200,8 @@ class Graph():
         self.edge_list = []
         self.nodes = 0
         self.edges = 0
+        self.index_dict = {}
+        self.edge_dict = {}
         self.center = None
 
     def get_node(self, idx: int) -> Node:
@@ -214,9 +216,8 @@ class Graph():
         Raises:
             NodeNotFound: If the node is not in the graph
         """
-        for node in self.graph:
-            if node.index == idx:
-                return node
+        if idx in self.index_dict:
+            return self.index_dict[idx]
 
         raise NodeNotFound(idx)
 
@@ -235,15 +236,11 @@ class Graph():
             NodeNotFound: If the origin/dest nodes are not in the graph.
             EdgeNotFound: If the edge is not in the graph.
         """
-        if origin not in self.graph:
-            raise NodeNotFound(origin.index)
-        if dest not in self.graph:
-            raise NodeNotFound(dest.index)
-        for edge in self.graph[origin]:
-            if edge.dest == dest:
-                return edge
-
-        raise EdgeNotFound(f"{origin.index} -> {dest.index}")
+        key = (origin.index, dest.index)
+        try:
+            return self.edge_dict[key]
+        except KeyError:
+            raise EdgeNotFound(f"{origin.index} -> {dest.index}")
 
     def add_node(self, node: Node):
         """Adds a node to the graph. 
@@ -266,6 +263,7 @@ class Graph():
                 self.center = node
             else:
                 self.node_list.append(node)
+            self.index_dict[node.index] = node
         else:
             raise DuplicateNode()
 
@@ -290,6 +288,8 @@ class Graph():
             self.graph[edge.origin].append(edge)
             self.edge_list.append(edge)
             self.edges += 1
+            key = (edge.origin.index, edge.dest.index)
+            self.edge_dict[key] = edge
         elif (edge.origin not in self.graph):
             raise NodeNotFound(edge.origin.index)
         else:
