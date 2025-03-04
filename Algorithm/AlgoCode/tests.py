@@ -4,8 +4,7 @@ import unittest
 import os
 import shutil
 import random
-from model import Node, Edge, Graph
-from model import load as lg
+from model import Node, Edge, Graph, load as lg
 import create_models as cm
 from exceptions import *
 from algorithms import Algorithms
@@ -57,7 +56,7 @@ class TestEdge(unittest.TestCase):
         self.assertEqual(self.edge.dest, self.node2)
 
 
-class TestGraph(unittest.TestCase):
+class TestGraphMethods(unittest.TestCase):
     """Graph module tests."""
 
     def setUp(self):
@@ -256,12 +255,66 @@ class TestGraph(unittest.TestCase):
         os.remove(f"{os.getcwd()}/data/gbkp")
 
 
+class TestGraphDefaults(unittest.TestCase):
+    """Default graph methods testing"""
+    def setUp(self):
+        self.nodes = [
+            Node(0, 0, 0, 0, True),
+            Node(1, 1, 1, 2),
+            Node(2, 2, 3, -2),
+            Node(3, 3, 0, 5),
+            Node(4, 4, -7, 0)
+        ]
+        self.edges = []
+        self.edges.append(Edge(10, self.nodes[0], self.nodes[2]))
+        self.edges.append(Edge(4, self.nodes[1], self.nodes[4]))
+        self.edges.append(Edge(2, self.nodes[3], self.nodes[2]))
+        self.edges.append(Edge(4, self.nodes[2], self.nodes[0]))
+        
+        self.g = Graph()
+        for node in self.nodes:
+            self.g.add_node(node)
+        for edge in self.edges:
+            self.g.add_edge(edge)
+        
+    def test_length(self):
+        """Tests getting the length of a graph object."""
+        self.assertEqual(len(self.g), 5)
+        
+    def test_get(self):
+        """Tests getting an item (node) from a graph."""
+        self.assertEqual(self.g[0][0], self.edges[0])
+        self.assertEqual(self.g[self.nodes[0]][0], self.edges[0])
+        
+    def test_set(self):
+        """Tests setting node's edges using []."""
+        e1 = Edge(5, self.nodes[4], self.nodes[1])
+        self.g[4] = e1
+        self.assertEqual(self.g[4], [e1])
+        e2 = Edge(6, self.nodes[4], self.nodes[2])
+        self.g[4] = e2
+        self.assertEqual(self.g[4], [e1, e2])
+        
+    def test_contains(self):
+        """Tests using contains in a graph."""
+        self.assertTrue(self.nodes[0] in self.g)
+        
+    def test_bool(self):
+        """Tests boolean value of a graph (empty/not empty)."""
+        self.assertTrue(self.g)
+        g2 = Graph()
+        self.assertFalse(g2)
+        
+    def test_print(self):
+        """Tests result of printing a graph."""
+        self.assertEqual(self.g.__repr__(), 
+                         "Graph with 5 nodes and 4 edges. Center: 0\n")
+
+
 class TestModelFileCreation(unittest.TestCase):
     """Training file creation script testing"""
 
     def setUp(self):
-        shutil.rmtree(os.getcwd() + "/files/datasets")
-
         cm.DATA_SIZE = 2
         cm.MIN_NODES = 50
         cm.MAX_NODES = 100
@@ -297,7 +350,7 @@ class TestModelFileCreation(unittest.TestCase):
 
 def suite():
     suite = unittest.TestSuite()
-    suite.addTest(TestGraph('test_ga_tsp'))
+    suite.addTest(TestGraphMethods('test_ga_tsp'))
     return suite
 
 
