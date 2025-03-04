@@ -1,7 +1,6 @@
 """Module containing utility functions."""
 
 def printProgressBar(
-        self,
         iteration: int, 
         total: int, 
         prefix: str = '', 

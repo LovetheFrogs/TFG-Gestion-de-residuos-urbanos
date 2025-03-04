@@ -37,6 +37,7 @@ class Plotter():
             for route in data:
                 stops = [i for i in route]
                 plt.plot(*zip(*stops), linestyle='-', color=next(color))
+            plt.title('Best paths found')
         plt.plot(
             center[0], center[1], marker='x', markersize=10, color='green'
         )
