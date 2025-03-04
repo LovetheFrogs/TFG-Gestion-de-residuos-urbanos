@@ -702,13 +702,13 @@ class Graph():
             for idx in path:
                 res.append(self.get_node(idx).coordinates)
         else:
-            res_vrp = []
+            res = []
             for zone in path:
-                res = []
-                aux = self.center.index + [zone] + self.center.index
+                res_vrp = []
+                aux = [self.center.index] + zone + [self.center.index]
                 for idx in aux:
-                    res.append(self.get_node(idx).coordinates)
-                res_vrp.append(res)
+                    res_vrp.append(self.get_node(idx).coordinates)
+                res.append(res_vrp)
 
         return res
 
@@ -768,6 +768,7 @@ class Graph():
             elif node == self.center.index:
                 continue
             else: zone.append(node)
+        zones.append(zone)
 
         return zones
 
@@ -831,7 +832,7 @@ class Graph():
         us a total likeliness factor of 4.243,61, making this zone division 
         highly unlikely to pass on to the next generation.
         """
-        avg_weight = statistics.fmean(zone_weights)
+        avg_weight = statistics.fmean(zone_weights) + 1
         avg_difs = [abs(1 - (z / avg_weight)) for z in zone_weights]
         likeliness_factors = [100 * pow(5 * ad, 2) for ad in avg_difs]
         
@@ -868,35 +869,42 @@ class Graph():
         Returns:
             A tuple containing the value of the objective function.
         """
-        zones = self.extract_zones()
+        zones = self.extract_zones(individual)
         max_value = -1
         total_value = 0
         weights = []
         for zone in zones:
-            aux = [self.center.index] + zone + [self.center.index]
             new_value = 0
             total_weight = 0
-            for i, node in enumerate(aux):
-                if i == len(aux) - 1: continue
+            current = self.center
+            for node in zone:
                 if (
-                    total_weight + self.get_edge(node).weight
+                    total_weight + self.get_edge(
+                        self.get_node(node),
+                        current
+                                                 ).value
                 ) >= self.truck_capacity: 
-                    new_value = float('inf')
-                total_weight += self.get_edge(node).weight
+                    new_value = 100000
+                total_weight += self.get_edge(
+                    self.get_node(node),
+                    current
+                                              ).value
                 new_value += self.get_edge(
                     self.get_node(node),
-                    self.get_node(aux[i + 1])
+                    current
                 ).value
+                current = self.get_node(node)
             weights.append(total_weight)
             if new_value > max_value: max_value = new_value
             total_value += new_value
-            penalty = sum(
-                self.get_node(node).weight * (len(individual) - i)
-                for i, node in enumerate(individual)
-            )
-            total_value += 0.2 * penalty
+            
+        penalty = 0
+        for z in zones:
+            for i, node in enumerate(z):
+                penalty += (self.get_node(node).weight * (len(z) - i))
+        total_value += 0.2 * penalty
         total_value += 0.5 * max_value * len(zones)
-        total_value += 1.0 * self.zone_likeliness(weights)
+        total_value += 1.0 * self.zone_likeness(weights)
 
         return (total_value, )
 
@@ -923,12 +931,11 @@ class Graph():
             del creator.Individual
 
         creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
-        if not vrp:
-            creator.create(
-                                "Individual", 
-                                list, typecode='i', 
-                                fitness=creator.FitnessMin
-                           )
+        creator.create(
+                            "Individual", 
+                            list, typecode='i', 
+                            fitness=creator.FitnessMin
+                        )
 
         return creator
 
@@ -970,8 +977,7 @@ class Graph():
                             toolbox.individual_creator
                          )
 
-        if vrp: toolbox.register("evaluate", self.evaluate) 
-        else: toolbox.register("evaluate", self.evaluate_vrp)
+        toolbox.register("evaluate", self.evaluate)
         toolbox.register("select", tools.selTournament, tournsize=2)
 
         toolbox.register("mate", tools.cxOrdered)
@@ -1033,11 +1039,21 @@ class Graph():
         """
         pltr = plotter.Plotter()
         plt.figure(1)
+        if vrp: 
+            path = [
+                [self.center.index] + z + [self.center.index] 
+                for z in self.extract_zones(path)
+                    ]
+            pltr.numOfVehicles = len(path)
         pltr.plot_map(self.create_points(path, vrp=vrp), vrp, self.center.coordinates)
-        if dir: plt.savefig(f"{dir}/Path{idx}.png")
+        if dir: 
+            plt.savefig(f"{dir}/Path{idx}.png")
+            plt.clf()
         plt.figure(2)
         pltr.plot_evolution(logbook.select("min"), logbook.select("avg"))
-        if dir: plt.savefig(f"{dir}/Evolution{idx}.png")
+        if dir: 
+            plt.savefig(f"{dir}/Evolution{idx}.png")
+            plt.clf()
 
         return plt
 
@@ -1123,13 +1139,12 @@ class Graph():
         Returns:
             The toolbox defined for the genetic algorithm.
         """
-
         toolbox = base.Toolbox()
         toolbox.register(
                             "random_order", 
                             random.sample, 
-                            range(self.nodes + agent_num), 
-                            len(nodes)
+                            range(self.nodes + agent_num - 1), 
+                            self.nodes + agent_num - 1
                         )
         toolbox.register(
                             "individual_creator",
@@ -1212,15 +1227,19 @@ class Graph():
                                                   )
 
         best = hof.items[0]
-        best_path = [self.center.index] + best + [self.center.index]
+        zones = self.extract_zones(best)
+        best_path = [
+            [self.center.index] + zone + [self.center.index] 
+            for zone in zones
+                     ]
         total_value = self.evaluate_vrp(hof[0])[0]
 
         if vrb:
             print("-- Best Ever Individual = ", best_path)
             print("-- Best Ever Fitness = ", hof.items[0].fitness.values[0])
 
-        if dir: self.plot_ga_results(best_path, logbook, dir, idx, True)
-        else: self.plot_ga_results(best_path, logbook, vrp=True).show()
+        if dir: self.plot_ga_results(best, logbook, dir, idx, True)
+        else: self.plot_ga_results(best, logbook, vrp=True).show()
 
         return best_path, total_value
 
@@ -1307,23 +1326,36 @@ if __name__ == '__main__':
     """
     g = Graph()
     print("Loading graph")
-    g.populate_from_file(os.getcwd() + "/files/test.txt")
-    #g.populate_from_file(os.getcwd() + "/Algorithm/Algo-Draft/AlgoCode/files/test2.txt")
+    g.populate_from_file(os.getcwd() + "/files/test2.txt")
+    #g.populate_from_file(os.getcwd() + "/Algorithm/AlgoCode/files/test3.txt")
     print("Graph loaded")
-    print(g)
+    _, v = g.run_ga_tsp(ngen=500, pop_size=500, idx=0, dir=os.getcwd() + "/plots")
+    print(f"Total value (TSP): {v}")
     res = g.divide_graph(725)
+    print(f"Zone count (TSP): {len(res)}")
     sg = []
-    print(len(res))
     for i, z in enumerate(res): 
-        for n in z: print(n.index, end=' ')
-        print(f" - {sum(n.weight for n in z)} Zone {i}")
         sg.append(g.create_subgraph(z))
-    p, v = g.run_ga_tsp(dir=f"{os.getcwd()}/files/plots")
-    print(f"Path: {p}\nValue: {v}")
-    """t = 0
-    for graph in sg:
-        print(graph)
-        p, v = graph.run_ga_tsp()
+    t = 0
+    for i, graph in enumerate(sg):
+        p, v = graph.run_ga_tsp(idx=i + 1, vrb=False, dir=os.getcwd() + "/plots")
+        print(p)
         t += v
-        print(f"Path: {p}\nValue: {v}")
-    print(f"Total value: {t}")"""
+    print(f"Total value (TSP zoned): {t}")
+
+    t = 0
+    n = g.set_num_zones(725) + int(g.set_num_zones(725) * 0.1) + 1
+    print(f"Zone count (VRP): {n}")
+    p, v = g.run_ga_vrp(n, 725, ngen=1000, idx=len(sg) + 1, dir=os.getcwd() + "/plots")
+    for sp in p:
+        current = g.get_node(sp[0])
+        for idx in sp[1:]:
+            t += g.get_edge(
+                current, g.get_node(idx)
+                                         ).value
+            current = g.get_node(idx)
+        penalty = sum(
+            g.get_node(node).weight * (len(sp) - i)
+            for i, node in enumerate(sp)
+        )
+    print(f"Total value (VRP): {t}")
