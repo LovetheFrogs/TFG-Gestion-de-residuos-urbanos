@@ -210,9 +210,9 @@ class TestGraph(unittest.TestCase):
         """Tests the Genetic Algorithm (TSP)"""
         g2 = Graph()
         g2.populate_from_file(f"{os.getcwd()}/files/test2.txt")
-        p, v = g2.run_ga_tsp(dir=f"{os.getcwd()}/files/plots", vrb=False)
-        os.remove(f"{os.getcwd()}/files/plots/Path0.png")
-        os.remove(f"{os.getcwd()}/files/plots/Evolution0.png")
+        p, v = g2.run_ga_tsp(dir=f"{os.getcwd()}/plots", vrb=False)
+        os.remove(f"{os.getcwd()}/plots/Path0.png")
+        os.remove(f"{os.getcwd()}/plots/Evolution0.png")
         self.assertEqual(p[-1], p[0])
         self.assertEqual(p[0], 0)
         random_path = (
@@ -220,18 +220,42 @@ class TestGraph(unittest.TestCase):
         )
         self.assertTrue(g2.evaluate(random_path)[0] > v)
 
+    def test_ga_vrp(self):
+        """Tests the Genetic Algorithm (VSP)"""
+        g2 = Graph()
+        g2.populate_from_file(f"{os.getcwd()}/files/test2.txt")
+        p, v = g2.run_ga_vrp(
+            3,
+            725,
+            dir=f"{os.getcwd()}/plots", 
+            vrb=False
+                             )
+        os.remove(f"{os.getcwd()}/plots/Path0.png")
+        os.remove(f"{os.getcwd()}/plots/Evolution0.png")
+        self.assertEqual(len(p), 3)
+        for i, zone in enumerate(p):
+            with self.subTest(i=i):
+                self.assertEqual(zone[0], zone[-1])
+                self.assertEqual(zone[0], 0)
+        random_path = (
+            [n.index - 1 for n in random.sample(g2.node_list, g2.nodes - 1)]
+        )
+        g2.convert = {i: node + 1 for i, node in enumerate(random_path)}
+        self.assertTrue(g2.evaluate(random_path)[0] > v)
+
     def test_save_and_load(self):
         """Tests saving and loading a graph."""
         for node in self.nodes: self.g.add_node(node)
         for edge in self.edges: self.g.add_edge(edge)
-        self.g.save(f"{os.getcwd()}/files/data/gbkp")
-        aux = lg(f"{os.getcwd()}/files/data/gbkp")
+        self.g.save(f"{os.getcwd()}/data/gbkp")
+        aux = lg(f"{os.getcwd()}/data/gbkp")
         self.assertNotEqual(aux, None)
         self.assertTrue(isinstance(aux, Graph))
         self.assertEqual(
             [aux.nodes, aux.edges], 
             [self.g.nodes, self.g.edges]
         )
+        os.remove(f"{os.getcwd()}/data/gbkp")
 
 
 class TestModelFileCreation(unittest.TestCase):
