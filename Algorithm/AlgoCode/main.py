@@ -50,7 +50,7 @@ def run():
                            vrb=False)
     for sp in p:
         current = g.get_node(sp[0])
-        t += algo.evaluate(sp[1:])
+        t += algo.evaluate(sp[1:-1])
     print(f"Total value (VRP): {t}")
 
 
