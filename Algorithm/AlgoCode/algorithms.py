@@ -2,13 +2,12 @@
 
 import random
 import statistics
+from numba import jit
 from deap import base, creator, tools, algorithms
 import matplotlib.pyplot as plt
 import numpy as np
 import plotter
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from model import Graph
+from model import Graph
 
 
 class Algorithms():
@@ -149,6 +148,11 @@ class Algorithms():
 
         return sum(likeliness_factors)
 
+    def _clone(self, ind):
+        new_ind = creator.Individual(ind)
+        new_ind.fitness.values = ind.fitness.values
+        return new_ind
+
     def _define_creator(self) -> creator:
         """Defines a deap creator for the genetic algorithms.
         
@@ -213,6 +217,7 @@ class Algorithms():
         toolbox.register("mutate",
                          tools.mutShuffleIndexes,
                          indpb=1.0 / self.graph.nodes)
+        toolbox.register("clone", self._clone)
 
         return toolbox
 
@@ -252,6 +257,7 @@ class Algorithms():
         toolbox.register("mutate",
                          tools.mutShuffleIndexes,
                          indpb=1.0 / ((self.graph.nodes + agent_num)))
+        toolbox.register("clone", self._clone)
 
         return toolbox
 
