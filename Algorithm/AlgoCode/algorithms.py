@@ -2,12 +2,50 @@
 
 import random
 import statistics
-from numba import jit
+from numba import njit
 from deap import base, creator, tools, algorithms
 import matplotlib.pyplot as plt
 import numpy as np
 import plotter
 from model import Graph
+
+
+def stochastic_2opt(ind, indpb):
+    if random.random() < indpb:
+        i = random.randint(0, len(ind) - 1)
+        j = random.randint(0, len(ind) - 1)
+        if i > j:
+            i, j = j, i
+        ind[i:j+1] = reversed(ind[i:j+1])
+    return ind,
+
+
+def edge_recombination_crossover(ind1: list[int], ind2: list[int]):
+    edge_map = {}
+    for idx in range(len(ind1)):
+        neighbors = set()
+        neighbors.add(ind1[(idx - 1) % len(ind1)])
+        neighbors.add(ind1[(idx + 1) % len(ind1)])
+        neighbors.add(ind2[(idx - 1) % len(ind1)])
+        neighbors.add(ind2[(idx + 1) % len(ind1)])
+        edge_map[ind1[idx]] = neighbors
+
+    curr = random.choice([ind1[0], ind2[0]])
+    offspring = [curr]
+    while len(offspring) < len(ind1):
+        neighbors = edge_map[curr]
+        next_node = None
+        for n in neighbors:
+            if n not in offspring:
+                next_node = n
+                break
+        if next_node is None:
+            rem = [n for n in ind1 if n not in offspring]
+            next_node = random.choice(rem)
+        offspring.append(next_node)
+        curr = next_node
+
+    return offspring, offspring
 
 
 class Algorithms():
@@ -148,6 +186,20 @@ class Algorithms():
 
         return sum(likeliness_factors)
 
+    def _erx(self, ind1, ind2):
+        a, b = edge_recombination_crossover(
+            [i for i in ind1], [j for j in ind2])
+        off1 = creator.Individual(a)
+        off1.fitness.values = ind1.fitness.values
+        off2 = creator.Individual(b)
+        off2.fitness.values = ind2.fitness.values
+        return off1, off2
+
+    def _2opt(self, ind, indpb):
+        a = stochastic_2opt([i for i in ind], indpb)[0]
+        mut = creator.Individual(ind)
+        return mut,
+
     def _clone(self, ind):
         new_ind = creator.Individual(ind)
         new_ind.fitness.values = ind.fitness.values
@@ -213,9 +265,9 @@ class Algorithms():
         toolbox.register("evaluate", self.evaluate_tsp)
         toolbox.register("select", tools.selTournament, tournsize=2)
 
-        toolbox.register("mate", tools.cxOrdered)
+        toolbox.register("mate", self._erx)
         toolbox.register("mutate",
-                         tools.mutShuffleIndexes,
+                         self._2opt,
                          indpb=1.0 / self.graph.nodes)
         toolbox.register("clone", self._clone)
 
@@ -351,8 +403,8 @@ class Algorithms():
 
     def run_ga_tsp(self,
                    ngen: int = 100,
-                   cxpb: float = 0.9,
-                   mutpb: float = 0.1,
+                   cxpb: float = 0.99,
+                   mutpb: float = 0.01,
                    pop_size: int = 200,
                    dir: str | None = None,
                    idx: int = 0,

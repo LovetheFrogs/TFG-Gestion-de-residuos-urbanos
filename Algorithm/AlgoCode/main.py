@@ -14,17 +14,17 @@ def run():
     """
     g = Graph()
     print("Loading graph")
-    g.populate_from_file(os.getcwd() + "/files/test2.txt")
+    g.populate_from_file(os.getcwd() + "/files/test4.txt")
     #g.populate_from_file(os.getcwd() + "/Algorithm/AlgoCode/files/test2.txt")
     print("Graph loaded")
     algo = Algorithms(g)
-    _, v = algo.run_ga_tsp(ngen=500,
+    _, v = algo.run_ga_tsp(ngen=1000,
                            pop_size=500,
                            idx=0,
                            dir=os.getcwd() + "/plots",
                            vrb=False)
     print(f"Total value (TSP): {v}")
-    res = g.divide_graph(725)
+    """res = g.divide_graph(725)
     print(f"Zone count (TSP): {len(res)}")
     sg = []
     for i, z in enumerate(res):
@@ -51,7 +51,7 @@ def run():
     for sp in p:
         current = g.get_node(sp[0])
         t += algo.evaluate(sp[1:-1])
-    print(f"Total value (VRP): {t}")
+    print(f"Total value (VRP): {t}")"""
 
 
 def main():
