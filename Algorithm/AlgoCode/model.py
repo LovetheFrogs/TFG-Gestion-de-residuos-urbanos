@@ -148,7 +148,7 @@ class Edge():
         #: float: Time it takes to traverse the edge, given a speed and length.
         self.time = 2.5 * ((float(self.length) / 1000) / self.speed)
         #: float: The cost of the edge, as both length and time affect it.
-        self.value = self.length + self.time
+        self.value = self.length
 
     def __repr__(self) -> str:
         """Changes the default representation of an edge.
@@ -201,6 +201,7 @@ class Graph():
         self.index_dict = {}
         self.edge_dict = {}
         self.center = None
+        self.distances = None
 
     def get_node(self, idx: int) -> Node:
         """Gets a node from the graph.
@@ -361,6 +362,13 @@ class Graph():
         with open(path, 'wb') as backup:
             pickle.dump(self, backup, protocol=-1)
 
+    def set_distance_matrix(self):
+        distances = [[0 for _ in range(self.nodes)] for _ in range(self.nodes)]
+        for n in range(self.nodes):
+            for edge in self.graph[self.get_node(n)]:
+                distances[n][edge.dest.index] = edge.value
+        self.distances = distances
+
     def populate_from_file(self, file: str):
         """Populates a graph from the data in a file.
 
@@ -411,6 +419,8 @@ class Graph():
 
             self.set_center(self.get_node(0))
             self.center.center = True
+            self.set_distance_matrix()
+
 
     def bfs(self, source: Node) -> list[int]:
         """Performs Breadth First Search on the graph from the node ``source``.
