@@ -373,7 +373,7 @@ class Algorithms():
                 gens_stagnated += 1
             if gens_stagnated >= 25:
                 print("Stagnated")
-                if mut_exploder < 5:
+                if mut_exploder < 5 and mut_exploder < self.graph.nodes:
                     toolbox.register("mutate", 
                                      tools.mutShuffleIndexes, 
                                      indpb=1/(self.graph.nodes - mut_exploder))
