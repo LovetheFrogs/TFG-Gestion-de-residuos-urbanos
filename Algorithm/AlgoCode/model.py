@@ -148,7 +148,7 @@ class Edge():
         #: float: Time it takes to traverse the edge, given a speed and length.
         self.time = 2.5 * ((float(self.length) / 1000) / self.speed)
         #: float: The cost of the edge, as both length and time affect it.
-        self.value = self.length
+        self.value = self.length + self.time
 
     def __repr__(self) -> str:
         """Changes the default representation of an edge.
