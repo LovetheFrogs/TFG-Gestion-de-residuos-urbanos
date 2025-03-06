@@ -10,44 +10,6 @@ import plotter
 from model import Graph
 
 
-def stochastic_2opt(ind, indpb):
-    if random.random() < indpb:
-        i = random.randint(0, len(ind) - 1)
-        j = random.randint(0, len(ind) - 1)
-        if i > j:
-            i, j = j, i
-        ind[i:j+1] = reversed(ind[i:j+1])
-    return ind,
-
-
-def edge_recombination_crossover(ind1: list[int], ind2: list[int]):
-    edge_map = {}
-    for idx in range(len(ind1)):
-        neighbors = set()
-        neighbors.add(ind1[(idx - 1) % len(ind1)])
-        neighbors.add(ind1[(idx + 1) % len(ind1)])
-        neighbors.add(ind2[(idx - 1) % len(ind1)])
-        neighbors.add(ind2[(idx + 1) % len(ind1)])
-        edge_map[ind1[idx]] = neighbors
-
-    curr = random.choice([ind1[0], ind2[0]])
-    offspring = [curr]
-    while len(offspring) < len(ind1):
-        neighbors = edge_map[curr]
-        next_node = None
-        for n in neighbors:
-            if n not in offspring:
-                next_node = n
-                break
-        if next_node is None:
-            rem = [n for n in ind1 if n not in offspring]
-            next_node = random.choice(rem)
-        offspring.append(next_node)
-        curr = next_node
-
-    return offspring, offspring
-
-
 class Algorithms():
     """Class containing the diferent path-finding algorithms.
     
@@ -57,28 +19,36 @@ class Algorithms():
 
     def __init__(self, graph: 'Graph'):
         self.graph = graph
-        self.convert = None
         self.truck_capacity = None
         self.max_time = 8
 
+    def local_search_2opt(self, ind, mi=50):
+        improved = True
+        best_fitness = self.evaluate_tsp(ind)
+        it = 0
+        while improved and it < mi:
+            improved = False
+            for i in range (1, len(ind), 2):
+                for j in range(i + 1, len(ind)):
+                    if j - i == 1: continue
+                    ni = ind.copy()
+                    ni[i:j+1] = ni[i:j+1][::-1]
+                    new_fitness = self.evaluate_tsp(ind)
+                    if new_fitness < best_fitness:
+                        ind = ni
+                        best_fitness = new_fitness
+                        improved = True
+                        break
+                if improved: break
+            it += 1
+        return ind
+
     def evaluate(self, individual: list[int]) -> float:
         # total time = edge time + 2minutes to pick up bin.
-        total_value = 0
-        total_time = 0
-        current = self.graph.center
-        for idx in individual:
-            aux = self.graph.get_node(idx)
-            curr_edge = self.graph.get_edge(
-                current, aux)
-            total_value += curr_edge.value
-            total_time += curr_edge.time + 0.03
-            if total_time > self.max_time: return 100000
-            current = aux
-        total_value += self.graph.get_edge(current, self.graph.center).value
-        penalty = sum(
-            self.graph.get_node(node).weight *
-            (len(individual) - i) for i, node in enumerate(individual))
-        return (total_value + 0.2 * penalty + 0.5 * total_time)
+        total_value = self.graph.distances[individual[-1]][individual[0]]
+        for ind1, ind2 in zip(individual[0:-1], individual[1:]):
+            total_value += self.graph.distances[ind1][ind2]
+        return (total_value)
 
     def evaluate_tsp(self, individual: list[int]) -> tuple[float, ...]:
         """Evaluates the objective function value for a path.
@@ -102,7 +72,7 @@ class Algorithms():
         Returns:
             A tuple containing the value of the objective function.
         """
-        return (self.evaluate([self.convert[node] for node in individual])),
+        return (self.evaluate([node for node in individual])),
 
     def evaluate_vrp(self, individual: list[int]) -> tuple[float, ...]:
         """Evaluates the objective function value for a path.
@@ -186,20 +156,6 @@ class Algorithms():
 
         return sum(likeliness_factors)
 
-    def _erx(self, ind1, ind2):
-        a, b = edge_recombination_crossover(
-            [i for i in ind1], [j for j in ind2])
-        off1 = creator.Individual(a)
-        off1.fitness.values = ind1.fitness.values
-        off2 = creator.Individual(b)
-        off2.fitness.values = ind2.fitness.values
-        return off1, off2
-
-    def _2opt(self, ind, indpb):
-        a = stochastic_2opt([i for i in ind], indpb)[0]
-        mut = creator.Individual(ind)
-        return mut,
-
     def _clone(self, ind):
         new_ind = creator.Individual(ind)
         new_ind.fitness.values = ind.fitness.values
@@ -251,12 +207,11 @@ class Algorithms():
         Returns:
             The toolbox defined for the genetic algorithm.
         """
-        nodes = [node.index for node in self.graph.node_list]
-        genes = [i for i in range(len(nodes))]
-        self.convert = {i: node for i, node in enumerate(nodes)}
-
         toolbox = base.Toolbox()
-        toolbox.register("random_order", random.sample, genes, len(nodes))
+        toolbox.register("random_order", 
+                         random.sample, 
+                         range(self.graph.nodes), 
+                         self.graph.nodes)
         toolbox.register("individual_creator", tools.initIterate,
                          creator.Individual, toolbox.random_order)
         toolbox.register("population_creator", tools.initRepeat, list,
@@ -265,10 +220,10 @@ class Algorithms():
         toolbox.register("evaluate", self.evaluate_tsp)
         toolbox.register("select", tools.selTournament, tournsize=2)
 
-        toolbox.register("mate", self._erx)
+        toolbox.register("mate", tools.cxOrdered)
         toolbox.register("mutate",
-                         self._2opt,
-                         indpb=1.0 / self.graph.nodes)
+                         tools.mutShuffleIndexes,
+                         indpb=1.0/self.graph.nodes)
         toolbox.register("clone", self._clone)
 
         return toolbox
@@ -331,7 +286,7 @@ class Algorithms():
         stats = tools.Statistics(lambda ind: ind.fitness.values)
         stats.register("min", np.min)
         stats.register("avg", np.mean)
-        hof = tools.HallOfFame(30)
+        hof = tools.HallOfFame(1)
 
         return population, stats, hof
 
@@ -369,6 +324,11 @@ class Algorithms():
         if verbose:
             print(logbook.stream)
 
+        best_val = float('inf')
+        gens_stagnated = 0
+        mut_exploder = 1
+        cicles = 0
+
         # Begin the generational process
         for gen in range(1, ngen + 1):
 
@@ -384,8 +344,14 @@ class Algorithms():
             for ind, fit in zip(invalid_ind, fitnesses):
                 ind.fitness.values = fit
 
+            elite = halloffame.items
+            for i, e in enumerate(elite):
+                ie = self.local_search_2opt(e)
+                e[:] = ie[:]
+                e.fitness.values = self.evaluate_tsp(e)
+
             # add the best back to population:
-            offspring.extend(halloffame.items)
+            offspring.extend(elite)
 
             # Update the hall of fame with the generated individuals
             halloffame.update(offspring)
@@ -399,13 +365,39 @@ class Algorithms():
             if verbose:
                 print(logbook.stream)
 
+            val = halloffame[0].fitness.values[0]
+            if val < best_val:
+                best_val = val
+                gens_stagnated = 0
+            else:
+                gens_stagnated += 1
+            if gens_stagnated >= 25:
+                print("Stagnated")
+                if mut_exploder < 5:
+                    toolbox.register("mutate", 
+                                     tools.mutShuffleIndexes, 
+                                     indpb=1/(self.graph.nodes - mut_exploder))
+                    mut_exploder += 1
+                else:
+                    print("Reseting...")
+                    for i, ind in enumerate(population):
+                        population[i] = halloffame.items[0]
+                    mut_exploder = 1
+                    toolbox.register("mutate", 
+                                     tools.mutShuffleIndexes, 
+                                     indpb=1/(self.graph.nodes))
+                    cicles += 1
+                gens_stagnated = 0
+            
+            if cicles >= 3: break
+
         return population, logbook
 
     def run_ga_tsp(self,
-                   ngen: int = 100,
-                   cxpb: float = 0.99,
-                   mutpb: float = 0.01,
-                   pop_size: int = 200,
+                   ngen: int = 3000,
+                   cxpb: float = 0.7,
+                   mutpb: float = 0.2,
+                   pop_size: int = 1000,
                    dir: str | None = None,
                    idx: int = 0,
                    vrb: bool = True) -> tuple[list[int], float]:
@@ -431,6 +423,9 @@ class Algorithms():
         Returns:
             A tuple containing the best path found and its total value.
         """
+        random.seed(169)
+        if not self.graph.distances: self.graph.set_distance_matrix()
+        
         creator = self._define_creator()
         toolbox = self._define_toolbox()
         population, stats, hof, = self._define_ga(toolbox, pop_size)
@@ -444,21 +439,20 @@ class Algorithms():
                                                        halloffame=hof,
                                                        verbose=vrb)
 
-        best = [self.convert[i] for i in hof.items[0]]
-        best_path = ([self.graph.center.index] + best +
-                     [self.graph.center.index])
-        total_value = self.evaluate_tsp(hof[0])[0]
+        best = [i for i in hof.items[0]]
+        best += [best[0]]
+        total_value = self.evaluate_tsp(best)[0]
 
         if vrb:
-            print("-- Best Ever Individual = ", best_path)
-            print("-- Best Ever Fitness = ", hof.items[0].fitness.values[0])
+            print("-- Best Ever Individual = ", best)
+            print("-- Best Ever Fitness = ", total_value)
 
         if dir:
-            self._plot_ga_results(best_path, logbook, dir, idx)
+            self._plot_ga_results(best, logbook, dir, idx)
         else:
-            self._plot_ga_results(best_path, logbook).show()
+            self._plot_ga_results(best, logbook).show()
 
-        return best_path, total_value
+        return best, total_value
 
     def run_ga_vrp(self,
                    agent_num: int,
@@ -494,6 +488,8 @@ class Algorithms():
         Returns:
             A tuple containing the best paths found and its total value.
         """
+        random.seed(169)
+
         self.truck_capacity = truck_capacity
         creator = self._define_creator()
         toolbox = self._define_toolbox_vrp(agent_num)
