@@ -42,6 +42,18 @@ class Algorithms():
                 if improved: break
             it += 1
         return ind
+    
+    def optimization(self, best):
+        for i, _ in enumerate(best):
+            if len(best[i:]) == 1: break
+            for j in range(i + 1, len(best)):
+                curr_fitness = self.evaluate(best)
+                candidate = best[:]
+                candidate[i], candidate[j] = candidate[j], candidate[i]
+                if self.evaluate(candidate) < curr_fitness:
+                    best[i], best[j] = best[j], best[i]    
+                    
+        return best            
 
     def evaluate(self, individual: list[int]) -> float:
         # total time = edge time + 2minutes to pick up bin.
@@ -72,7 +84,7 @@ class Algorithms():
         Returns:
             A tuple containing the value of the objective function.
         """
-        return (self.evaluate([node for node in individual])),
+        return (self.evaluate(individual)),
 
     def evaluate_vrp(self, individual: list[int]) -> tuple[float, ...]:
         """Evaluates the objective function value for a path.
@@ -259,8 +271,7 @@ class Algorithms():
         toolbox.register("evaluate", self.evaluate_vrp)
         toolbox.register("select", tools.selTournament, tournsize=2)
         toolbox.register("mate",
-                         tools.cxUniformPartialyMatched,
-                         indpb=2.0 / (self.graph.nodes + agent_num))
+                         tools.cxUniformPartialyMatched, indpb=1.0 / (self.graph.nodes + agent_num))
         toolbox.register("mutate",
                          tools.mutShuffleIndexes,
                          indpb=1.0 / ((self.graph.nodes + agent_num)))
@@ -298,6 +309,7 @@ class Algorithms():
                             ngen,
                             stats=None,
                             halloffame=None,
+                            vrp=False,
                             verbose=__debug__):
         """This algorithm is similar to DEAP eaSimple() algorithm, with the modification that
         halloffame is used to implement an elitism mechanism. The individuals contained in the
@@ -326,8 +338,14 @@ class Algorithms():
 
         best_val = float('inf')
         gens_stagnated = 0
+        superGens_stagnated = 0
         mut_exploder = 1
         cicles = 0
+        fgen = 0
+        if vrp: mut_exp = 8
+        else: mut_exp = min(0.15 * self.graph.nodes, 30)
+        stg = min(self.graph.nodes/1.15, 50)
+        mcic = min(self.graph.nodes/1.15, 25)
 
         # Begin the generational process
         for gen in range(1, ngen + 1):
@@ -344,14 +362,14 @@ class Algorithms():
             for ind, fit in zip(invalid_ind, fitnesses):
                 ind.fitness.values = fit
 
-            elite = halloffame.items
+            """elite = halloffame.items
             for i, e in enumerate(elite):
                 ie = self.local_search_2opt(e)
                 e[:] = ie[:]
-                e.fitness.values = self.evaluate_tsp(e)
+                e.fitness.values = self.evaluate_tsp(e)"""
 
             # add the best back to population:
-            offspring.extend(elite)
+            offspring.extend(halloffame.items)
 
             # Update the hall of fame with the generated individuals
             halloffame.update(offspring)
@@ -369,17 +387,22 @@ class Algorithms():
             if val < best_val:
                 best_val = val
                 gens_stagnated = 0
+                superGens_stagnated = 0
             else:
                 gens_stagnated += 1
-            if gens_stagnated >= 25:
-                print("Stagnated")
-                if mut_exploder < 5 and mut_exploder < self.graph.nodes:
+                superGens_stagnated += 1
+            if gens_stagnated >= stg:
+                if verbose: print("Stagnated")
+                if ((mut_exploder < 5 or 
+                     (mut_exploder < mut_exp and 
+                      self.graph.nodes >= 20)) 
+                    and mut_exploder < self.graph.nodes):
                     toolbox.register("mutate", 
                                      tools.mutShuffleIndexes, 
                                      indpb=1/(self.graph.nodes - mut_exploder))
                     mut_exploder += 1
                 else:
-                    print("Reseting...")
+                    if verbose: print("Reseting...")
                     for i, ind in enumerate(population):
                         population[i] = halloffame.items[0]
                     mut_exploder = 1
@@ -389,7 +412,14 @@ class Algorithms():
                     cicles += 1
                 gens_stagnated = 0
             
-            if cicles >= 3: break
+            if (cicles >= (mcic) + 1 or 
+                superGens_stagnated > self.graph.nodes * 6): 
+                if superGens_stagnated > self.graph.nodes * 6 and verbose:
+                    print("Halted")
+                fgen = gen
+                break
+            
+        print(fgen)
 
         return population, logbook
 
@@ -440,6 +470,10 @@ class Algorithms():
                                                        verbose=vrb)
 
         best = [i for i in hof.items[0]]
+        print(f"b4 optimizing: {self.evaluate_tsp(best)[0]}")
+        print("Optimizing")
+        best = self.optimization(best)
+        print(f"after optimizing: {self.evaluate_tsp(best)[0]}")
         best += [best[0]]
         total_value = self.evaluate_tsp(best)[0]
 
@@ -457,10 +491,10 @@ class Algorithms():
     def run_ga_vrp(self,
                    agent_num: int,
                    truck_capacity: int,
-                   ngen: int = 300,
+                   ngen: int = 3000,
                    cxpb: float = 0.9,
                    mutpb: float = 0.1,
-                   pop_size: int = 500,
+                   pop_size: int = 1000,
                    dir: str | None = None,
                    idx: int = 0,
                    vrb: bool = True) -> tuple[list[int], float]:
@@ -505,9 +539,11 @@ class Algorithms():
                                                        verbose=vrb)
 
         best = hof.items[0]
-        zones = self.graph.extract_zones(best)
+        aux = []
+        for z in self.graph.extract_zones(best):
+            aux.append(self.optimization(z))
         best_path = [[self.graph.center.index] + zone +
-                     [self.graph.center.index] for zone in zones]
+                     [self.graph.center.index] for zone in aux]
         total_value = self.evaluate_vrp(hof[0])[0]
 
         if vrb:
