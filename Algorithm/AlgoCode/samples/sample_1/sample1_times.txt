@@ -1,11 +1,11 @@
 run_ga_tsp -> 			9.425ms
 	evaluate_tsp -> 	3.284ms
 		evaluate -> 	3.227ms
-	varAnd -> 		4.015ms
+	varAnd -> 		    4.015ms
 
 -----------------------------------------
 
-run_ga_vsp ->		       18.976ms
+run_ga_vsp ->		   18.976ms
 	evaluate_vrp ->		9.555ms
-		evaluate ->	5.788ms
-	varAnd ->		6.728ms
+		evaluate ->	    5.788ms
+	varAnd ->		    6.728ms
