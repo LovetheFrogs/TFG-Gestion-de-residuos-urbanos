@@ -147,8 +147,8 @@ class Edge():
         self.dest = dest
         #: float: Time it takes to traverse the edge, given a speed and length.
         self.time = 2.5 * ((float(self.length) / 1000) / self.speed)
-        #: float: The cost of the edge, as both length and time affect it.
-        self.value = self.length + self.time
+        #: float: The cost of the edge plus 0.033 hours for node pickup.
+        self.value = self.length + self.time + 0.033
 
     def __repr__(self) -> str:
         """Changes the default representation of an edge.
@@ -540,7 +540,7 @@ class Graph():
         current_zone = []
 
         for node in angled_nodes:
-            if current_weight + node.weight > truck_capacity:
+            if (current_weight + node.weight > truck_capacity):
                 zones.append([self.center] + current_zone)
                 current_zone = [node]
                 current_weight = node.weight
