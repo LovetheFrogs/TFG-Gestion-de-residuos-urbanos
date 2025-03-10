@@ -1,7 +1,6 @@
 """Algorithms used to calculate a path in a graph."""
 
 import random
-import statistics
 from deap import base, creator, tools, algorithms
 import matplotlib.pyplot as plt
 import numpy as np
@@ -18,10 +17,17 @@ class Algorithms():
 
     def __init__(self, graph: 'Graph'):
         self.graph = graph
-        self.truck_capacity = None
-        self.max_time = 8
 
-    def local_search(self, ind, mi=50):
+    def local_search(self, ind: list[int], mi: int = 50) -> list[int]:
+        """Tries to improve the fitness of an individual making use of 2opt.
+
+        Args:
+            ind: The individual to improve.
+            mi: The maximum number of 2opt iterations. Defaults to 50.
+
+        Returns:
+            The improved individual.
+        """
         improved = True
         best_fitness = self.evaluate_tsp(ind)
         it = 0
@@ -43,27 +49,36 @@ class Algorithms():
         return ind     
 
     def evaluate(self, individual: list[int]) -> float:
-        # total time = edge time + 2minutes to pick up bin.
+        """Calculates the fitness value of a path.
+
+        Args:
+            individual: The path to evaluate.
+
+        Returns:
+            The fitness of the path.
+        """
         total_value = self.graph.distances[individual[-1]][individual[0]]
         for ind1, ind2 in zip(individual[0:-1], individual[1:]):
             total_value += self.graph.distances[ind1][ind2]
         return (total_value)
 
     def evaluate_tsp(self, individual: list[int]) -> tuple[float, ...]:
-        """Evaluates the objective function value for a path.
+        """Wrapper that calls the valuation function.
         
-        The algorithms used for this problem are genetic algorithms and, as 
-        such, try to minimize/maximize the value of a function to find a 
-        solution to a problem. In this case, the problem is finding the path
-        in a graph that optimizes a series of objectives. Those individual 
-        objectives form an objective function. The ``evaluate`` function checks
-        the result of evaluating said objective function for a given path.
+        The algorithms used for this evaluation function is a genetic 
+        algorithms and, as such, it tries to minimize/maximize the value of a
+        function to find a solution to a problem. In this case, the problem is
+        finding the path in a graph that optimizes a series of objectives 
+        (minimizes the value of a fitness function). The ``evaluate_tsp`` 
+        calls the evaluation function to check the result of evaluating said 
+        objective function for a given path and returns a tuple, as required
+        by DEAP.
         
         Currently, the objective function gives the cost of the path, which is
-        the sum of the values of the edges that form the path, and a penalty,
-        whose objective is to try and visit higher-weighted nodes later in the
-        path, as running for a longer distance with a heavier load increases
-        the maintenance cost of the truck.
+        the sum of the values of the edges that form the path, made up of how 
+        long they are and the theorical time they take to travel trough times
+        2.5 to account for real-world time wastes (traffic stops, dense trafic
+        and such).
         
         Args:
             individual: The path to evaluate.
@@ -73,7 +88,16 @@ class Algorithms():
         """
         return (self.evaluate(individual)),
 
-    def _clone(self, ind):
+    def _clone(self, ind: list[int]) -> list[int]:
+        """Overrides DEAP's cloning to improve time & space performance of the
+        genetic algorithm. It takes an individual and returs a copy of it.
+
+        Args:
+            ind: The individual to clone.
+
+        Returns:
+            The cloned individual.
+        """
         new_ind = creator.Individual(ind)
         new_ind.fitness.values = ind.fitness.values
         return new_ind
@@ -176,10 +200,15 @@ class Algorithms():
                             stats=None,
                             halloffame=None,
                             verbose=__debug__):
-        """This algorithm is similar to DEAP eaSimple() algorithm, with the modification that
-        halloffame is used to implement an elitism mechanism. The individuals contained in the
-        halloffame are directly injected into the next generation and are not subject to the
-        genetic operators of selection, crossover and mutation.
+        """This algorithm is similar to DEAP eaSimple() algorithm, with the 
+        modification that halloffame is used to implement an elitism mechanism. 
+        The individuals contained in the halloffame are directly injected into 
+        the next generation after aplying a local search optimization and are 
+        not subject to the genetic operators of selection, crossover and 
+        mutation. The algorithm also adds stagnation detection where, if the 
+        algorithm stagnates (does not improve min fitness for a number of 
+        generations), the mutation rate increases, or the population is reset 
+        using the best individuals.
         """
         logbook = tools.Logbook()
         logbook.header = ['gen', 'nevals'] + (stats.fields if stats else [])
@@ -206,7 +235,6 @@ class Algorithms():
         superGens_stagnated = 0
         mut_exploder = 1
         cicles = 0
-        fgen = 0
         mut_exp = min(0.10 * self.graph.nodes, 30)
         stg = min(self.graph.nodes/1.15, 50)
         mcic = min(self.graph.nodes/1.15, 25)
@@ -248,6 +276,8 @@ class Algorithms():
                 print(logbook.stream)
 
             val = halloffame[0].fitness.values[0]
+
+            # Stagnation detection
             if val < best_val:
                 best_val = val
                 gens_stagnated = 0
@@ -256,6 +286,7 @@ class Algorithms():
                 gens_stagnated += 1
                 superGens_stagnated += 1
             if gens_stagnated >= stg:
+                # Mutation rate increase
                 if verbose: print("Stagnated")
                 if ((mut_exploder < 5 or 
                      (mut_exploder < mut_exp and 
@@ -276,11 +307,11 @@ class Algorithms():
                     cicles += 1
                 gens_stagnated = 0
             
+            # Population reseting
             if (cicles >= (mcic) + 1 or 
                 superGens_stagnated > self.graph.nodes * 7): 
                 if superGens_stagnated > self.graph.nodes * 7 and verbose:
                     print("Halted")
-                fgen = gen
                 break
 
         return population, logbook

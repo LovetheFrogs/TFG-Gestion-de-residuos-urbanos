@@ -147,7 +147,7 @@ class Edge():
         self.dest = dest
         #: float: Time it takes to traverse the edge, given a speed and length.
         self.time = 2.5 * ((float(self.length) / 1000) / self.speed)
-        #: float: The cost of the edge plus 0.033 hours for node pickup.
+        #: float: The cost of the edge plus 0.033 for node pickup (2 mins).
         self.value = self.length + self.time + 0.033
 
     def __repr__(self) -> str:
