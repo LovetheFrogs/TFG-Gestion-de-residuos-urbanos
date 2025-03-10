@@ -417,15 +417,16 @@ class Algorithms():
     def run_two_opt(self, threshold: float = 0.01) -> tuple[list[int], float]:
         path = random.sample(range(0, self.graph.nodes), self.graph.nodes)
         
+
+
         return self.two_opt(path, threshold)
 
 
     def _plot_ga_results(self,
                          path: list[int],
-                         logbook: dict,
+                         logbook: dict = None,
                          dir: str | None = None,
-                         name: str = "",
-                         vrp: bool = False) -> plt:
+                         name: str = "") -> plt:
         """Sets up a plotter for the results of the Genetic Algorithm.
         
         This function uses the ``plotter`` module to plot the results of the
@@ -436,24 +437,18 @@ class Algorithms():
 
         Args:
             path: The best path found by the Genetic Algorithm.
-            logbook: The logbook containing the statistics of the Genetic
-                Algorithm execution.
-            dir (optional): The directory where the plots should be saved. Defaults to 
-                None, in which case the plot(s) won't be saved.
+            logbook (optional): The logbook containing the statistics of the 
+                Genetic lgorithm execution. Defaults to None
+            dir (optional): The directory where the plots should be saved. 
+                Defaults to None, in which case the plot(s) won't be saved.
             name (optional): The name to add to the plots. Defaults to "".
-            vrp (optional): If the result to plot is for a VRP or a TSP. 
-                Defaults to False.
 
         Returns:
             A ``matplotlib.pyplot`` object containing the plots.
         """
         pltr = plotter.Plotter()
         plt.figure(1)
-        if vrp:
-            path = [[self.graph.center.index] + z + [self.graph.center.index]
-                    for z in self.graph.extract_zones(path)]
-            pltr.numOfVehicles = len(path)
-        pltr.plot_map(self.graph.create_points(path, vrp=vrp), vrp,
+        pltr.plot_map(self.graph.create_points(path),
                       self.graph.center.coordinates)
         if dir:
             plt.savefig(f"{dir}/Path{name}.png")

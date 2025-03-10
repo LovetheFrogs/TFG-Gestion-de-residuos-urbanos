@@ -744,30 +744,18 @@ class Graph():
 
     def create_points(self,
                       path: list[int] | list[list[int]],
-                      vrp: bool = False
                      ) -> list[tuple[float, float]] | list[list[tuple, tuple]]:
         """Generates a list of coordinates from a list of node indices.
         
         Args:
             path: The list of indices of the nodes that form the path.
-            vrp: If the points should be generated for a VSP instance result.
-                Defaults to False.
 
         Returns:
             The list of coordinates.
         """
         res = []
-        if not vrp:
-            for idx in path:
-                res.append(self.get_node(idx).coordinates)
-        else:
-            res = []
-            for zone in path:
-                res_vrp = []
-                aux = [self.center.index] + zone + [self.center.index]
-                for idx in aux:
-                    res_vrp.append(self.get_node(idx).coordinates)
-                res.append(res_vrp)
+        for idx in path:
+            res.append(self.get_node(idx).coordinates)
 
         return res
 
