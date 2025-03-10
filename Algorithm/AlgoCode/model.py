@@ -97,13 +97,13 @@ class Node():
         lat_delta = math.radians(abs(self.coordinates[0] - b.coordinates[0]))
         alt_delta = math.radians(abs(self.coordinates[1] - b.coordinates[1]))
 
-        a = math.sin(lat_delta/2)**2
+        a = math.sin(lat_delta / 2)**2
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
         lat_distance = 6371 * c
 
-        a = math.sin(alt_delta/2)**2
+        a = math.sin(alt_delta / 2)**2
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-        alt_distance = 6371* c
+        alt_distance = 6371 * c
 
         return abs(lat_distance) + abs(alt_distance)
 
@@ -441,7 +441,6 @@ class Graph():
             self.set_center(self.get_node(0))
             self.center.center = True
             self.set_distance_matrix()
-
 
     def bfs(self, source: Node) -> list[int]:
         """Performs Breadth First Search on the graph from the node ``source``.

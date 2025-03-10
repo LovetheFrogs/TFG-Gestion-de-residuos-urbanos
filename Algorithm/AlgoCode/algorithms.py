@@ -33,20 +33,22 @@ class Algorithms():
         it = 0
         while improved and it < mi:
             improved = False
-            for i in range (1, len(ind), 2):
+            for i in range(1, len(ind), 2):
                 for j in range(i + 1, len(ind)):
-                    if j - i == 1: continue
+                    if j - i == 1:
+                        continue
                     ni = ind.copy()
-                    ni[i:j+1] = ni[i:j+1][::-1]
+                    ni[i:j + 1] = ni[i:j + 1][::-1]
                     new_fitness = self.evaluate_tsp(ind)
                     if new_fitness < best_fitness:
                         ind = ni
                         best_fitness = new_fitness
                         improved = True
                         break
-                if improved: break
+                if improved:
+                    break
             it += 1
-        return ind     
+        return ind
 
     def evaluate(self, individual: list[int]) -> float:
         """Calculates the fitness value of a path.
@@ -149,9 +151,7 @@ class Algorithms():
             The toolbox defined for the genetic algorithm.
         """
         toolbox = base.Toolbox()
-        toolbox.register("random_order", 
-                         random.sample, 
-                         range(self.graph.nodes), 
+        toolbox.register("random_order", random.sample, range(self.graph.nodes),
                          self.graph.nodes)
         toolbox.register("individual_creator", tools.initIterate,
                          creator.Individual, toolbox.random_order)
@@ -164,7 +164,7 @@ class Algorithms():
         toolbox.register("mate", tools.cxOrdered)
         toolbox.register("mutate",
                          tools.mutShuffleIndexes,
-                         indpb=1.0/self.graph.nodes)
+                         indpb=1.0 / self.graph.nodes)
         toolbox.register("clone", self._clone)
 
         return toolbox
@@ -236,8 +236,8 @@ class Algorithms():
         mut_exploder = 1
         cicles = 0
         mut_exp = min(0.10 * self.graph.nodes, 30)
-        stg = min(self.graph.nodes/1.15, 50)
-        mcic = min(self.graph.nodes/1.15, 25)
+        stg = min(self.graph.nodes / 1.15, 50)
+        mcic = min(self.graph.nodes / 1.15, 25)
 
         # Begin the generational process
         for gen in range(1, ngen + 1):
@@ -287,29 +287,31 @@ class Algorithms():
                 superGens_stagnated += 1
             if gens_stagnated >= stg:
                 # Mutation rate increase
-                if verbose: print("Stagnated")
-                if ((mut_exploder < 5 or 
-                     (mut_exploder < mut_exp and 
-                      self.graph.nodes >= 20)) 
-                    and mut_exploder < self.graph.nodes):
-                    toolbox.register("mutate", 
-                                     tools.mutShuffleIndexes, 
-                                     indpb=1/(self.graph.nodes - mut_exploder))
+                if verbose:
+                    print("Stagnated")
+                if ((mut_exploder < 5 or
+                     (mut_exploder < mut_exp and self.graph.nodes >= 20)) and
+                        mut_exploder < self.graph.nodes):
+                    toolbox.register("mutate",
+                                     tools.mutShuffleIndexes,
+                                     indpb=1 /
+                                     (self.graph.nodes - mut_exploder))
                     mut_exploder += 1
                 else:
-                    if verbose: print("Reseting...")
+                    if verbose:
+                        print("Reseting...")
                     for i, ind in enumerate(population):
                         population[i] = halloffame.items[0]
                     mut_exploder = 1
-                    toolbox.register("mutate", 
-                                     tools.mutShuffleIndexes, 
-                                     indpb=1/(self.graph.nodes))
+                    toolbox.register("mutate",
+                                     tools.mutShuffleIndexes,
+                                     indpb=1 / (self.graph.nodes))
                     cicles += 1
                 gens_stagnated = 0
-            
+
             # Population reseting
-            if (cicles >= (mcic) + 1 or 
-                superGens_stagnated > self.graph.nodes * 7): 
+            if (cicles >= (mcic) + 1 or
+                    superGens_stagnated > self.graph.nodes * 7):
                 if superGens_stagnated > self.graph.nodes * 7 and verbose:
                     print("Halted")
                 break
@@ -347,8 +349,9 @@ class Algorithms():
             A tuple containing the best path found and its total value.
         """
         random.seed(169)
-        if not self.graph.distances: self.graph.set_distance_matrix()
-        
+        if not self.graph.distances:
+            self.graph.set_distance_matrix()
+
         creator = self._define_creator()
         toolbox = self._define_toolbox()
         population, stats, hof, = self._define_ga(toolbox, pop_size)

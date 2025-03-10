@@ -4,9 +4,7 @@ import create_models as cm
 import shutil
 import os
 
-
 N = 52
-
 
 if __name__ == "__main__":
     for i in range(2, N):
@@ -14,5 +12,5 @@ if __name__ == "__main__":
         cm.MAX_NODES = i
         cm.create_dataset()
         os.makedirs(f'{os.getcwd()}/files/test2tonnodes')
-        shutil.move(f'{os.getcwd()}/files/datasets/dataset1.txt', 
+        shutil.move(f'{os.getcwd()}/files/datasets/dataset1.txt',
                     f'{os.getcwd()}/files/test2tonnodes/{i}n.txt')

@@ -18,8 +18,8 @@ def run():
     #g.populate_from_file(os.getcwd() + "/Algorithm/AlgoCode/files/test2.txt")
     print("Graph loaded")
     algo = Algorithms(g)
-    _, v = algo.run_ga_tsp(ngen=g.nodes*100,
-        dir=os.getcwd() + "/plots",
+    _, v = algo.run_ga_tsp(ngen=g.nodes * 100,
+                           dir=os.getcwd() + "/plots",
                            vrb=True)
     print(f"Total value (TSP): {v}")
     """res = g.divide_graph(725)
@@ -46,8 +46,7 @@ def run2():
         g = Graph()
         g.populate_from_file(f"{os.getcwd()}/files/test2tonnodes/{i}n.txt")
         algo = Algorithms(g)
-        _, v = algo.run_ga_tsp(dir=os.getcwd() + "/plots", idx=i,
-                            vrb=False)
+        _, v = algo.run_ga_tsp(dir=os.getcwd() + "/plots", idx=i, vrb=False)
 
 
 def run3():

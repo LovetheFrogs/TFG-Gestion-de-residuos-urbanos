@@ -134,9 +134,10 @@ class TestGraphMethods(unittest.TestCase):
             self.g.add_node(node)
         for edge in self.edges:
             self.g.add_edge(edge)
-        self.assertAlmostEqual(
-            self.g.get_edge(
-                self.nodes[0], self.nodes[2]).length, 555.97, delta=0.2)
+        self.assertAlmostEqual(self.g.get_edge(self.nodes[0],
+                                               self.nodes[2]).length,
+                               555.97,
+                               delta=0.2)
         with self.assertRaisesRegex(
                 EdgeNotFound,
                 "The edge was not found in the structure. Edge 0 -> 1"):
@@ -246,6 +247,7 @@ class TestGraphMethods(unittest.TestCase):
 
 class TestGraphDefaults(unittest.TestCase):
     """Default graph methods testing"""
+
     def setUp(self):
         self.nodes = [
             Node(0, 0, 0, 0, True),
@@ -259,22 +261,22 @@ class TestGraphDefaults(unittest.TestCase):
         self.edges.append(Edge(4, self.nodes[1], self.nodes[4]))
         self.edges.append(Edge(2, self.nodes[3], self.nodes[2]))
         self.edges.append(Edge(4, self.nodes[2], self.nodes[0]))
-        
+
         self.g = Graph()
         for node in self.nodes:
             self.g.add_node(node)
         for edge in self.edges:
             self.g.add_edge(edge)
-        
+
     def test_length(self):
         """Tests getting the length of a graph object."""
         self.assertEqual(len(self.g), 5)
-        
+
     def test_get(self):
         """Tests getting an item (node) from a graph."""
         self.assertEqual(self.g[0][0], self.edges[0])
         self.assertEqual(self.g[self.nodes[0]][0], self.edges[0])
-        
+
     def test_set(self):
         """Tests setting node's edges using []."""
         e1 = Edge(5, self.nodes[4], self.nodes[1])
@@ -283,20 +285,20 @@ class TestGraphDefaults(unittest.TestCase):
         e2 = Edge(6, self.nodes[4], self.nodes[2])
         self.g[4] = e2
         self.assertEqual(self.g[4], [e1, e2])
-        
+
     def test_contains(self):
         """Tests using contains in a graph."""
         self.assertTrue(self.nodes[0] in self.g)
-        
+
     def test_bool(self):
         """Tests boolean value of a graph (empty/not empty)."""
         self.assertTrue(self.g)
         g2 = Graph()
         self.assertFalse(g2)
-        
+
     def test_print(self):
         """Tests result of printing a graph."""
-        self.assertEqual(self.g.__repr__(), 
+        self.assertEqual(self.g.__repr__(),
                          "Graph with 5 nodes and 4 edges. Center: 0\n")
 
 
