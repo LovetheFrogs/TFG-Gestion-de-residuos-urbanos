@@ -27,8 +27,8 @@ def run():
     print(f"Total value (2opt): {v2}")
     p3, v3 = algo.run_two_opt(path=p, dir=os.getcwd() + "/plots", name="_GA+2opt")
     print(f"Total value (GA + 2opt): {v3}")
-    p4, v4 = algo.run_two_opt(path=p2, dir=os.getcwd() + "/plots", name="_2opt+2opt")
-    print(f"Total value (2opt + 2opt): {v4}")
+    p4, v4 = algo.run_two_opt(path=g.bfs(g.center), dir=os.getcwd() + "/plots", name="_bfs+2opt")
+    print(f"Total value (BFS + 2opt): {v4}")
 
     """res = g.divide_graph(725)
     print(f"Zone count (TSP): {len(res)}")
