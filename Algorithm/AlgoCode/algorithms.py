@@ -382,12 +382,12 @@ class Algorithms():
 
     def two_opt(
             self, 
-            path: list[int], 
-            threshold: float) -> tuple[list[int], float]:
+            path: list[int]) -> tuple[list[int], float]:
         """2-opt algorithm for solving the TSP problem.
 
-        The 2-opt algorithm takes two edges of a path and removes them, adding
-        two new edges and checking if this improves the value of the solution.
+        The 2-opt algorithm takes two edges of a path and removes them, it then
+        adds two new edges and checking if this improves the value of the 
+        path.
 
         Args:
             path: The starting path from where the 2-opt algorithm is applied.
@@ -400,7 +400,7 @@ class Algorithms():
         best_value = self.evaluate(best)
         improved = True
         n = self.graph.nodes
-        
+
         while improved:
             improved = False
             for i in range(0, n - 1):
@@ -415,7 +415,17 @@ class Algorithms():
             
         return best, best_value
 
-    def _swap(self, path, i, j):
+    def _swap(self, path: list[int], i: int, j: int) -> list[int]:
+        """Swaps a section of a path
+
+        Args:
+            path: The path where a section will be swapped.
+            i: The start of a section
+            j: The end of a section
+
+        Returns:
+            The result of performing the section swap on the given path.
+        """
         new_path = np.concatenate((path[0:i],
                                        path[j:-len(path) + i - 1:-1],
                                        path[j + 1:len(path)]))
@@ -423,14 +433,26 @@ class Algorithms():
 
     def run_two_opt(self, 
                     path: list[int] | None = None,
-                    threshold: float = 0.1, 
                     dir: str | None = None, 
                     name: str = "") -> tuple[list[int], float]:
+        """Executes 2-opt optimization on a graph.
+
+        Args:
+            path (optional): The initial path from which 2-opt is executed. In
+                case it is not provided, 2-opt will start on a random path.
+                Defaults to None.
+            dir (optional): The directory where the plots should be saved. 
+                Defaults to None, in which case the plot(s) won't be saved.
+            name (optional): The name to add to the plots. Defaults to "".
+
+        Returns:
+            A tuple containing the best path found and its total value.
+        """
         random.seed(169)
 
         if not path:
             path = random.sample(range(0, self.graph.nodes), self.graph.nodes)
-        best, best_value = self.two_opt(path, threshold)
+        best, best_value = self.two_opt(path)
         best += [best[0]]
         self._plot_ga_results(best, dir=dir, name=name)
 
