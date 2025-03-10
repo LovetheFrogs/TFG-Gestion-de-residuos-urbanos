@@ -188,8 +188,12 @@ class Graph():
         edge_list (list[Edge]): All the Edge in the graph.
         nodes (int): Number of nodes in the graph.
         edges (int): Number of edges in the graph.
+        index_dict (dict): Node index to Node Object for getting a node faster.
+        edge_dict (dict): Edge (origin, destination) tuple to Edge Object for
+            getting an edge faster.
         center (Node): Central node of the graph. The central node is the start
-            of every path (the "distribution center"). 
+            of every path (the "distribution center").
+        distances (list[list[float]]): Graph representation as a value matrix.
     """
 
     def __init__(self):
