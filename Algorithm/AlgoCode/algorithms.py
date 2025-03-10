@@ -416,12 +416,15 @@ class Algorithms():
         return best, best_value
 
     def _swap(self, path: list[int], i: int, j: int) -> list[int]:
-        """Swaps a section of a path
+        """Swaps a section of a path.
+
+        Given a path, it swaps the section between i and j so that path[i] will
+        be path[j], path[i + 1] will be path[j - 1] and so on.
 
         Args:
             path: The path where a section will be swapped.
-            i: The start of a section
-            j: The end of a section
+            i: The start of a section.
+            j: The end of a section.
 
         Returns:
             The result of performing the section swap on the given path.
