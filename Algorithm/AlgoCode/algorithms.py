@@ -384,44 +384,50 @@ class Algorithms():
             self, 
             path: list[int], 
             threshold: float) -> tuple[list[int], float]:
-        """Obtained from https://github.com/pdrm83/py2opt/blob/master/py2opt/solver.py"""
+        """2-opt algorithm for solving the TSP problem.
+
+        The 2-opt algorithm takes two edges of a path and removes them, adding
+        two new edges and checking if this improves the value of the solution.
+
+        Args:
+            path: The starting path from where the 2-opt algorithm is applied.
+            threshold: The minimum improvement between 2-opt cicles.
+
+        Returns:
+            tuple[list[int], float]: _description_
+        """
         best = path
         best_value = self.evaluate(best)
-        improvement_factor = 1
+        improved = True
+        n = self.graph.nodes
         
-        while improvement_factor > threshold:
-            previous_best = best_value
-            for i in range(1, self.graph.nodes - 2):
-                for j in range(i + 1, self.graph.nodes - 1):
-                    prev = best[i - 1]
-                    start = best[i]
-                    end = best[j]
-                    next_end = best[j + 1]
-                    before = (
-                        self.graph.distances[prev][start] + 
-                        self.graph.distances[end][next_end])
-                    after = (
-                        self.graph.distances[prev][end] + 
-                        self.graph.distances[start][next_end])
-                    if after < before:
-                        new_route = self._swap(best, i, j)
-                        new_distance = self.evaluate(new_route)
-                        best, best_value = new_route, new_distance
+        while improved:
+            improved = False
+            for i in range(0, n - 1):
+                for j in range(i + 2, n):
+                    prev = self.evaluate(best)
+                    curr = self.evaluate(self._swap(best, i, j))
 
-            improvement_factor = 1 - best_value/previous_best
+                    if curr < prev:
+                        best = self._swap(best, i, j)
+                        best_value = self.evaluate(best)
+                        improved = True
+            
         return best, best_value
 
-    def _swap(self, path, swap_first, swap_last):
-        path_updated = np.concatenate((path[0:swap_first],
-                                       path[swap_last:-len(path) + swap_first - 1:-1],
-                                       path[swap_last + 1:len(path)]))
-        return [int(n) for n in path_updated]
+    def _swap(self, path, i, j):
+        new_path = np.concatenate((path[0:i],
+                                       path[j:-len(path) + i - 1:-1],
+                                       path[j + 1:len(path)]))
+        return [int(n) for n in new_path]
 
     def run_two_opt(self, 
                     path: list[int] | None = None,
                     threshold: float = 0.1, 
                     dir: str | None = None, 
                     name: str = "") -> tuple[list[int], float]:
+        random.seed(169)
+
         if not path:
             path = random.sample(range(0, self.graph.nodes), self.graph.nodes)
         best, best_value = self.two_opt(path, threshold)
