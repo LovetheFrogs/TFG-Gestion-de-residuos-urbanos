@@ -14,14 +14,22 @@ def run():
     """
     g = Graph()
     print("Loading graph")
-    g.populate_from_file(os.getcwd() + "/files/test2.txt")
+    g.populate_from_file(os.getcwd() + "/files/datasets/dataset1.txt")
     #g.populate_from_file(os.getcwd() + "/Algorithm/AlgoCode/files/test2.txt")
     print("Graph loaded")
     algo = Algorithms(g)
-    _, v = algo.run_ga_tsp(ngen=g.nodes * 100,
+    p, v = algo.run_ga_tsp(ngen=g.nodes * 100,
                            dir=os.getcwd() + "/plots",
-                           vrb=True)
+                           name="_TSP",
+                           vrb=False)
     print(f"Total value (TSP): {v}")
+    p2, v2 = algo.run_two_opt(dir=os.getcwd() + "/plots", name="_2opt")
+    print(f"Total value (2opt): {v2}")
+    p3, v3 = algo.run_two_opt(path=p, dir=os.getcwd() + "/plots", name="_GA+2opt")
+    print(f"Total value (GA + 2opt): {v3}")
+    p4, v4 = algo.run_two_opt(path=p2, dir=os.getcwd() + "/plots", name="_2opt+2opt")
+    print(f"Total value (2opt + 2opt): {v4}")
+
     """res = g.divide_graph(725)
     print(f"Zone count (TSP): {len(res)}")
     sg = []
