@@ -380,6 +380,46 @@ class Algorithms():
 
         return best, total_value
 
+    def two_opt(
+            self, 
+            path: list[int], 
+            threshold: float = 0.01) -> tuple[list[int], float]:
+        """Obtained from https://github.com/pdrm83/py2opt/blob/master/py2opt/solver.py"""
+        best = path
+        best_value = self.evaluate(path)
+        improvement_factor = 1
+        
+        while improvement_factor > threshold:
+            prev_best_value = best_value
+            for i in range(1, self.graph.nodes - 2):
+                for j in range(i + 1, self.nodes - 1):
+                    prev_node = best[i - 1]
+                    start = best[i]
+                    end = best[j]
+                    next_node = path[j + 1]
+                    before = (
+                        self.graph.distances[prev_node][start] + 
+                        self.graph.distances[end][next_node])
+                    after = (
+                        self.graph.distances[prev_node][end] + 
+                        self.graph.distances[start][next_node])
+                    if after < before:
+                        path = np.concatenate(
+                            (path[0:i],
+                            path[j:len(path) - 1 + i - 1:-1],
+                            path[j + 1:len(path)]))
+                        best_value = self.evaluate(path)
+
+            improvement_factor = 1 - best_value / prev_best_value
+
+        return path, best_value
+
+    def run_two_opt(self, threshold: float = 0.01) -> tuple[list[int], float]:
+        path = random.sample(range(0, self.graph.nodes), self.graph.nodes)
+        
+        return self.two_opt(path, threshold)
+
+
     def _plot_ga_results(self,
                          path: list[int],
                          logbook: dict,
