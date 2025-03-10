@@ -311,8 +311,8 @@ class Algorithms():
 
             # Population reseting
             if (cicles >= (mcic) + 1 or
-                    superGens_stagnated > self.graph.nodes * 7):
-                if superGens_stagnated > self.graph.nodes * 7 and verbose:
+                    superGens_stagnated > self.graph.nodes * 6.5):
+                if superGens_stagnated > self.graph.nodes * 6.5 and verbose:
                     print("Halted")
                 break
 
@@ -383,47 +383,52 @@ class Algorithms():
     def two_opt(
             self, 
             path: list[int], 
-            threshold: float = 0.01) -> tuple[list[int], float]:
+            threshold: float) -> tuple[list[int], float]:
         """Obtained from https://github.com/pdrm83/py2opt/blob/master/py2opt/solver.py"""
         best = path
-        best_value = self.evaluate(path)
+        best_value = self.evaluate(best)
         improvement_factor = 1
         
         while improvement_factor > threshold:
-            prev_best_value = best_value
+            previous_best = best_value
             for i in range(1, self.graph.nodes - 2):
-                for j in range(i + 1, self.nodes - 1):
-                    prev_node = best[i - 1]
+                for j in range(i + 1, self.graph.nodes - 1):
+                    prev = best[i - 1]
                     start = best[i]
                     end = best[j]
-                    next_node = path[j + 1]
+                    next_end = best[j + 1]
                     before = (
-                        self.graph.distances[prev_node][start] + 
-                        self.graph.distances[end][next_node])
+                        self.graph.distances[prev][start] + 
+                        self.graph.distances[end][next_end])
                     after = (
-                        self.graph.distances[prev_node][end] + 
-                        self.graph.distances[start][next_node])
+                        self.graph.distances[prev][end] + 
+                        self.graph.distances[start][next_end])
                     if after < before:
-                        path = np.concatenate(
-                            (path[0:i],
-                            path[j:len(path) - 1 + i - 1:-1],
-                            path[j + 1:len(path)]))
-                        best_value = self.evaluate(path)
+                        new_route = self._swap(best, i, j)
+                        new_distance = self.evaluate(new_route)
+                        best, best_value = new_route, new_distance
 
-            improvement_factor = 1 - best_value / prev_best_value
+            improvement_factor = 1 - best_value/previous_best
+        return best, best_value
 
-        return path, best_value
+    def _swap(self, path, swap_first, swap_last):
+        path_updated = np.concatenate((path[0:swap_first],
+                                       path[swap_last:-len(path) + swap_first - 1:-1],
+                                       path[swap_last + 1:len(path)]))
+        return [int(n) for n in path_updated]
 
     def run_two_opt(self, 
-                    threshold: float = 0.01, 
+                    path: list[int] | None = None,
+                    threshold: float = 0.1, 
                     dir: str | None = None, 
                     name: str = "") -> tuple[list[int], float]:
-        path = random.sample(range(0, self.graph.nodes), self.graph.nodes)
-        
-        self._plot_ga_results(path, dir=dir, name=name)
+        if not path:
+            path = random.sample(range(0, self.graph.nodes), self.graph.nodes)
+        best, best_value = self.two_opt(path, threshold)
+        best += [best[0]]
+        self._plot_ga_results(best, dir=dir, name=name)
 
-        return self.two_opt(path, threshold)
-
+        return best, best_value
 
     def _plot_ga_results(self,
                          path: list[int],

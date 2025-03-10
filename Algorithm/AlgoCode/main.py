@@ -14,7 +14,7 @@ def run():
     """
     g = Graph()
     print("Loading graph")
-    g.populate_from_file(os.getcwd() + "/files/datasets/dataset1.txt")
+    g.populate_from_file(os.getcwd() + "/files/test2.txt")
     #g.populate_from_file(os.getcwd() + "/Algorithm/AlgoCode/files/test2.txt")
     print("Graph loaded")
     algo = Algorithms(g)
