@@ -118,11 +118,12 @@ def generate_edges(nodes: set[int]) -> tuple[int, str]:
             continue
         edge = node, 0
         edges.add(edge)
-        edge_data.append(f"{random.uniform(MIN_SPEED, MAX_SPEED):.1f} "
+        speed = random.uniform(MIN_SPEED, MAX_SPEED)
+        edge_data.append(f"{speed:.1f} "
                          f"{node} {0}")
         edge = 0, node
         edges.add(edge)
-        edge_data.append(f"{random.uniform(MIN_SPEED, MAX_SPEED):.1f} "
+        edge_data.append(f"{speed:.1f} "
                          f"{0} {node}")
     extra_edges = int(
         random.uniform(
@@ -136,13 +137,14 @@ def generate_edges(nodes: set[int]) -> tuple[int, str]:
         while edge in edges:
             origin, dest = random.sample(nodes_list, 2)
             edge = (origin, dest)
+        speed = random.uniform(MIN_SPEED, MAX_SPEED)
         edges.add(edge)
         edge_data.append(
-            f"{random.uniform(MIN_SPEED, MAX_SPEED):.1f} {origin} {dest}")
+            f"{speed:.1f} {origin} {dest}")
         edge = (dest, origin)
         edges.add(edge)
         edge_data.append(
-            f"{random.uniform(MIN_SPEED, MAX_SPEED):.1f} {dest} {origin}")
+            f"{speed:.1f} {dest} {origin}")
 
     edge_data = f"{len(edges)}{NEW_LINE}" + NEW_LINE.join(edge_data) + NEW_LINE
 
