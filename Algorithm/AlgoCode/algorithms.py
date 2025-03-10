@@ -324,7 +324,7 @@ class Algorithms():
                    mutpb: float = 0.2,
                    pop_size: int = 1000,
                    dir: str | None = None,
-                   idx: int = 0,
+                   name: str = "",
                    vrb: bool = True) -> tuple[list[int], float]:
         """Runs the Genetic Algorithm for the Traveling Salesman Problem.
         
@@ -341,7 +341,7 @@ class Algorithms():
             pop_size (optional): The size of the population. Defaults to 200.
             dir (optional): The directory where the plots should be saved. 
                 Defaults to None, in which case the plot(s) won't be saved.
-            idx (optional): The index for the plot to save. Defaults to 0.
+            name (optional): The name to add to the plots. Defaults to "".
             vrb: (optional): Run the algorithm in verbose or non-verbose mode.
                 Defaults to True.
 
@@ -374,7 +374,7 @@ class Algorithms():
             print("-- Best Ever Fitness = ", total_value)
 
         if dir:
-            self._plot_ga_results(best, logbook, dir, idx)
+            self._plot_ga_results(best, logbook, dir, name)
         else:
             self._plot_ga_results(best, logbook).show()
 
@@ -384,7 +384,7 @@ class Algorithms():
                          path: list[int],
                          logbook: dict,
                          dir: str | None = None,
-                         idx: int = 0,
+                         name: str = "",
                          vrp: bool = False) -> plt:
         """Sets up a plotter for the results of the Genetic Algorithm.
         
@@ -400,7 +400,7 @@ class Algorithms():
                 Algorithm execution.
             dir (optional): The directory where the plots should be saved. Defaults to 
                 None, in which case the plot(s) won't be saved.
-            idx (optional): The index for the plot to save. Defaults to 0.
+            name (optional): The name to add to the plots. Defaults to "".
             vrp (optional): If the result to plot is for a VRP or a TSP. 
                 Defaults to False.
 
@@ -416,12 +416,12 @@ class Algorithms():
         pltr.plot_map(self.graph.create_points(path, vrp=vrp), vrp,
                       self.graph.center.coordinates)
         if dir:
-            plt.savefig(f"{dir}/Path{idx}.png")
+            plt.savefig(f"{dir}/Path{name}.png")
             plt.clf()
         plt.figure(2)
         pltr.plot_evolution(logbook.select("min"), logbook.select("avg"))
         if dir:
-            plt.savefig(f"{dir}/Evolution{idx}.png")
+            plt.savefig(f"{dir}/Evolution{name}.png")
             plt.clf()
 
         return plt
