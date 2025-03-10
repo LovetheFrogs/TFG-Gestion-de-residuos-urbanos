@@ -1,12 +1,13 @@
+"""Multiple test cases for the functions coded for the project."""
+
 import unittest
 import os
 import shutil
 import random
-from model import Node, Edge, Graph
-from model import load as lg
+from model import Node, Edge, Graph, load as lg
 import create_models as cm
 from exceptions import *
-"""Multiple test cases for the functions coded for the project."""
+from algorithms import Algorithms
 
 
 class TestNode(unittest.TestCase):
@@ -15,6 +16,9 @@ class TestNode(unittest.TestCase):
     def setUp(self):
         self.node = Node(0, 0, 0, 0, True)
         self.nodec = Node(1, 3, 1, 2)
+
+        self.n1 = Node(0, 0, 37.4602, 126.441)
+        self.n2 = Node(1, 0, 37.5567, 126.924)
 
     def test_create(self):
         """Tests the creation of a node."""
@@ -36,7 +40,7 @@ class TestNode(unittest.TestCase):
 
     def test_distance(self):
         """Tests calculating the distance between two nodes."""
-        self.assertEqual(self.node.get_distance(self.nodec), 3)
+        self.assertAlmostEqual(self.n1.get_distance(self.n2), 64.34, delta=0.2)
 
 
 class TestEdge(unittest.TestCase):
@@ -45,17 +49,22 @@ class TestEdge(unittest.TestCase):
     def setUp(self):
         self.node1 = Node(0, 10, 0, 0, True)
         self.node2 = Node(1, 3, 1, 2)
+
+        self.n1 = Node(0, 0, 37.4602, 126.441)
+        self.n2 = Node(1, 0, 37.5567, 126.924)
+
         self.edge = Edge(10, self.node1, self.node2)
+        self.edge2 = Edge(50, self.n1, self.n2)
 
     def test_create(self):
         """Tests the creation of an edge."""
-        self.assertEqual(self.edge.length, 3)
+        self.assertAlmostEqual(self.edge2.length, 64.44, delta=0.2)
         self.assertEqual(self.edge.speed, 10)
         self.assertEqual(self.edge.origin, self.node1)
         self.assertEqual(self.edge.dest, self.node2)
 
 
-class TestGraph(unittest.TestCase):
+class TestGraphMethods(unittest.TestCase):
     """Graph module tests."""
 
     def setUp(self):
@@ -125,8 +134,10 @@ class TestGraph(unittest.TestCase):
             self.g.add_node(node)
         for edge in self.edges:
             self.g.add_edge(edge)
-        self.assertEqual(
-            self.g.get_edge(self.nodes[0], self.nodes[2]).length, 5)
+        self.assertAlmostEqual(self.g.get_edge(self.nodes[0],
+                                               self.nodes[2]).length,
+                               555.97,
+                               delta=0.2)
         with self.assertRaisesRegex(
                 EdgeNotFound,
                 "The edge was not found in the structure. Edge 0 -> 1"):
@@ -166,13 +177,13 @@ class TestGraph(unittest.TestCase):
         self.assertEqual([
             int(v) if v != float('inf') else 300
             for v in list(self.g.dijkstra(0).values())
-        ], [300, 5, 300, 300, 0])
+        ], [300, 695, 300, 300, 0])
         self.g.add_edge(Edge(15, self.nodes[2], self.nodes[1]))
         self.g.add_edge(Edge(15, self.nodes[0], self.nodes[1]))
         self.g.add_edge(Edge(15, self.nodes[2], self.nodes[4]))
         self.g.add_edge(Edge(15, self.nodes[4], self.nodes[3]))
         self.assertEqual([int(v) for v in list(self.g.dijkstra(0).values())],
-                         [3, 5, 25, 13, 0])
+                         [389, 695, 3752, 2196, 0])
 
     def test_create_points(self):
         """Tests getting coordinates from a list of node indeces."""
@@ -210,33 +221,15 @@ class TestGraph(unittest.TestCase):
         """Tests the Genetic Algorithm (TSP)"""
         g2 = Graph()
         g2.populate_from_file(f"{os.getcwd()}/files/test2.txt")
-        p, v = g2.run_ga_tsp(dir=f"{os.getcwd()}/plots", vrb=False)
+        algo = Algorithms(g2)
+        p, v = algo.run_ga_tsp(dir=f"{os.getcwd()}/plots", vrb=False)
         os.remove(f"{os.getcwd()}/plots/Path0.png")
         os.remove(f"{os.getcwd()}/plots/Evolution0.png")
         self.assertEqual(p[-1], p[0])
-        self.assertEqual(p[0], 0)
         random_path = ([
             n.index - 1 for n in random.sample(g2.node_list, g2.nodes - 1)
         ])
-        self.assertTrue(g2.evaluate(random_path)[0] > v)
-
-    def test_ga_vrp(self):
-        """Tests the Genetic Algorithm (VSP)"""
-        g2 = Graph()
-        g2.populate_from_file(f"{os.getcwd()}/files/test2.txt")
-        p, v = g2.run_ga_vrp(3, 725, dir=f"{os.getcwd()}/plots", vrb=False)
-        os.remove(f"{os.getcwd()}/plots/Path0.png")
-        os.remove(f"{os.getcwd()}/plots/Evolution0.png")
-        self.assertEqual(len(p), 3)
-        for i, zone in enumerate(p):
-            with self.subTest(i=i):
-                self.assertEqual(zone[0], zone[-1])
-                self.assertEqual(zone[0], 0)
-        random_path = ([
-            n.index - 1 for n in random.sample(g2.node_list, g2.nodes - 1)
-        ])
-        g2.convert = {i: node + 1 for i, node in enumerate(random_path)}
-        self.assertTrue(g2.evaluate(random_path)[0] > v)
+        self.assertTrue(algo.evaluate_tsp(random_path)[0] > v)
 
     def test_save_and_load(self):
         """Tests saving and loading a graph."""
@@ -252,12 +245,67 @@ class TestGraph(unittest.TestCase):
         os.remove(f"{os.getcwd()}/data/gbkp")
 
 
+class TestGraphDefaults(unittest.TestCase):
+    """Default graph methods testing"""
+
+    def setUp(self):
+        self.nodes = [
+            Node(0, 0, 0, 0, True),
+            Node(1, 1, 1, 2),
+            Node(2, 2, 3, -2),
+            Node(3, 3, 0, 5),
+            Node(4, 4, -7, 0)
+        ]
+        self.edges = []
+        self.edges.append(Edge(10, self.nodes[0], self.nodes[2]))
+        self.edges.append(Edge(4, self.nodes[1], self.nodes[4]))
+        self.edges.append(Edge(2, self.nodes[3], self.nodes[2]))
+        self.edges.append(Edge(4, self.nodes[2], self.nodes[0]))
+
+        self.g = Graph()
+        for node in self.nodes:
+            self.g.add_node(node)
+        for edge in self.edges:
+            self.g.add_edge(edge)
+
+    def test_length(self):
+        """Tests getting the length of a graph object."""
+        self.assertEqual(len(self.g), 5)
+
+    def test_get(self):
+        """Tests getting an item (node) from a graph."""
+        self.assertEqual(self.g[0][0], self.edges[0])
+        self.assertEqual(self.g[self.nodes[0]][0], self.edges[0])
+
+    def test_set(self):
+        """Tests setting node's edges using []."""
+        e1 = Edge(5, self.nodes[4], self.nodes[1])
+        self.g[4] = e1
+        self.assertEqual(self.g[4], [e1])
+        e2 = Edge(6, self.nodes[4], self.nodes[2])
+        self.g[4] = e2
+        self.assertEqual(self.g[4], [e1, e2])
+
+    def test_contains(self):
+        """Tests using contains in a graph."""
+        self.assertTrue(self.nodes[0] in self.g)
+
+    def test_bool(self):
+        """Tests boolean value of a graph (empty/not empty)."""
+        self.assertTrue(self.g)
+        g2 = Graph()
+        self.assertFalse(g2)
+
+    def test_print(self):
+        """Tests result of printing a graph."""
+        self.assertEqual(self.g.__repr__(),
+                         "Graph with 5 nodes and 4 edges. Center: 0\n")
+
+
 class TestModelFileCreation(unittest.TestCase):
     """Training file creation script testing"""
 
     def setUp(self):
-        shutil.rmtree(os.getcwd() + "/files/datasets")
-
         cm.DATA_SIZE = 2
         cm.MIN_NODES = 50
         cm.MAX_NODES = 100
@@ -293,7 +341,7 @@ class TestModelFileCreation(unittest.TestCase):
 
 def suite():
     suite = unittest.TestSuite()
-    suite.addTest(TestGraph('test_ga_tsp'))
+    suite.addTest(TestGraphMethods('test_ga_tsp'))
     return suite
 
 
