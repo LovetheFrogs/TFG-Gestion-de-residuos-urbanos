@@ -81,14 +81,31 @@ class Node():
         The Manhattan distance is the choice for this library, as it is closer 
         to the real world distance between two points than euclidean distance.
 
+        The Manhattan distance is being calculated on a 3D sphere rather than a 
+        2D plane, given that our problem is based on a real-world city. To get 
+        the distance, the function applies the Haversine formula to the 
+        latitude and longitude independently and sums this distances, returning
+        a better distance estimation of the real world distance between two 
+        nodes than calculating the distance on a 2D plane.
+
         Args:
             b: The node to which we want to know the distance to.
 
         Returns:
             The absolute value of the manhhatan distance.  
         """
-        return abs((abs(self.coordinates[0] - b.coordinates[0]) +
-                    abs(self.coordinates[1] - b.coordinates[1])))
+        lat_delta = math.radians(abs(self.coordinates[0] - b.coordinates[0]))
+        alt_delta = math.radians(abs(self.coordinates[1] - b.coordinates[1]))
+
+        a = math.sin(lat_delta/2)**2
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+        lat_distance = 6371 * c
+
+        a = math.sin(alt_delta/2)**2
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+        alt_distance = 6371* c
+
+        return abs(lat_distance) + abs(alt_distance)
 
     def change_status(self):
         """Visits or unvisits the a depending on the previous status"""
@@ -146,7 +163,7 @@ class Edge():
         #: Node: The destination of the edge.
         self.dest = dest
         #: float: Time it takes to traverse the edge, given a speed and length.
-        self.time = 2.5 * ((float(self.length) / 1000) / self.speed)
+        self.time = 2.5 * ((float(self.length)) / self.speed)
         #: float: The cost of the edge plus 0.033 for node pickup (2 mins).
         self.value = self.length + self.time + 0.033
 

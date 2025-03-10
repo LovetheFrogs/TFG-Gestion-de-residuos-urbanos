@@ -17,6 +17,9 @@ class TestNode(unittest.TestCase):
         self.node = Node(0, 0, 0, 0, True)
         self.nodec = Node(1, 3, 1, 2)
 
+        self.n1 = Node(0, 0, 37.4602, 126.441)
+        self.n2 = Node(1, 0, 37.5567, 126.924)
+
     def test_create(self):
         """Tests the creation of a node."""
         self.assertEqual(self.node.index, 0)
@@ -37,7 +40,7 @@ class TestNode(unittest.TestCase):
 
     def test_distance(self):
         """Tests calculating the distance between two nodes."""
-        self.assertEqual(self.node.get_distance(self.nodec), 3)
+        self.assertAlmostEqual(self.n1.get_distance(self.n2), 64.34, delta=0.2)
 
 
 class TestEdge(unittest.TestCase):
@@ -46,11 +49,16 @@ class TestEdge(unittest.TestCase):
     def setUp(self):
         self.node1 = Node(0, 10, 0, 0, True)
         self.node2 = Node(1, 3, 1, 2)
+
+        self.n1 = Node(0, 0, 37.4602, 126.441)
+        self.n2 = Node(1, 0, 37.5567, 126.924)
+
         self.edge = Edge(10, self.node1, self.node2)
+        self.edge2 = Edge(50, self.n1, self.n2)
 
     def test_create(self):
         """Tests the creation of an edge."""
-        self.assertEqual(self.edge.length, 3)
+        self.assertAlmostEqual(self.edge2.length, 64.44, delta=0.2)
         self.assertEqual(self.edge.speed, 10)
         self.assertEqual(self.edge.origin, self.node1)
         self.assertEqual(self.edge.dest, self.node2)
@@ -126,8 +134,9 @@ class TestGraphMethods(unittest.TestCase):
             self.g.add_node(node)
         for edge in self.edges:
             self.g.add_edge(edge)
-        self.assertEqual(
-            self.g.get_edge(self.nodes[0], self.nodes[2]).length, 5)
+        self.assertAlmostEqual(
+            self.g.get_edge(
+                self.nodes[0], self.nodes[2]).length, 555.97, delta=0.2)
         with self.assertRaisesRegex(
                 EdgeNotFound,
                 "The edge was not found in the structure. Edge 0 -> 1"):
@@ -167,13 +176,13 @@ class TestGraphMethods(unittest.TestCase):
         self.assertEqual([
             int(v) if v != float('inf') else 300
             for v in list(self.g.dijkstra(0).values())
-        ], [300, 5, 300, 300, 0])
+        ], [300, 695, 300, 300, 0])
         self.g.add_edge(Edge(15, self.nodes[2], self.nodes[1]))
         self.g.add_edge(Edge(15, self.nodes[0], self.nodes[1]))
         self.g.add_edge(Edge(15, self.nodes[2], self.nodes[4]))
         self.g.add_edge(Edge(15, self.nodes[4], self.nodes[3]))
         self.assertEqual([int(v) for v in list(self.g.dijkstra(0).values())],
-                         [3, 5, 25, 13, 0])
+                         [389, 695, 3752, 2196, 0])
 
     def test_create_points(self):
         """Tests getting coordinates from a list of node indeces."""
