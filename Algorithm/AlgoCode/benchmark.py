@@ -55,9 +55,7 @@ class Benchmark():
             path = g.bfs(g.center)
             end = time.time()
             cummulative_time += (end - start)
-            nodes = [node.index for node in g.node_list]
-            algo.convert = {i: node for i, node in enumerate(nodes)}
-            cummulative_value += algo.evaluate(path[1:])
+            cummulative_value += algo.evaluate(path)
             utils.printProgressBar(i + 1,
                                    n,
                                    prefix="Progress:",

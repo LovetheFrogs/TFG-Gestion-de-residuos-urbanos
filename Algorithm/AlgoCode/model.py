@@ -16,14 +16,12 @@ organizing problem, dividing a graph into similar-weighted zones and
 finding paths for a graph that minimize the value of the objective function.
 """
 
-import os
 from collections import deque
 import math
 import heapq
 import pickle
 from typing import Union
 from exceptions import *
-import algorithms
 
 
 def load(path: str) -> Union['Graph', None]:
@@ -149,8 +147,8 @@ class Edge():
         self.dest = dest
         #: float: Time it takes to traverse the edge, given a speed and length.
         self.time = 2.5 * ((float(self.length) / 1000) / self.speed)
-        #: float: The cost of the edge, as both length and time affect it.
-        self.value = self.length + self.time
+        #: float: The cost of the edge plus 0.033 for node pickup (2 mins).
+        self.value = self.length + self.time + 0.033
 
     def __repr__(self) -> str:
         """Changes the default representation of an edge.
@@ -190,8 +188,12 @@ class Graph():
         edge_list (list[Edge]): All the Edge in the graph.
         nodes (int): Number of nodes in the graph.
         edges (int): Number of edges in the graph.
+        index_dict (dict): Node index to Node Object for getting a node faster.
+        edge_dict (dict): Edge (origin, destination) tuple to Edge Object for
+            getting an edge faster.
         center (Node): Central node of the graph. The central node is the start
-            of every path (the "distribution center"). 
+            of every path (the "distribution center").
+        distances (list[list[float]]): Graph representation as a value matrix.
     """
 
     def __init__(self):
@@ -200,7 +202,10 @@ class Graph():
         self.edge_list = []
         self.nodes = 0
         self.edges = 0
+        self.index_dict = {}
+        self.edge_dict = {}
         self.center = None
+        self.distances = None
 
     def get_node(self, idx: int) -> Node:
         """Gets a node from the graph.
@@ -214,9 +219,8 @@ class Graph():
         Raises:
             NodeNotFound: If the node is not in the graph
         """
-        for node in self.graph:
-            if node.index == idx:
-                return node
+        if idx in self.index_dict:
+            return self.index_dict[idx]
 
         raise NodeNotFound(idx)
 
@@ -235,15 +239,11 @@ class Graph():
             NodeNotFound: If the origin/dest nodes are not in the graph.
             EdgeNotFound: If the edge is not in the graph.
         """
-        if origin not in self.graph:
-            raise NodeNotFound(origin.index)
-        if dest not in self.graph:
-            raise NodeNotFound(dest.index)
-        for edge in self.graph[origin]:
-            if edge.dest == dest:
-                return edge
-
-        raise EdgeNotFound(f"{origin.index} -> {dest.index}")
+        key = (origin.index, dest.index)
+        try:
+            return self.edge_dict[key]
+        except KeyError:
+            raise EdgeNotFound(f"{origin.index} -> {dest.index}")
 
     def add_node(self, node: Node):
         """Adds a node to the graph. 
@@ -266,6 +266,7 @@ class Graph():
                 self.center = node
             else:
                 self.node_list.append(node)
+            self.index_dict[node.index] = node
         else:
             raise DuplicateNode()
 
@@ -290,6 +291,8 @@ class Graph():
             self.graph[edge.origin].append(edge)
             self.edge_list.append(edge)
             self.edges += 1
+            key = (edge.origin.index, edge.dest.index)
+            self.edge_dict[key] = edge
         elif (edge.origin not in self.graph):
             raise NodeNotFound(edge.origin.index)
         else:
@@ -363,6 +366,13 @@ class Graph():
         with open(path, 'wb') as backup:
             pickle.dump(self, backup, protocol=-1)
 
+    def set_distance_matrix(self):
+        distances = [[0 for _ in range(self.nodes)] for _ in range(self.nodes)]
+        for n in range(self.nodes):
+            for edge in self.graph[self.get_node(n)]:
+                distances[n][edge.dest.index] = edge.value
+        self.distances = distances
+
     def populate_from_file(self, file: str):
         """Populates a graph from the data in a file.
 
@@ -413,6 +423,8 @@ class Graph():
 
             self.set_center(self.get_node(0))
             self.center.center = True
+            self.set_distance_matrix()
+
 
     def bfs(self, source: Node) -> list[int]:
         """Performs Breadth First Search on the graph from the node ``source``.
@@ -532,7 +544,7 @@ class Graph():
         current_zone = []
 
         for node in angled_nodes:
-            if current_weight + node.weight > truck_capacity:
+            if (current_weight + node.weight > truck_capacity):
                 zones.append([self.center] + current_zone)
                 current_zone = [node]
                 current_weight = node.weight
@@ -742,37 +754,6 @@ class Graph():
                 res.append(res_vrp)
 
         return res
-
-    def extract_zones(self, individual: list[int]) -> list[list[int]]:
-        """Extracts zones from an individual and creates a list of zones.
-
-        A zone is divided by the index of a truck. For example, in a graph with
-        12 nodes and 3 trucks, indexes 0-11 would be node indexes, and indexes
-        12, 13 & 14 would be truck indexes (delimiters). This function also 
-        removes the center node from the zones it appears on, so for that 
-        example, if the center is node 11, the list ``[0, 5, 6, 8, 12, 3, 11, 
-        4, 2, 13, 1, 7, 9, 10, 14]`` would return the list of lists ``[[0, 5, 
-        6, 8][3, 4, 2][1, 7, 9, 10]]``
-
-        Args:
-            individual: The individual from where the zones will be extracted.
-
-        Returns:
-            A list of lists containing all the zones.
-        """
-        zones = []
-        zone = []
-        for node in individual:
-            if node >= self.nodes:
-                zones.append(zone)
-                zone = []
-            elif node == self.center.index:
-                continue
-            else:
-                zone.append(node)
-        zones.append(zone)
-
-        return zones
 
     def __len__(self):
         """Returns the length of a Graph instance.

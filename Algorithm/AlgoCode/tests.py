@@ -216,29 +216,9 @@ class TestGraphMethods(unittest.TestCase):
         os.remove(f"{os.getcwd()}/plots/Path0.png")
         os.remove(f"{os.getcwd()}/plots/Evolution0.png")
         self.assertEqual(p[-1], p[0])
-        self.assertEqual(p[0], 0)
         random_path = ([
             n.index - 1 for n in random.sample(g2.node_list, g2.nodes - 1)
         ])
-        self.assertTrue(algo.evaluate_tsp(random_path)[0] > v)
-
-    def test_ga_vrp(self):
-        """Tests the Genetic Algorithm (VSP)"""
-        g2 = Graph()
-        g2.populate_from_file(f"{os.getcwd()}/files/test2.txt")
-        algo = Algorithms(g2)
-        p, v = algo.run_ga_vrp(3, 725, dir=f"{os.getcwd()}/plots", vrb=False)
-        os.remove(f"{os.getcwd()}/plots/Path0.png")
-        os.remove(f"{os.getcwd()}/plots/Evolution0.png")
-        self.assertEqual(len(p), 3)
-        for i, zone in enumerate(p):
-            with self.subTest(i=i):
-                self.assertEqual(zone[0], zone[-1])
-                self.assertEqual(zone[0], 0)
-        random_path = ([
-            n.index - 1 for n in random.sample(g2.node_list, g2.nodes - 1)
-        ])
-        algo.convert = {i: node + 1 for i, node in enumerate(random_path)}
         self.assertTrue(algo.evaluate_tsp(random_path)[0] > v)
 
     def test_save_and_load(self):

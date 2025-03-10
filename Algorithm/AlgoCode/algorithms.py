@@ -1,14 +1,11 @@
 """Algorithms used to calculate a path in a graph."""
 
 import random
-import statistics
 from deap import base, creator, tools, algorithms
 import matplotlib.pyplot as plt
 import numpy as np
 import plotter
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from model import Graph
+from model import Graph
 
 
 class Algorithms():
@@ -20,43 +17,68 @@ class Algorithms():
 
     def __init__(self, graph: 'Graph'):
         self.graph = graph
-        self.convert = None
-        self.truck_capacity = None
-        self.max_time = 8
+
+    def local_search(self, ind: list[int], mi: int = 50) -> list[int]:
+        """Tries to improve the fitness of an individual making use of 2opt.
+
+        Args:
+            ind: The individual to improve.
+            mi: The maximum number of 2opt iterations. Defaults to 50.
+
+        Returns:
+            The improved individual.
+        """
+        improved = True
+        best_fitness = self.evaluate_tsp(ind)
+        it = 0
+        while improved and it < mi:
+            improved = False
+            for i in range (1, len(ind), 2):
+                for j in range(i + 1, len(ind)):
+                    if j - i == 1: continue
+                    ni = ind.copy()
+                    ni[i:j+1] = ni[i:j+1][::-1]
+                    new_fitness = self.evaluate_tsp(ind)
+                    if new_fitness < best_fitness:
+                        ind = ni
+                        best_fitness = new_fitness
+                        improved = True
+                        break
+                if improved: break
+            it += 1
+        return ind     
 
     def evaluate(self, individual: list[int]) -> float:
-        # total time = edge time + 2minutes to pick up bin.
-        total_value = 0
-        total_time = 0
-        current = self.graph.center
-        for idx in individual:
-            curr_edge = self.graph.get_edge(
-                current, self.graph.get_node(idx))
-            total_value += curr_edge.value
-            total_time += curr_edge.time + 0.03
-            if total_time > self.max_time: return 100000
-            current = self.graph.get_node(idx)
-        total_value += self.graph.get_edge(current, self.graph.center).value
-        penalty = sum(
-            self.graph.get_node(node).weight *
-            (len(individual) - i) for i, node in enumerate(individual))
-        return (total_value + 0.2 * penalty + 0.5 * total_time)
+        """Calculates the fitness value of a path.
+
+        Args:
+            individual: The path to evaluate.
+
+        Returns:
+            The fitness of the path.
+        """
+        total_value = self.graph.distances[individual[-1]][individual[0]]
+        for ind1, ind2 in zip(individual[0:-1], individual[1:]):
+            total_value += self.graph.distances[ind1][ind2]
+        return (total_value)
 
     def evaluate_tsp(self, individual: list[int]) -> tuple[float, ...]:
-        """Evaluates the objective function value for a path.
+        """Wrapper that calls the valuation function.
         
-        The algorithms used for this problem are genetic algorithms and, as 
-        such, try to minimize/maximize the value of a function to find a 
-        solution to a problem. In this case, the problem is finding the path
-        in a graph that optimizes a series of objectives. Those individual 
-        objectives form an objective function. The ``evaluate`` function checks
-        the result of evaluating said objective function for a given path.
+        The algorithms used for this evaluation function is a genetic 
+        algorithms and, as such, it tries to minimize/maximize the value of a
+        function to find a solution to a problem. In this case, the problem is
+        finding the path in a graph that optimizes a series of objectives 
+        (minimizes the value of a fitness function). The ``evaluate_tsp`` 
+        calls the evaluation function to check the result of evaluating said 
+        objective function for a given path and returns a tuple, as required
+        by DEAP.
         
         Currently, the objective function gives the cost of the path, which is
-        the sum of the values of the edges that form the path, and a penalty,
-        whose objective is to try and visit higher-weighted nodes later in the
-        path, as running for a longer distance with a heavier load increases
-        the maintenance cost of the truck.
+        the sum of the values of the edges that form the path, made up of how 
+        long they are and the theorical time they take to travel trough times
+        2.5 to account for real-world time wastes (traffic stops, dense trafic
+        and such).
         
         Args:
             individual: The path to evaluate.
@@ -64,90 +86,21 @@ class Algorithms():
         Returns:
             A tuple containing the value of the objective function.
         """
-        return (self.evaluate([self.convert[node] for node in individual])),
+        return (self.evaluate(individual)),
 
-    def evaluate_vrp(self, individual: list[int]) -> tuple[float, ...]:
-        """Evaluates the objective function value for a path.
-
-        This version of the ``evaluate`` function is the one used for the 
-        Vehicle Routing Problem (VRP), as while the individuals are represented
-        similarly, the fitness function for it should take into account both 
-        the total lenght of the path, as well as the lenght of the longest path
-
-        The algorithms used for this problem are genetic algorithms and, as 
-        such, try to minimize/maximize the value of a function to find a 
-        solution to a problem. In this case, the problem is finding the path
-        in a graph that optimizes a series of objectives. Those individual 
-        objectives form an objective function. The ``evaluate`` function checks
-        the result of evaluating said objective function for a given path.
-
-        Currently, the objective function gives the cost of the paths, which is
-        the sum of the values of the edges that form the path, and a penalty,
-        whose objective is to try and visit higher-weighted nodes later in the
-        path, as running for a longer distance with a heavier load increases
-        the maintenance cost of the truck. It also gives paths with similarly
-        weighted zones a better finess value, and tries to minimize the 
-        maximum value of a zone, as well as giving the maximum penalty to zones
-        whose total weight exceeds the maximum weight a truck can pick up (this
-        one is a hard constraint we have to consider).
+    def _clone(self, ind: list[int]) -> list[int]:
+        """Overrides DEAP's cloning to improve time & space performance of the
+        genetic algorithm. It takes an individual and returs a copy of it.
 
         Args:
-            individual: The path to evaluate.
+            ind: The individual to clone.
 
         Returns:
-            A tuple containing the value of the objective function.
+            The cloned individual.
         """
-        zones = self.graph.extract_zones(individual)
-        max_value = -1
-        total_value = 0
-        weights = []
-        for zone in zones:
-            new_value = 0
-            total_weight = 0
-            total_weight = sum(
-                self.graph.get_node(idx).weight for idx in zone)
-            if total_weight > self.truck_capacity or not zone:
-                new_value = 100000
-            elif zone: 
-                new_value = self.evaluate(zone)
-            weights.append(total_weight)
-            if new_value > max_value:
-                max_value = new_value
-            total_value += new_value
-
-        total_value += 0.5 * max_value * len(zones)
-        total_value += 1.0 * self.zone_likeness(weights)
-
-        return (total_value,)
-
-    def zone_likeness(self, zone_weights: list[float]) -> float:
-        """Returns the likeliness index of a list of zones.
-        
-        The zone likeliness is defined as how similar are zones between them.
-        Currently, all zones that differ 20% or more from the average zone's
-        weight are considered not similar. To calculate the likeliness factor
-        of a list of zones, we first calculate the average weight, then, the 
-        diference percentage between each zone's weight and the average, and
-        then we apply the likeliness function to each percentage (in base 1)
-        to get the likeliness factor.
-
-        Our likeliness function is defined as: $likeliness(x) = 100 · (5x)^2$,
-        as using a cuadratic function to get the likeliness values allows us 
-        to get a big jump in results when x > 0.2.
-        
-        For example, for a list of zones with weights = [954, 870, 642, 326, 
-        1.250, 2.000, 790, 825], the average weight would be 957, the diference
-        percentages are obtained from $|1 - 957/x|$, and are [0.004, 0.091, 
-        0.329, 0.66, 0.306, 1.09, 0.175, 0.138] and the likeliness factors
-        are [0.04, 20.7, 270.6, 1089, 239.1, 2500, 76.56, 47.61], thus giving 
-        us a total likeliness factor of 4.243,61, making this zone division 
-        highly unlikely to pass on to the next generation.
-        """
-        avg_weight = statistics.fmean(zone_weights) + 1
-        avg_difs = [abs(1 - (z / avg_weight)) for z in zone_weights]
-        likeliness_factors = [100 * pow(5 * ad, 2) for ad in avg_difs]
-
-        return sum(likeliness_factors)
+        new_ind = creator.Individual(ind)
+        new_ind.fitness.values = ind.fitness.values
+        return new_ind
 
     def _define_creator(self) -> creator:
         """Defines a deap creator for the genetic algorithms.
@@ -195,12 +148,11 @@ class Algorithms():
         Returns:
             The toolbox defined for the genetic algorithm.
         """
-        nodes = [node.index for node in self.graph.node_list]
-        genes = [i for i in range(len(nodes))]
-        self.convert = {i: node for i, node in enumerate(nodes)}
-
         toolbox = base.Toolbox()
-        toolbox.register("random_order", random.sample, genes, len(nodes))
+        toolbox.register("random_order", 
+                         random.sample, 
+                         range(self.graph.nodes), 
+                         self.graph.nodes)
         toolbox.register("individual_creator", tools.initIterate,
                          creator.Individual, toolbox.random_order)
         toolbox.register("population_creator", tools.initRepeat, list,
@@ -212,46 +164,8 @@ class Algorithms():
         toolbox.register("mate", tools.cxOrdered)
         toolbox.register("mutate",
                          tools.mutShuffleIndexes,
-                         indpb=1.0 / self.graph.nodes)
-
-        return toolbox
-
-    def _define_toolbox_vrp(self, agent_num: int) -> base.Toolbox:
-        """Defines a deap toolbox for the genetic algorithms.
-        
-        The ``deap.base.createor`` module is part of the DEAP framework. It's 
-        used as a container for functions, and enables the creation of new
-        operators by customizing existing ones. This function extracts the
-        ``toolbox`` instantiation from the ``run_ga_tsp`` function so the code
-        is easier to read and follow. 
-        
-        In the ``toolbox`` object is where the functions used by the genetic
-        algorithm are defined, such as the evaluation, selection, crossover
-        and mutation functions.
-
-        Args:
-            agent_num: Number of agents (trucks).
-
-        Returns:
-            The toolbox defined for the genetic algorithm.
-        """
-        toolbox = base.Toolbox()
-        toolbox.register("random_order", random.sample,
-                         range(self.graph.nodes + agent_num - 1),
-                         self.graph.nodes + agent_num - 1)
-        toolbox.register("individual_creator", tools.initIterate,
-                         creator.Individual, toolbox.random_order)
-        toolbox.register("population_creator", tools.initRepeat, list,
-                         toolbox.individual_creator)
-
-        toolbox.register("evaluate", self.evaluate_vrp)
-        toolbox.register("select", tools.selTournament, tournsize=2)
-        toolbox.register("mate",
-                         tools.cxUniformPartialyMatched,
-                         indpb=2.0 / (self.graph.nodes + agent_num))
-        toolbox.register("mutate",
-                         tools.mutShuffleIndexes,
-                         indpb=1.0 / ((self.graph.nodes + agent_num)))
+                         indpb=1.0/self.graph.nodes)
+        toolbox.register("clone", self._clone)
 
         return toolbox
 
@@ -273,7 +187,7 @@ class Algorithms():
         stats = tools.Statistics(lambda ind: ind.fitness.values)
         stats.register("min", np.min)
         stats.register("avg", np.mean)
-        hof = tools.HallOfFame(30)
+        hof = tools.HallOfFame(1)
 
         return population, stats, hof
 
@@ -286,10 +200,15 @@ class Algorithms():
                             stats=None,
                             halloffame=None,
                             verbose=__debug__):
-        """This algorithm is similar to DEAP eaSimple() algorithm, with the modification that
-        halloffame is used to implement an elitism mechanism. The individuals contained in the
-        halloffame are directly injected into the next generation and are not subject to the
-        genetic operators of selection, crossover and mutation.
+        """This algorithm is similar to DEAP eaSimple() algorithm, with the 
+        modification that halloffame is used to implement an elitism mechanism. 
+        The individuals contained in the halloffame are directly injected into 
+        the next generation after aplying a local search optimization and are 
+        not subject to the genetic operators of selection, crossover and 
+        mutation. The algorithm also adds stagnation detection where, if the 
+        algorithm stagnates (does not improve min fitness for a number of 
+        generations), the mutation rate increases, or the population is reset 
+        using the best individuals.
         """
         logbook = tools.Logbook()
         logbook.header = ['gen', 'nevals'] + (stats.fields if stats else [])
@@ -311,6 +230,15 @@ class Algorithms():
         if verbose:
             print(logbook.stream)
 
+        best_val = float('inf')
+        gens_stagnated = 0
+        superGens_stagnated = 0
+        mut_exploder = 1
+        cicles = 0
+        mut_exp = min(0.10 * self.graph.nodes, 30)
+        stg = min(self.graph.nodes/1.15, 50)
+        mcic = min(self.graph.nodes/1.15, 25)
+
         # Begin the generational process
         for gen in range(1, ngen + 1):
 
@@ -325,6 +253,12 @@ class Algorithms():
             fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
             for ind, fit in zip(invalid_ind, fitnesses):
                 ind.fitness.values = fit
+
+            elite = halloffame.items
+            for i, e in enumerate(elite):
+                ie = self.local_search(e)
+                e[:] = ie[:]
+                e.fitness.values = self.evaluate_tsp(e)
 
             # add the best back to population:
             offspring.extend(halloffame.items)
@@ -341,13 +275,52 @@ class Algorithms():
             if verbose:
                 print(logbook.stream)
 
+            val = halloffame[0].fitness.values[0]
+
+            # Stagnation detection
+            if val < best_val:
+                best_val = val
+                gens_stagnated = 0
+                superGens_stagnated = 0
+            else:
+                gens_stagnated += 1
+                superGens_stagnated += 1
+            if gens_stagnated >= stg:
+                # Mutation rate increase
+                if verbose: print("Stagnated")
+                if ((mut_exploder < 5 or 
+                     (mut_exploder < mut_exp and 
+                      self.graph.nodes >= 20)) 
+                    and mut_exploder < self.graph.nodes):
+                    toolbox.register("mutate", 
+                                     tools.mutShuffleIndexes, 
+                                     indpb=1/(self.graph.nodes - mut_exploder))
+                    mut_exploder += 1
+                else:
+                    if verbose: print("Reseting...")
+                    for i, ind in enumerate(population):
+                        population[i] = halloffame.items[0]
+                    mut_exploder = 1
+                    toolbox.register("mutate", 
+                                     tools.mutShuffleIndexes, 
+                                     indpb=1/(self.graph.nodes))
+                    cicles += 1
+                gens_stagnated = 0
+            
+            # Population reseting
+            if (cicles >= (mcic) + 1 or 
+                superGens_stagnated > self.graph.nodes * 7): 
+                if superGens_stagnated > self.graph.nodes * 7 and verbose:
+                    print("Halted")
+                break
+
         return population, logbook
 
     def run_ga_tsp(self,
-                   ngen: int = 100,
-                   cxpb: float = 0.9,
-                   mutpb: float = 0.1,
-                   pop_size: int = 200,
+                   ngen: int = 3000,
+                   cxpb: float = 0.7,
+                   mutpb: float = 0.2,
+                   pop_size: int = 1000,
                    dir: str | None = None,
                    idx: int = 0,
                    vrb: bool = True) -> tuple[list[int], float]:
@@ -373,6 +346,9 @@ class Algorithms():
         Returns:
             A tuple containing the best path found and its total value.
         """
+        random.seed(169)
+        if not self.graph.distances: self.graph.set_distance_matrix()
+        
         creator = self._define_creator()
         toolbox = self._define_toolbox()
         population, stats, hof, = self._define_ga(toolbox, pop_size)
@@ -386,86 +362,20 @@ class Algorithms():
                                                        halloffame=hof,
                                                        verbose=vrb)
 
-        best = [self.convert[i] for i in hof.items[0]]
-        best_path = ([self.graph.center.index] + best +
-                     [self.graph.center.index])
-        total_value = self.evaluate_tsp(hof[0])[0]
+        best = [i for i in hof.items[0]]
+        best += [best[0]]
+        total_value = self.evaluate_tsp(best)[0]
 
         if vrb:
-            print("-- Best Ever Individual = ", best_path)
-            print("-- Best Ever Fitness = ", hof.items[0].fitness.values[0])
+            print("-- Best Ever Individual = ", best)
+            print("-- Best Ever Fitness = ", total_value)
 
         if dir:
-            self._plot_ga_results(best_path, logbook, dir, idx)
+            self._plot_ga_results(best, logbook, dir, idx)
         else:
-            self._plot_ga_results(best_path, logbook).show()
+            self._plot_ga_results(best, logbook).show()
 
-        return best_path, total_value
-
-    def run_ga_vrp(self,
-                   agent_num: int,
-                   truck_capacity: int,
-                   ngen: int = 300,
-                   cxpb: float = 0.9,
-                   mutpb: float = 0.1,
-                   pop_size: int = 500,
-                   dir: str | None = None,
-                   idx: int = 0,
-                   vrb: bool = True) -> tuple[list[int], float]:
-        """Runs the Genetic Algorithm for the Vehicle Routing Problem.
-        
-        This function calls the wrapper functions that define the creator, 
-        toolbox and the attributes for the Genetic Algorithm designed to solve
-        the Vehicle Routing Problem. It then runs the Genetic Algorithm and 
-        returns the best paths found and its total value, while also calling the
-        wrapper function to plot the results.
-
-        Args:
-            agent_num: The number of agents (trucks).
-            truck_capacity: The maximum capacity of a truck.
-            ngen (optional): The number of generations. Defaults to 300.
-            cxpb (optional): The mating probability. Defaults to 0.9.
-            mutpb (optional): The mutation probability. Defaults to 0.1.
-            pop_size (optional): The size of the population. Defaults to 500.
-            dir (optional): The directory where the plots should be saved. 
-                Defaults to None, in which case the plot(s) won't be saved.
-            idx (optional): The index for the plot to save. Defaults to 0.
-            vrb: (optional): Run the algorithm in verbose or non-verbose mode.
-                Defaults to True.
-
-        Returns:
-            A tuple containing the best paths found and its total value.
-        """
-        self.truck_capacity = truck_capacity
-        creator = self._define_creator()
-        toolbox = self._define_toolbox_vrp(agent_num)
-        population, stats, hof, = self._define_ga(toolbox, pop_size)
-
-        population, logbook = self.eaSimpleWithElitism(population,
-                                                       toolbox,
-                                                       cxpb=cxpb,
-                                                       mutpb=mutpb,
-                                                       ngen=ngen,
-                                                       stats=stats,
-                                                       halloffame=hof,
-                                                       verbose=vrb)
-
-        best = hof.items[0]
-        zones = self.graph.extract_zones(best)
-        best_path = [[self.graph.center.index] + zone +
-                     [self.graph.center.index] for zone in zones]
-        total_value = self.evaluate_vrp(hof[0])[0]
-
-        if vrb:
-            print("-- Best Ever Individual = ", best_path)
-            print("-- Best Ever Fitness = ", hof.items[0].fitness.values[0])
-
-        if dir:
-            self._plot_ga_results(best, logbook, dir, idx, True)
-        else:
-            self._plot_ga_results(best, logbook, vrp=True).show()
-
-        return best_path, total_value
+        return best, total_value
 
     def _plot_ga_results(self,
                          path: list[int],
