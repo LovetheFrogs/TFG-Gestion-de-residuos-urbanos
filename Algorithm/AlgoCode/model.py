@@ -751,37 +751,6 @@ class Graph():
 
         return res
 
-    def extract_zones(self, individual: list[int]) -> list[list[int]]:
-        """Extracts zones from an individual and creates a list of zones.
-
-        A zone is divided by the index of a truck. For example, in a graph with
-        12 nodes and 3 trucks, indexes 0-11 would be node indexes, and indexes
-        12, 13 & 14 would be truck indexes (delimiters). This function also 
-        removes the center node from the zones it appears on, so for that 
-        example, if the center is node 11, the list ``[0, 5, 6, 8, 12, 3, 11, 
-        4, 2, 13, 1, 7, 9, 10, 14]`` would return the list of lists ``[[0, 5, 
-        6, 8][3, 4, 2][1, 7, 9, 10]]``
-
-        Args:
-            individual: The individual from where the zones will be extracted.
-
-        Returns:
-            A list of lists containing all the zones.
-        """
-        zones = []
-        zone = []
-        for node in individual:
-            if node >= self.nodes:
-                zones.append(zone)
-                zone = []
-            elif node == self.center.index:
-                continue
-            else:
-                zone.append(node)
-        zones.append(zone)
-
-        return zones
-
     def __len__(self):
         """Returns the length of a Graph instance.
         
