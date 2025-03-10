@@ -81,6 +81,13 @@ class Node():
         The Manhattan distance is the choice for this library, as it is closer 
         to the real world distance between two points than euclidean distance.
 
+        The Manhattan distance is being calculated on a 3D sphere rather than a 
+        2D plane, given that our problem is based on a real-world city. To get 
+        the distance, the function applies the Haversine formula to the 
+        latitude and longitude independently and sums this distances, returning
+        a better distance estimation of the real world distance between two 
+        nodes than calculating the distance on a 2D plane.
+
         Args:
             b: The node to which we want to know the distance to.
 
