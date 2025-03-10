@@ -414,17 +414,20 @@ class Algorithms():
 
         return path, best_value
 
-    def run_two_opt(self, threshold: float = 0.01) -> tuple[list[int], float]:
+    def run_two_opt(self, 
+                    threshold: float = 0.01, 
+                    dir: str | None = None, 
+                    name: str = "") -> tuple[list[int], float]:
         path = random.sample(range(0, self.graph.nodes), self.graph.nodes)
         
-
+        self._plot_ga_results(path, dir=dir, name=name)
 
         return self.two_opt(path, threshold)
 
 
     def _plot_ga_results(self,
                          path: list[int],
-                         logbook: dict = None,
+                         logbook: dict | None = None,
                          dir: str | None = None,
                          name: str = "") -> plt:
         """Sets up a plotter for the results of the Genetic Algorithm.
@@ -453,10 +456,11 @@ class Algorithms():
         if dir:
             plt.savefig(f"{dir}/Path{name}.png")
             plt.clf()
-        plt.figure(2)
-        pltr.plot_evolution(logbook.select("min"), logbook.select("avg"))
-        if dir:
-            plt.savefig(f"{dir}/Evolution{name}.png")
-            plt.clf()
+        if logbook:
+            plt.figure(2)
+            pltr.plot_evolution(logbook.select("min"), logbook.select("avg"))
+            if dir:
+                plt.savefig(f"{dir}/Evolution{name}.png")
+                plt.clf()
 
         return plt
