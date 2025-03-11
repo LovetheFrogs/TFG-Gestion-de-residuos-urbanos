@@ -461,6 +461,61 @@ class Algorithms():
 
         return best, best_value
 
+    def simulated_annealing(self, path: list[int]):
+        current_path = path
+        current_value = self.evaluate(current_path)
+        best_path = current_path
+        best_value = current_value
+        temperature = 5000
+        alpha = 0.99
+        stagnated = 0
+        it = 0
+
+        while it < 100000 and stagnated < 1500:
+            i = random.randint(0, self.graph.nodes)
+            j = random.randint(0, self.graph.nodes)
+            if i > j:
+                i, j = j, i
+            next_path = self._flip(current_path, i, j)
+            next_value = self.evaluate(next_path)
+
+            if ((next_value < 
+                 current_value) or 
+                (random.uniform(0, 1) <= 
+                 np.exp((current_value - next_value) / temperature))):
+                current_path, current_value = next_path, next_value
+                stagnated = 0
+
+                if current_value < best_value:
+                    best_path, best_value = current_path, current_value
+
+            else: stagnated += 1
+            temperature *= alpha
+            it += 1
+
+        return best_path, best_value
+
+    def _get_neighbors(self, path):
+        neighbors = []
+        for i in range(self.graph.nodes):
+            for j in range(i + 1, self.graph.nodes):
+                n = self._swap(path, i, j)
+                neighbors.append(n)
+        return neighbors
+
+    def run_sa(self, 
+               path: list[int] | None = None,
+               dir: str | None = None, 
+               name: str = "") -> tuple[list[int], float]:
+
+        if not path:
+            path = random.sample(range(0, self.graph.nodes), self.graph.nodes)
+        best, best_value = self.simulated_annealing(path)
+        best += [best[0]]
+        self._plot_ga_results(best, dir=dir, name=name)
+
+        return best, best_value
+
     def _plot_ga_results(self,
                          path: list[int],
                          logbook: dict | None = None,
