@@ -406,28 +406,28 @@ class Algorithms():
             for i in range(0, n - 1):
                 for j in range(i + 2, n):
                     prev = self.evaluate(best)
-                    curr = self.evaluate(self._swap(best, i, j))
+                    curr = self.evaluate(self._flip(best, i, j))
 
                     if curr < prev:
-                        best = self._swap(best, i, j)
+                        best = self._flip(best, i, j)
                         best_value = self.evaluate(best)
                         improved = True
             
         return best, best_value
 
-    def _swap(self, path: list[int], i: int, j: int) -> list[int]:
-        """Swaps a section of a path.
+    def _flip(self, path: list[int], i: int, j: int) -> list[int]:
+        """Flips a section of a path.
 
-        Given a path, it swaps the section between i and j so that path[i] will
+        Given a path, it flips the section between i and j so that path[i] will
         be path[j], path[i + 1] will be path[j - 1] and so on.
 
         Args:
-            path: The path where a section will be swapped.
+            path: The path where a section will be flipped.
             i: The start of a section.
             j: The end of a section.
 
         Returns:
-            The result of performing the section swap on the given path.
+            The result of performing the section flip on the given path.
         """
         new_path = np.concatenate((path[0:i],
                                        path[j:-len(path) + i - 1:-1],
