@@ -2,6 +2,7 @@
 
 import os
 from model import Graph
+import random
 from algorithms import Algorithms
 
 
@@ -20,16 +21,13 @@ def run():
     algo = Algorithms(g)
     p, v = algo.run_ga_tsp(ngen=g.nodes * 100,
                            dir=os.getcwd() + "/plots",
-                           name="_TSP",
+                           name="_GA",
                            vrb=False)
-    print(f"Total value (TSP): {v}")
+    print(f"Total value (GA): {v}")
     p2, v2 = algo.run_two_opt(dir=os.getcwd() + "/plots", name="_2opt")
     print(f"Total value (2opt): {v2}")
-    p3, v3 = algo.run_two_opt(path=p, dir=os.getcwd() + "/plots", name="_GA+2opt")
-    print(f"Total value (GA + 2opt): {v3}")
-    p4, v4 = algo.run_two_opt(path=g.bfs(g.center), dir=os.getcwd() + "/plots", name="_bfs+2opt")
-    print(f"Total value (BFS + 2opt): {v4}")
-
+    p3, v3 = algo.run_sa(dir=os.getcwd() + "/plots", name="_SA")
+    print(f"Total value (SA): {v3}")
     """res = g.divide_graph(725)
     print(f"Zone count (TSP): {len(res)}")
     sg = []
@@ -55,18 +53,6 @@ def run2():
         g.populate_from_file(f"{os.getcwd()}/files/test2tonnodes/{i}n.txt")
         algo = Algorithms(g)
         _, v = algo.run_ga_tsp(dir=os.getcwd() + "/plots", idx=i, vrb=False)
-
-
-def run3():
-    g = Graph()
-    print("Loading graph")
-    g.populate_from_file(os.getcwd() + "/files/test2.txt")
-    print("Graph loaded")
-    algo = Algorithms(g)
-    path = [0, 12, 9, 1, 6, 5, 2, 8, 7, 4, 3, 10]
-    print(f"Fitness b4: {algo.evaluate(path)}")
-    path2 = algo.optimization(path)
-    print(f"Fitness after: {algo.evaluate(path2)}")
 
 
 def main():
