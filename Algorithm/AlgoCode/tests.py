@@ -155,6 +155,15 @@ class TestGraphMethods(unittest.TestCase):
         self.g.populate_from_file(os.getcwd() + "/files/test.txt")
         self.assertEqual(self.g.get_node(1).index, 1)
 
+    def test_distances(self):
+        """Test the integrity of the distance matrix."""
+        self.g.populate_from_file(os.getcwd() + "/files/test4.txt")
+        for i in range(self.g.nodes):
+            for j in range(self.g.nodes):
+                with self.subTest(i=int(str(i) + str(j))):
+                    self.assertEqual(self.g.distances[i][j],
+                                     self.g.distances[j][i])
+
     def test_bfs(self):
         """Tests bfs."""
         for node in self.nodes:
@@ -222,7 +231,7 @@ class TestGraphMethods(unittest.TestCase):
         g2 = Graph()
         g2.populate_from_file(f"{os.getcwd()}/files/test2.txt")
         algo = Algorithms(g2)
-        p, v = algo.run_ga_tsp(dir=f"{os.getcwd()}/plots", vrb=False)
+        p, v = algo.run_ga_tsp(dir=f"{os.getcwd()}/plots", name=0, vrb=False)
         os.remove(f"{os.getcwd()}/plots/Path0.png")
         os.remove(f"{os.getcwd()}/plots/Evolution0.png")
         self.assertEqual(p[-1], p[0])
