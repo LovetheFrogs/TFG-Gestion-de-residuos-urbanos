@@ -22,6 +22,7 @@ import heapq
 import pickle
 from typing import Union
 from exceptions import *
+from utils import printProgressBar
 
 
 def load(path: str) -> Union['Graph', None]:
@@ -390,7 +391,7 @@ class Graph():
                 distances[n][edge.dest.index] = edge.value
         self.distances = distances
 
-    def populate_from_file(self, file: str):
+    def populate_from_file(self, file: str, verbose: bool = False):
         """Populates a graph from the data in a file.
 
         An new graph is created form the data available in a file. The file 
@@ -419,6 +420,8 @@ class Graph():
 
         Args:
             file: The path of the file to read from.
+            verbose (optional): If the function should run in verbose mode.
+                Defaults to False
         
         Raises:
             FileNotFoundError: If the file to read is not found.
@@ -427,12 +430,37 @@ class Graph():
         """
         with open(file, 'r') as f:
             n = int(f.readline().strip())
-            for _ in range(n):
+            if verbose:
+                print("Loading graph")
+                printProgressBar(0,
+                            n,
+                            prefix="Adding nodes:",
+                            suffix=f"Complete (0/{n})",
+                            length=50)
+            for i in range(n):
+                if verbose:
+                    printProgressBar(i + 1,
+                                   n,
+                                   prefix="Adding nodes:",
+                                   suffix=f"Complete ({i + 1}/{n})",
+                                   length=50)
                 aux = f.readline().strip().split()
                 self.add_node(Node(aux[0], aux[1], aux[2], aux[3]))
 
             m = int(f.readline().strip())
-            for _ in range(m):
+            if verbose:
+                printProgressBar(0,
+                            m,
+                            prefix="Adding edges:",
+                            suffix=f"Complete (0/{m})",
+                            length=50)
+            for j in range(m):
+                if verbose:
+                    printProgressBar(j + 1,
+                                   m,
+                                   prefix="Adding edges:",
+                                   suffix=f"Complete ({j + 1}/{m})",
+                                   length=50)
                 aux = f.readline().strip().split()
                 self.add_edge(
                     Edge(aux[0], self.get_node(int(aux[1])),
@@ -441,6 +469,7 @@ class Graph():
             self.set_center(self.get_node(0))
             self.center.center = True
             self.set_distance_matrix()
+            if verbose: print("Graph loaded")
 
     def bfs(self, source: Node) -> list[int]:
         """Performs Breadth First Search on the graph from the node ``source``.
@@ -739,6 +768,8 @@ class Graph():
             for edge in edges:
                 if edge.dest in g.graph:
                     g.add_edge(edge)
+        
+        g.set_distance_matrix()
 
         return g
 
