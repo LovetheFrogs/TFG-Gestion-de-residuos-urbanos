@@ -303,18 +303,27 @@ class Graph():
                 Graph.
             DuplicateEdge: If the edge is already in the Graph.
         """
-        if edge in self.edge_list:
+        key = (edge.origin.index, edge.dest.index)
+        try:
+            self.edge_dict[key]
             raise DuplicateEdge()
-        if (edge.origin in self.graph and edge.dest in self.graph):
-            self.graph[edge.origin].append(edge)
-            self.edge_list.append(edge)
-            self.edges += 1
-            key = (edge.origin.index, edge.dest.index)
-            self.edge_dict[key] = edge
-        elif (edge.origin not in self.graph):
-            raise NodeNotFound(edge.origin.index)
-        else:
-            raise NodeNotFound(edge.dest.index)
+        except KeyError:
+            pass
+
+        try:
+            self.index_dict[edge.origin.index]
+        except Exception:
+            raise NodeNotFound(edge.origin.index) 
+
+        try:
+            self.index_dict[edge.dest.index]
+        except Exception:
+            raise NodeNotFound(edge.dest.index) 
+
+        self.graph[edge.origin].append(edge)
+        self.edge_list.append(edge)
+        self.edges += 1
+        self.edge_dict[key] = edge
 
     def set_center(self, node: Node):
         """Sets the central node of the graph.
