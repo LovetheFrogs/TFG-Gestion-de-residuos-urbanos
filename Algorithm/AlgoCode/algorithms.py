@@ -461,7 +461,46 @@ class Algorithms():
 
         return best, best_value
 
-    def simulated_annealing(self, path: list[int], niter = 100000, mstag = 1500):
+    def _get_neighbors(self, path: list[int]) -> list[list[int]]:
+        """Gets all the posible neighbors of a path.
+
+        A neighbor of a path `p` is another path `p'` where the position of
+        two nodes has been interchanged using the `_swap` function.
+
+        Args:
+            path: The path whose neighbors we want to find.
+
+        Returns:
+            The list of neighbor paths.
+        """
+        neighbors = []
+        for i in range(self.graph.nodes):
+            for j in range(i + 1, self.graph.nodes):
+                n = self._swap(path, i, j)
+                neighbors.append(n)
+        return neighbors
+
+    def simulated_annealing(self, 
+                            path: list[int], 
+                            niter: int = 100000, 
+                            mstag: int = 1500) -> tuple[list[int], float]:
+        """Simulated Annealing for solving the TSP problem.
+
+        The Simulated Annealing algorithm tries to find a solution by selecting
+        a new path, comparing its value and, if its better than the current one
+        or if a random probability is less than 
+        $e^{-\frac{\Delta value}{Temperature}}$, it is selected as the new 
+        current solution.
+
+        Args:
+            path: The starting path.
+            niter (optional): Maximum number of iterations. Defaults to 100000.
+            mstag (optional): Maximum number of iterations without improvements
+                to the value of the objective function. Defaults to 1500.
+
+        Returns:
+            A tuple containing the best path found and its value.
+        """
         current_path = path
         current_value = self.evaluate(current_path)
         best_path = current_path
@@ -495,24 +534,33 @@ class Algorithms():
 
         return best_path, best_value
 
-    def _get_neighbors(self, path):
-        neighbors = []
-        for i in range(self.graph.nodes):
-            for j in range(i + 1, self.graph.nodes):
-                n = self._swap(path, i, j)
-                neighbors.append(n)
-        return neighbors
-
     def run_sa(self, 
                path: list[int] | None = None,
                niter: int = 100000, 
                mstag: int = 1500,
                dir: str | None = None, 
                name: str = "") -> tuple[list[int], float]:
+        """Executes Simulated Annealing on a graph
+
+        Args:
+            path (optional): The starting path. If it is `None`, a random one
+                will be created. Defaults to None.
+            niter (optional): Maximum number of iterations. Defaults to 100000.
+            mstag (optional): Maximum number of iterations without improvements
+                to the value of the objective function. Defaults to 1500.
+            dir (optional): The directory where the plots should be saved. 
+                Defaults to None, in which case the plot(s) won't be saved.
+            name (optional): The name to add to the plots. Defaults to "".
+
+        Returns:
+            A tuple containing the best path found and its total value.
+        """
 
         if not path:
             path = random.sample(range(0, self.graph.nodes), self.graph.nodes)
-        best, best_value = self.simulated_annealing(path)
+        best, best_value = self.simulated_annealing(path,
+                                                    niter=niter, 
+                                                    mstag=mstag)
         best += [best[0]]
         self._plot_ga_results(best, dir=dir, name=name)
 
