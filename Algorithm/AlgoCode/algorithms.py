@@ -461,7 +461,7 @@ class Algorithms():
 
         return best, best_value
 
-    def simulated_annealing(self, path: list[int]):
+    def simulated_annealing(self, path: list[int], niter = 100000, mstag = 1500):
         current_path = path
         current_value = self.evaluate(current_path)
         best_path = current_path
@@ -471,7 +471,7 @@ class Algorithms():
         stagnated = 0
         it = 0
 
-        while it < 100000 and stagnated < 1500:
+        while it < niter and stagnated < mstag:
             i = random.randint(0, self.graph.nodes)
             j = random.randint(0, self.graph.nodes)
             if i > j:
@@ -505,6 +505,8 @@ class Algorithms():
 
     def run_sa(self, 
                path: list[int] | None = None,
+               niter: int = 100000, 
+               mstag: int = 1500,
                dir: str | None = None, 
                name: str = "") -> tuple[list[int], float]:
 
