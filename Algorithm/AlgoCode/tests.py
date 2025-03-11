@@ -235,10 +235,25 @@ class TestGraphMethods(unittest.TestCase):
         os.remove(f"{os.getcwd()}/plots/Path0.png")
         os.remove(f"{os.getcwd()}/plots/Evolution0.png")
         self.assertEqual(p[-1], p[0])
-        random_path = ([
-            n.index - 1 for n in random.sample(g2.node_list, g2.nodes - 1)
-        ])
-        self.assertTrue(algo.evaluate_tsp(random_path)[0] > v)
+        random_path = random.sample(
+            range(0, g2.nodes), 
+            g2.nodes
+        )
+        self.assertGreater(algo.evaluate_tsp(random_path)[0], v)
+
+    def test_two_opt(self):
+        """Tests the 2opt Algorithm."""
+        g2 = Graph()
+        g2.populate_from_file(f"{os.getcwd()}/files/test2.txt")
+        algo = Algorithms(g2)
+        p, v = algo.run_two_opt(dir=f"{os.getcwd()}/plots", name=0)
+        os.remove(f"{os.getcwd()}/plots/Path0.png")
+        self.assertEqual(p[-1], p[0])
+        random_path = random.sample(
+            range(0, g2.nodes), 
+            g2.nodes
+        )
+        self.assertGreater(algo.evaluate(random_path), v)
 
     def test_save_and_load(self):
         """Tests saving and loading a graph."""
