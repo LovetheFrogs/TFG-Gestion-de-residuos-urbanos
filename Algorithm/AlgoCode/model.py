@@ -764,6 +764,14 @@ class Graph():
         Allows to consider each zone as it's own individual graph, making it 
         easier to get the optimal path for a zone.
 
+        Due to algorithm constraints, the nodes will be renamed in the 
+        subgraph. If the n-th node in ``nodes`` has id 9, it will have the id
+        1 in the subgraph, altough it can still be traced, as all the other
+        attributes will be the same.
+
+        Note that the first node of ``nodes`` must have the center attribute 
+        set to ``True``.
+
         Args:
             nodes: A list of nodes for the new graph
 
@@ -775,15 +783,31 @@ class Graph():
             NodeNotFound: If the node is not in the graph
         """
         g = Graph()
+        original_sub = {}
+        sub_original = {}
         for i, node in enumerate(nodes):
-            g.add_node(node)
+            new_node = Node(i, 
+                            node.weight, 
+                            node.coordinates[0], 
+                            node.coordinates[1], 
+                            node.center
+            )
+            g.add_node(new_node)
+            sub_original[new_node] = self.get_node(node.index)
+            original_sub[self.get_node(node.index)] = new_node
         for node in g.graph:
-            if node not in self.graph:
-                raise NodeNotFound(node.index)
-            edges = self.graph[node]
+            original_node = sub_original[node]
+            if original_node not in self.graph:
+                raise NodeNotFound(original_node.index)
+            edges = self.graph[original_node]
             for edge in edges:
-                if edge.dest in g.graph:
-                    g.add_edge(edge)
+                if edge.dest in nodes:
+                    new_edge = Edge(
+                        edge.speed,
+                        node,
+                        original_sub[edge.dest]
+                    )
+                    g.add_edge(new_edge)
         
         g.set_distance_matrix()
 
