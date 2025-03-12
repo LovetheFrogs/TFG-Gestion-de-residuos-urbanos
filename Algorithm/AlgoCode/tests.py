@@ -238,49 +238,6 @@ class TestGraphMethods(unittest.TestCase):
                 self.assertTrue(subgraph.can_pickup_all(725, 1))
                 self.assertLess(subgraph.total_weight(), 725)
 
-    def test_ga_tsp(self):
-        """Tests the Genetic Algorithm (TSP)"""
-        g2 = Graph()
-        g2.populate_from_file(f"{os.getcwd()}/files/test2.txt")
-        algo = Algorithms(g2)
-        p, v = algo.run_ga_tsp(dir=f"{os.getcwd()}/plots", name=0, vrb=False)
-        os.remove(f"{os.getcwd()}/plots/Path0.png")
-        os.remove(f"{os.getcwd()}/plots/Evolution0.png")
-        self.assertEqual(p[-1], p[0])
-        random_path = random.sample(
-            range(0, g2.nodes), 
-            g2.nodes
-        )
-        self.assertGreater(algo.evaluate_tsp(random_path)[0], v)
-
-    def test_two_opt(self):
-        """Tests the 2opt Algorithm."""
-        g2 = Graph()
-        g2.populate_from_file(f"{os.getcwd()}/files/test2.txt")
-        algo = Algorithms(g2)
-        p, v = algo.run_two_opt(dir=f"{os.getcwd()}/plots", name=0)
-        os.remove(f"{os.getcwd()}/plots/Path0.png")
-        self.assertEqual(p[-1], p[0])
-        random_path = random.sample(
-            range(0, g2.nodes), 
-            g2.nodes
-        )
-        self.assertGreater(algo.evaluate(random_path), v)
-
-    def test_sa(self):
-        """Tests the Simulated Annealing Algorithm."""
-        g2 = Graph()
-        g2.populate_from_file(f"{os.getcwd()}/files/test2.txt")
-        algo = Algorithms(g2)
-        p, v = algo.run_sa(dir=f"{os.getcwd()}/plots", name=0)
-        os.remove(f"{os.getcwd()}/plots/Path0.png")
-        self.assertEqual(p[-1], p[0])
-        random_path = random.sample(
-            range(0, g2.nodes), 
-            g2.nodes
-        )
-        self.assertGreater(algo.evaluate(random_path), v)
-
     def test_save_and_load(self):
         """Tests saving and loading a graph."""
         for node in self.nodes:
@@ -350,6 +307,48 @@ class TestGraphDefaults(unittest.TestCase):
         """Tests result of printing a graph."""
         self.assertEqual(self.g.__repr__(),
                          "Graph with 5 nodes and 4 edges. Center: 0\n")
+
+
+class TestAlgorithms(unittest.TestCase):
+    """Testing of the algorithms used."""
+    def setUp(self):
+        self.g = Graph()
+        self.g.populate_from_file(f"{os.getcwd()}/files/test2.txt")
+        self.algo = Algorithms(self.g)
+
+    def test_ga_tsp(self):
+        """Tests the Genetic Algorithm (TSP)"""
+        p, v = self.algo.run_ga_tsp(dir=f"{os.getcwd()}/plots", name=0, vrb=False)
+        os.remove(f"{os.getcwd()}/plots/Path0.png")
+        os.remove(f"{os.getcwd()}/plots/Evolution0.png")
+        self.assertEqual(p[-1], p[0])
+        random_path = random.sample(
+            range(0, self.g.nodes), 
+            self.g.nodes
+        )
+        self.assertGreater(self.algo.evaluate_tsp(random_path)[0], v)
+
+    def test_two_opt(self):
+        """Tests the 2opt Algorithm."""
+        p, v = self.algo.run_two_opt(dir=f"{os.getcwd()}/plots", name=0)
+        os.remove(f"{os.getcwd()}/plots/Path0.png")
+        self.assertEqual(p[-1], p[0])
+        random_path = random.sample(
+            range(0, self.g.nodes), 
+            self.g.nodes
+        )
+        self.assertGreater(self.algo.evaluate(random_path), v)
+
+    def test_sa(self):
+        """Tests the Simulated Annealing Algorithm."""
+        p, v = self.algo.run_sa(dir=f"{os.getcwd()}/plots", name=0)
+        os.remove(f"{os.getcwd()}/plots/Path0.png")
+        self.assertEqual(p[-1], p[0])
+        random_path = random.sample(
+            range(0, self.g.nodes), 
+            self.g.nodes
+        )
+        self.assertGreater(self.algo.evaluate(random_path), v)
 
 
 class TestModelFileCreation(unittest.TestCase):
