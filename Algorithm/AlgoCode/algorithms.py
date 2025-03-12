@@ -325,7 +325,7 @@ class Algorithms():
                    pop_size: int = 1000,
                    dir: str | None = None,
                    name: str = "",
-                   vrb: bool = True) -> tuple[list[int], float]:
+                   vrb: bool = False) -> tuple[list[int], float]:
         """Runs the Genetic Algorithm for the Traveling Salesman Problem.
         
         This function calls the wrapper functions that define the creator, 
@@ -581,7 +581,6 @@ class Algorithms():
         stagnated = 0
 
         while i < niter and stagnated < mstag:
-            print(f"Iteration {i}, stagnated for {stagnated} iterations")
             neighbors = self._get_neighbors(current_path)
             best_neighbor = None
             best_neighbor_value = float('inf')
