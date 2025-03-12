@@ -374,9 +374,9 @@ class Algorithms():
             print("-- Best Ever Fitness = ", total_value)
 
         if dir:
-            self._plot_ga_results(best, logbook, dir, name)
+            self._plot_results(best, logbook, dir, name)
         else:
-            self._plot_ga_results(best, logbook).show()
+            self._plot_results(best, logbook).show()
 
         return best, total_value
 
@@ -457,7 +457,7 @@ class Algorithms():
             path = random.sample(range(0, self.graph.nodes), self.graph.nodes)
         best, best_value = self.two_opt(path)
         best += [best[0]]
-        self._plot_ga_results(best, dir=dir, name=name)
+        self._plot_results(best, dir=dir, name=name)
 
         return best, best_value
 
@@ -562,7 +562,7 @@ class Algorithms():
                                                     niter=niter, 
                                                     mstag=mstag)
         best += [best[0]]
-        self._plot_ga_results(best, dir=dir, name=name)
+        self._plot_results(best, dir=dir, name=name)
 
         return best, best_value
 
@@ -615,11 +615,11 @@ class Algorithms():
                                             niter=niter, 
                                             mstag=mstag)
         best += [best[0]]
-        self._plot_ga_results(best, dir=dir, name=name)
+        self._plot_results(best, dir=dir, name=name)
 
         return best, best_value
 
-    def _plot_ga_results(self,
+    def _plot_results(self,
                          path: list[int],
                          logbook: dict | None = None,
                          dir: str | None = None,
