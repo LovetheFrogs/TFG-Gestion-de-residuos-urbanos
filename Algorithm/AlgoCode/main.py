@@ -14,7 +14,7 @@ def run():
     calculated for the initial graph using both TSP and VSP.
     """
     g = Graph()
-    g.populate_from_file(os.getcwd() + "/files/test4.txt")
+    g.populate_from_file(os.getcwd() + "/files/test2.txt")
     #g.populate_from_file(os.getcwd() + "/Algorithm/AlgoCode/files/test2.txt")
     algo = Algorithms(g)
     """p, v = algo.run_ga_tsp(ngen=g.nodes * 100,
@@ -28,7 +28,7 @@ def run():
     print(f"Total value (SA): {v3}")
     p4, v4 = algo.run_tabu_search(dir=os.getcwd() + "/plots", name="_TS")
     print(f"Total value (TS): {v4}")
-    """res = g.divide_graph(725)
+    res = g.divide_graph(725)
     print(f"Zone count (TSP): {len(res)}")
     sg = []
     for i, z in enumerate(res):
@@ -36,12 +36,32 @@ def run():
     t = 0
     for i, graph in enumerate(sg):
         algo2 = Algorithms(graph)
-        p, v = algo2.run_ga_tsp(idx=i + 1,
+        p, v = algo2.run_ga_tsp(name=i + 1,
                                 vrb=False,
-                                dir=os.getcwd() + "/plots")
-        print(p)
+                                dir=os.getcwd() + "/plots/GA")
         t += v
-    print(f"Total value (TSP zoned): {t}")"""
+    print(f"Total value (GA zoned): {t}")
+    t = 0
+    for i, graph in enumerate(sg):
+        algo2 = Algorithms(graph)
+        p, v = algo2.run_two_opt(name=i + 1,
+                                dir=os.getcwd() + "/plots/2opt")
+        t += v
+    print(f"Total value (2opt zoned): {t}")
+    t = 0
+    for i, graph in enumerate(sg):
+        algo2 = Algorithms(graph)
+        p, v = algo2.run_sa(name=i + 1,
+                                dir=os.getcwd() + "/plots/SA")
+        t += v
+    print(f"Total value (SA zoned): {t}")
+    t = 0
+    for i, graph in enumerate(sg):
+        algo2 = Algorithms(graph)
+        p, v = algo2.run_tabu_search(name=i + 1,
+                                dir=os.getcwd() + "/plots/TS")
+        t += v
+    print(f"Total value (TS zoned): {t}")
 
 
 def run2():
