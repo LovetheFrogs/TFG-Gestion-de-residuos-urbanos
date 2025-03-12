@@ -383,7 +383,7 @@ class Algorithms():
     def two_opt(
             self, 
             path: list[int]) -> tuple[list[int], float]:
-        """2-opt algorithm for solving the TSP problem.
+        """2-opt algorithm for solving the Travelling Salesman Problem.
 
         The 2-opt algorithm takes two edges of a path and removes them, it then
         adds two new edges and checking if this improves the value of the 
@@ -488,19 +488,19 @@ class Algorithms():
                             path: list[int], 
                             niter: int, 
                             mstag: int) -> tuple[list[int], float]:
-        """Simulated Annealing for solving the TSP problem.
+        """Simulated Annealing for solving the Travelling Salesman Problem.
 
         The Simulated Annealing algorithm tries to find a solution by selecting
-        a new path, comparing its value and, if its better than the current one
-        or if a random probability is less than 
-        $e^{-\frac{\Delta value}{Temperature}}$, it is selected as the new 
-        current solution.
+        a new path, comparing its value to the current path's value and in case
+        it is better than the current one or if :math:`p \\in [0, 1]` is less 
+        than :math:`e^{-\\frac{\\Delta value}{Temperature}}` it is selected as 
+        the current solution.
 
         Args:
             path: The starting path.
-            niter (optional): Maximum number of iterations. Defaults to 100000.
-            mstag (optional): Maximum number of iterations without improvements
-                to the value of the objective function. Defaults to 1500.
+            niter: Maximum number of iterations.
+            mstag: Maximum number of iterations without improvements to the 
+                value of the objective function.
 
         Returns:
             A tuple containing the best path found and its value.
