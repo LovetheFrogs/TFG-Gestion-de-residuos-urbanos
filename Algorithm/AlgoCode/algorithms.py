@@ -457,7 +457,11 @@ class Algorithms():
             path = random.sample(range(0, self.graph.nodes), self.graph.nodes)
         best, best_value = self.two_opt(path)
         best += [best[0]]
-        self._plot_results(best, dir=dir, name=name)
+        if dir:
+            self._plot_results(best, dir=dir, name=name)
+        else:
+            self._plot_results(best).show()
+
 
         return best, best_value
 
@@ -562,7 +566,10 @@ class Algorithms():
                                                     niter=niter, 
                                                     mstag=mstag)
         best += [best[0]]
-        self._plot_results(best, dir=dir, name=name)
+        if dir:
+            self._plot_results(best, dir=dir, name=name)
+        else:
+            self._plot_results(best).show()
 
         return best, best_value
 
@@ -615,7 +622,10 @@ class Algorithms():
                                             niter=niter, 
                                             mstag=mstag)
         best += [best[0]]
-        self._plot_results(best, dir=dir, name=name)
+        if dir:
+            self._plot_results(best, dir=dir, name=name)
+        else:
+            self._plot_results(best).show()
 
         return best, best_value
 
