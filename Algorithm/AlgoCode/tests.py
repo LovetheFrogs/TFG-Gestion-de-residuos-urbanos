@@ -221,13 +221,20 @@ class TestGraphMethods(unittest.TestCase):
         for i, zone in enumerate(aux):
             with self.subTest(i=i):
                 subgraph = g2.create_subgraph(zone)
-                self.assertEqual(g2.center, subgraph.center)
+                self.assertEqual(
+                    g2.center.coordinates[0], 
+                    subgraph.center.coordinates[0]
+                )
+                self.assertEqual(
+                    g2.center.coordinates[1], 
+                    subgraph.center.coordinates[1]
+                )
                 self.assertEqual(len(zone), subgraph.nodes)
                 self.assertEqual(subgraph.nodes * (subgraph.nodes - 1),
                                  subgraph.edges)
                 self.assertEqual(
                     len(subgraph.distances), 
-                    max(n.index for n in subgraph.graph) + 1
+                    subgraph.nodes
                 )
                 for j in range(subgraph.nodes):
                     for k in range(subgraph.nodes):
