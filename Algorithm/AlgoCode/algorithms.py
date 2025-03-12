@@ -465,7 +465,7 @@ class Algorithms():
         """Gets all the posible neighbors of a path.
 
         A neighbor of a path `p` is another path `p'` where the position of
-        two nodes has been interchanged using the `_swap` function.
+        two nodes has been interchanged using the `_flip` function.
 
         Args:
             path: The path whose neighbors we want to find.
@@ -476,14 +476,14 @@ class Algorithms():
         neighbors = []
         for i in range(self.graph.nodes):
             for j in range(i + 1, self.graph.nodes):
-                n = self._swap(path, i, j)
+                n = self._flip(path, i, j)
                 neighbors.append(n)
         return neighbors
 
     def simulated_annealing(self, 
                             path: list[int], 
-                            niter: int = 100000, 
-                            mstag: int = 1500) -> tuple[list[int], float]:
+                            niter: int, 
+                            mstag: int) -> tuple[list[int], float]:
         """Simulated Annealing for solving the TSP problem.
 
         The Simulated Annealing algorithm tries to find a solution by selecting
@@ -561,6 +561,59 @@ class Algorithms():
         best, best_value = self.simulated_annealing(path,
                                                     niter=niter, 
                                                     mstag=mstag)
+        best += [best[0]]
+        self._plot_ga_results(best, dir=dir, name=name)
+
+        return best, best_value
+
+    def tabu_search(self, path, niter, mstag, tsize=100000):
+        best = path
+        current_path = best
+        tabu_list = []
+        i = 0
+        stagnated = 0
+
+        while i < niter and stagnated < mstag:
+            print(f"Iteration {i}, stagnated for {stagnated} iterations")
+            neighbors = self._get_neighbors(current_path)
+            best_neighbor = None
+            best_neighbor_value = float('inf')
+            for n in neighbors:
+                if n not in tabu_list:
+                    neighbor_value = self.evaluate(n)
+                    if neighbor_value < best_neighbor_value:
+                        best_neighbor = n
+                        best_neighbor_value = neighbor_value
+
+            if best_neighbor is None:
+                break
+
+            current_path = best_neighbor
+            tabu_list.append(best_neighbor)
+            if len(tabu_list) > tsize:
+                tabu_list.pop(0)
+            
+            if self.evaluate(best_neighbor) < self.evaluate(best):
+                best = best_neighbor
+                stagnated = 0
+            else:
+                stagnated += 1
+
+            i += 1
+
+        return best, self.evaluate(best)
+
+    def run_tabu_search(self,
+                        path=None,
+                        niter=1000,
+                        mstag=100,
+                        dir: str | None = None, 
+                        name: str = ""):
+        if not path:
+            path = random.sample(range(0, self.graph.nodes), self.graph.nodes)
+        best, best_value = self.tabu_search(path,
+                                            niter=niter, 
+                                            mstag=mstag)
         best += [best[0]]
         self._plot_ga_results(best, dir=dir, name=name)
 
