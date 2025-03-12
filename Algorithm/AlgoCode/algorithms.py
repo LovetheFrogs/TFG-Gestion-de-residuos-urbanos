@@ -573,7 +573,29 @@ class Algorithms():
 
         return best, best_value
 
-    def tabu_search(self, path, niter, mstag, tsize=100000):
+    def tabu_search(self, 
+                    path: list[int], 
+                    niter: int, 
+                    mstag: int, 
+                    tsize: int = 100000) -> tuple[list[int], float]:
+        """Tabu-search for solving the Travelling Salesman Problem.
+
+        The Tabu-search algorithm explores a path's neighbors and tries to find
+        the best solution aviable by using a tabu list that stores the 
+        already-searched for neighbors. It can select a worse solution than
+        the current one. This allows to escape local optima.
+
+        Args:
+            path: The starting path.
+            niter: Maximum number of iterations.
+            mstag: Maximum number of iterations without improvements to the 
+                value of the objective function.
+            tsize (optional): The maximum size of the tabu list. Defaults to 
+                100000
+
+        Returns:
+            A tuple containing the best path found and its value.
+        """
         best = path
         current_path = best
         tabu_list = []
@@ -610,11 +632,25 @@ class Algorithms():
         return best, self.evaluate(best)
 
     def run_tabu_search(self,
-                        path=None,
-                        niter=1000,
-                        mstag=100,
+                        path: list[int] = None,
+                        niter: int = 1000,
+                        mstag: int = 100,
                         dir: str | None = None, 
-                        name: str = ""):
+                        name: str = "") -> tuple[list[int], float]:
+        """Executes Tabu-search on a graph.
+
+            path (optional): The starting path. If it is `None`, a random one
+                will be created. Defaults to None.
+            niter (optional): Maximum number of iterations. Defaults to 1000.
+            mstag (optional): Maximum number of iterations without improvements
+                to the value of the objective function. Defaults to 100.
+            dir (optional): The directory where the plots should be saved. 
+                Defaults to None, in which case the plot(s) won't be saved.
+            name (optional): The name to add to the plots. Defaults to "".
+
+        Returns:
+            A tuple containing the best path found and its total value.
+        """
         if not path:
             path = random.sample(range(0, self.graph.nodes), self.graph.nodes)
         best, best_value = self.tabu_search(path,
