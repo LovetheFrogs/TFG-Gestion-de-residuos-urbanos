@@ -350,6 +350,17 @@ class TestAlgorithms(unittest.TestCase):
         )
         self.assertGreater(self.algo.evaluate(random_path), v)
 
+    def test_tabu_search(self):
+        """Tests the Tabu-serch Algorithm."""
+        p, v = self.algo.run_tabu_search(dir=f"{os.getcwd()}/plots", name=0)
+        os.remove(f"{os.getcwd()}/plots/Path0.png")
+        self.assertEqual(p[-1], p[0])
+        random_path = random.sample(
+            range(0, self.g.nodes), 
+            self.g.nodes
+        )
+        self.assertGreater(self.algo.evaluate(random_path), v)
+
 
 class TestModelFileCreation(unittest.TestCase):
     """Training file creation script testing"""
