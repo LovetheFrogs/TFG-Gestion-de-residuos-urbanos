@@ -382,7 +382,8 @@ class Graph():
         Returns:
             The minimum number of zones.
         """
-        return math.ceil(self.total_weight() / truck_capacity)
+        res = math.ceil(self.total_weight() / truck_capacity)
+        return res if res > 0 else 1
 
     def save(self, path: str):
         """Saves a graph to a file.
@@ -394,8 +395,14 @@ class Graph():
             pickle.dump(self, backup, protocol=-1)
 
     def set_distance_matrix(self):
-        distances = [[0 for _ in range(self.nodes)] for _ in range(self.nodes)]
-        for n in range(self.nodes):
+        """Creates a distance matrix from a graph."""
+        aux = max([n.index for n in self.graph])
+        distances = [[0 for _ in range(aux + 1)] for _ in range(aux + 1)]
+        for n in range(aux + 1):
+            try:
+                self.get_node(n)
+            except:
+                continue
             for edge in self.graph[self.get_node(n)]:
                 distances[n][edge.dest.index] = edge.value
         self.distances = distances
@@ -768,7 +775,7 @@ class Graph():
             NodeNotFound: If the node is not in the graph
         """
         g = Graph()
-        for node in nodes:
+        for i, node in enumerate(nodes):
             g.add_node(node)
         for node in g.graph:
             if node not in self.graph:
