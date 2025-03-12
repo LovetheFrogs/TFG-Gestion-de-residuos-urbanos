@@ -107,8 +107,8 @@ class TestGraphMethods(unittest.TestCase):
         with self.assertRaisesRegex(
                 NodeNotFound,
                 "The node searched for was not found in the structure. "
-                "Index searched: 4"):
-            self.g.add_edge(Edge(1, Node(4, 3, 4, 4), self.nodes[0]))
+                "Index searched: 5"):
+            self.g.add_edge(Edge(1, Node(5, 3, 4, 4), self.nodes[0]))
         with self.assertRaisesRegex(
                 NodeNotFound,
                 "The node searched for was not found in the structure. "
@@ -216,7 +216,7 @@ class TestGraphMethods(unittest.TestCase):
     def test_create_subgraph(self):
         """Tests creating a subgraph from a list of nodes."""
         g2 = Graph()
-        g2.populate_from_file(f"{os.getcwd()}/files/test2.txt")
+        g2.populate_from_file(f"{os.getcwd()}/files/test4.txt")
         aux = g2.divide_graph(725)
         for i, zone in enumerate(aux):
             with self.subTest(i=i):
@@ -225,6 +225,18 @@ class TestGraphMethods(unittest.TestCase):
                 self.assertEqual(len(zone), subgraph.nodes)
                 self.assertEqual(subgraph.nodes * (subgraph.nodes - 1),
                                  subgraph.edges)
+                self.assertEqual(
+                    len(subgraph.distances), 
+                    max(n.index for n in subgraph.graph) + 1
+                )
+                for j in range(subgraph.nodes):
+                    for k in range(subgraph.nodes):
+                        with self.subTest(i=int(str(j) + str(k))):
+                            self.assertEqual(subgraph.distances[j][k],
+                                            subgraph.distances[k][j])
+                self.assertEqual(subgraph.set_num_zones(725), 1)
+                self.assertTrue(subgraph.can_pickup_all(725, 1))
+                self.assertLess(subgraph.total_weight(), 725)
 
     def test_ga_tsp(self):
         """Tests the Genetic Algorithm (TSP)"""
@@ -247,6 +259,20 @@ class TestGraphMethods(unittest.TestCase):
         g2.populate_from_file(f"{os.getcwd()}/files/test2.txt")
         algo = Algorithms(g2)
         p, v = algo.run_two_opt(dir=f"{os.getcwd()}/plots", name=0)
+        os.remove(f"{os.getcwd()}/plots/Path0.png")
+        self.assertEqual(p[-1], p[0])
+        random_path = random.sample(
+            range(0, g2.nodes), 
+            g2.nodes
+        )
+        self.assertGreater(algo.evaluate(random_path), v)
+
+    def test_sa(self):
+        """Tests the Simulated Annealing Algorithm."""
+        g2 = Graph()
+        g2.populate_from_file(f"{os.getcwd()}/files/test2.txt")
+        algo = Algorithms(g2)
+        p, v = algo.run_sa(dir=f"{os.getcwd()}/plots", name=0)
         os.remove(f"{os.getcwd()}/plots/Path0.png")
         self.assertEqual(p[-1], p[0])
         random_path = random.sample(
@@ -365,7 +391,7 @@ class TestModelFileCreation(unittest.TestCase):
 
 def suite():
     suite = unittest.TestSuite()
-    suite.addTest(TestGraphMethods('test_ga_tsp'))
+    suite.addTest(TestGraphMethods('test_create_subgraph'))
     return suite
 
 
