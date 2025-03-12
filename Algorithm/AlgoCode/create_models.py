@@ -110,45 +110,38 @@ def generate_edges(nodes: set[int]) -> tuple[int, str]:
     """
     nodes_list = list(nodes)
     node_count = len(nodes_list)
-    edges = set()
     edge_data = []
+    tot_edges = node_count * (node_count - 1)
+    edges = 0
+    
+    if VERBOSE:
+        utils.printProgressBar(0,
+                               tot_edges,
+                               prefix="    Progress:",
+                               suffix=f"Complete (0/{tot_edges})",
+                               length=50)
 
-    for node in nodes:
-        if node == 0:
-            continue
-        edge = node, 0
-        edges.add(edge)
-        speed = random.uniform(MIN_SPEED, MAX_SPEED)
-        edge_data.append(f"{speed:.1f} "
-                         f"{node} {0}")
-        edge = 0, node
-        edges.add(edge)
-        edge_data.append(f"{speed:.1f} "
-                         f"{0} {node}")
-    extra_edges = int(
-        random.uniform(
-            ((1 * (node_count * (node_count - 1)))),
-            ((1 * (node_count * (node_count - 1)))),
-        ))
+    for node1 in nodes:
+        for node2 in nodes:
+            if node1 == node2:
+                continue
+            speed = random.uniform(MIN_SPEED, MAX_SPEED)
+            edge_data.append(f"{speed:.1f} "
+                                f"{node1} {node2}")
+            edge_data.append(f"{speed:.1f} "
+                                f"{node2} {node1}")
+            edges += 1
+            
+            if VERBOSE:
+                utils.printProgressBar(edges,
+                                    tot_edges,
+                                    prefix="    Progress:",
+                                    suffix=f"Complete ({edges}/{tot_edges})",
+                                    length=50)
 
-    while (len(edges)) < extra_edges:
-        origin, dest = random.sample(nodes_list, 2)
-        edge = (origin, dest)
-        while edge in edges:
-            origin, dest = random.sample(nodes_list, 2)
-            edge = (origin, dest)
-        speed = random.uniform(MIN_SPEED, MAX_SPEED)
-        edges.add(edge)
-        edge_data.append(
-            f"{speed:.1f} {origin} {dest}")
-        edge = (dest, origin)
-        edges.add(edge)
-        edge_data.append(
-            f"{speed:.1f} {dest} {origin}")
+    edge_data = f"{edges}{NEW_LINE}" + NEW_LINE.join(edge_data) + NEW_LINE
 
-    edge_data = f"{len(edges)}{NEW_LINE}" + NEW_LINE.join(edge_data) + NEW_LINE
-
-    return len(edges), edge_data
+    return edges, edge_data
 
 
 def create_log(data: list[float], tnodes: int, tedges: int, tdensity: float,
@@ -208,13 +201,10 @@ def create_dataset():
     log = []
 
     if VERBOSE:
-        print("Generating files...")
-        utils.printProgressBar(0,
-                               DATA_SIZE + 1,
-                               prefix="Progress:",
-                               suffix="Complete",
-                               length=50)
+        print(f"Generating {DATA_SIZE} files...")
     for k in range(1, DATA_SIZE + 1):
+        if VERBOSE:
+            print(f"    Generating file {k}")
         nodes, node_count, weight, node_data = generate_nodes()
         edge_count, edges_data = generate_edges(nodes)
         dataset_content = node_data + edges_data
@@ -232,13 +222,6 @@ def create_dataset():
 
         with open(f"{path}/dataset{str(k)}.txt", "w") as file:
             file.write(dataset_content)
-
-        if VERBOSE:
-            utils.printProgressBar(k + 1,
-                                   DATA_SIZE + 1,
-                                   prefix="Progress:",
-                                   suffix="Complete",
-                                   length=50)
 
     create_log(log, tot_nodes, tot_edges, tot_density, tot_weight, path)
 
