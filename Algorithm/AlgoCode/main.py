@@ -14,20 +14,20 @@ def run():
     calculated for the initial graph using both TSP and VSP.
     """
     g = Graph()
-    print("Loading graph")
-    g.populate_from_file(os.getcwd() + "/files/test2.txt")
+    g.populate_from_file(os.getcwd() + "/files/test4.txt")
     #g.populate_from_file(os.getcwd() + "/Algorithm/AlgoCode/files/test2.txt")
-    print("Graph loaded")
     algo = Algorithms(g)
-    p, v = algo.run_ga_tsp(ngen=g.nodes * 100,
+    """p, v = algo.run_ga_tsp(ngen=g.nodes * 100,
                            dir=os.getcwd() + "/plots",
                            name="_GA",
                            vrb=False)
-    print(f"Total value (GA): {v}")
+    print(f"Total value (GA): {v}")"""
     p2, v2 = algo.run_two_opt(dir=os.getcwd() + "/plots", name="_2opt")
     print(f"Total value (2opt): {v2}")
     p3, v3 = algo.run_sa(dir=os.getcwd() + "/plots", name="_SA")
     print(f"Total value (SA): {v3}")
+    p4, v4 = algo.run_tabu_search(dir=os.getcwd() + "/plots", name="_TS")
+    print(f"Total value (TS): {v4}")
     """res = g.divide_graph(725)
     print(f"Zone count (TSP): {len(res)}")
     sg = []
