@@ -5,7 +5,7 @@ from deap import base, creator, tools, algorithms
 import matplotlib.pyplot as plt
 import numpy as np
 import plotter
-from model import Graph
+from model import Graph, Node
 
 
 class Algorithms():
@@ -17,6 +17,35 @@ class Algorithms():
 
     def __init__(self, graph: 'Graph'):
         self.graph = graph
+
+    def one_tree(self, start: int | Node) -> tuple[float, list[tuple[int, int]]]:
+        """Calculates the 1-tree of the graph.
+
+        A 1-tree is a tree that contains only one cicle.
+
+        The 1-tree of a graph can be used as a lower-bound for the value of 
+        a TSP path. This implementation calls Prim's algorithm on a graph
+        instance and then adds the shortest edge from the start of the MST to 
+        create a cycle.
+
+        Args:
+            start: The node where the construction of the MST will start. Can
+                either be the index of a node or the Node itself.
+
+        Returns:
+            A tuple of the value of the MST and a list of all the edges of the 
+            MST, represented as tuples of node indices.
+        """
+        if isinstance(start, Node):
+            start = start.index
+        result, edges = self.graph.prim(start)
+        aux = [(i, w) for i, w in enumerate(self.graph.distances[0])]
+        aux.sort(key=lambda x : x[1])
+        result += aux[3][1]
+        edges.append((start, aux[3][0]))
+
+        return result, edges
+
 
     def local_search(self, ind: list[int], mi: int = 50) -> list[int]:
         """Tries to improve the fitness of an individual making use of 2opt.
