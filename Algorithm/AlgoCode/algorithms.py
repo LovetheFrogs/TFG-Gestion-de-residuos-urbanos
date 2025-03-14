@@ -41,11 +41,13 @@ class Algorithms():
         result, edges = self.graph.prim(start)
         aux = [(i, w) for i, w in enumerate(self.graph.distances[0])]
         aux.sort(key=lambda x : x[1])
-        result += aux[3][1]
-        edges.append((start, aux[3][0]))
-
+        for item in aux[1:]:
+            if not (start, item[0]) in edges:
+                result += item[1]
+                edges.append((start, item[0]))
+                break
+        
         return result, edges
-
 
     def local_search(self, ind: list[int], mi: int = 50) -> list[int]:
         """Tries to improve the fitness of an individual making use of 2opt.
