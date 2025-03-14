@@ -556,6 +556,38 @@ class Graph():
 
         return distances
 
+    def _min_key(self, dists, visited):
+        min_dist = float('inf')
+        min_idx = -1
+        for i in range(self.nodes):
+            if dists[i] < min_dist and not visited[i]:
+                min_dist = dists[i]
+                min_idx = i
+
+        return min_dist, min_idx
+
+    def prim(self, start: int | Node):
+        if isinstance(start, Node):
+            start = start.index
+
+        res = 0
+        parent = [None] * self.nodes
+        key = [float('inf')] * self.nodes
+        key[start] = 0
+        visited = [False] * self.nodes
+        for i in range(self.nodes):
+            w, n = self._min_key(key, visited)
+            visited[n] = True
+            for v in range(self.nodes):
+                if (self.distances[n][v] > 0 and 
+                    not visited[v] and
+                    key[v] > self.distances[n][v]):
+                    key[v] = self.distances[n][v]
+                    parent[v] = n
+            res += w
+        
+        return res, parent
+
     def precompute_shortest_paths(self):
         """Precomputes the shortest path between all node pairs in the graph.
         
