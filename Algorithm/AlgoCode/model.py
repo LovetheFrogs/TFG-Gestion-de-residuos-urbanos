@@ -586,7 +586,11 @@ class Graph():
                     parent[v] = n
             res += w
         
-        return res, parent
+        edges = []
+        for i, item in enumerate(parent):
+            edges.append((item, i))
+
+        return res, edges
 
     def precompute_shortest_paths(self):
         """Precomputes the shortest path between all node pairs in the graph.
