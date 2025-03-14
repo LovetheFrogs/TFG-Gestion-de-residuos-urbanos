@@ -556,7 +556,21 @@ class Graph():
 
         return distances
 
-    def _min_key(self, dists, visited):
+    def _min_key(self, 
+                 dists: list[float], 
+                 visited: list[bool]) -> tuple[float, int]:
+        """Gets the closest unvisited node.
+
+        Auxiliary function used on the calculation of the MST inside Prim's
+        algorithm.
+
+        Args:
+            dists: The current distance to all nodes.
+            visited: List of visited nodes.
+
+        Returns:
+            A tuple of the minimum distance and the closest node.
+        """
         min_dist = float('inf')
         min_idx = -1
         for i in range(self.nodes):
@@ -566,7 +580,20 @@ class Graph():
 
         return min_dist, min_idx
 
-    def prim(self, start: int | Node):
+    def prim(self, start: int | Node) -> tuple[float, list[tuple[int, int]]]:
+        """Calculates the MST of a graph using Prim's algorithm.
+
+        Prim is prefered over Kruskal in our graphs, knowing that the density
+        of our graphs is 1, as Prim's algorithm runs better on denser graphs.
+
+        Args:
+            start: The node where the construction of the MST will start. Can
+                either be the index of a node or the Node itself.
+
+        Returns:
+            A tuple of the value of the MST and a list of all the edges of the 
+            MST, represented as tuples of node indices.
+        """
         if isinstance(start, Node):
             start = start.index
 
