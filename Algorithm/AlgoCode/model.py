@@ -22,6 +22,7 @@ import heapq
 import pickle
 from typing import Union
 from exceptions import *
+from utils import printProgressBar
 
 
 def load(path: str) -> Union['Graph', None]:
@@ -302,18 +303,27 @@ class Graph():
                 Graph.
             DuplicateEdge: If the edge is already in the Graph.
         """
-        if edge in self.edge_list:
+        key = (edge.origin.index, edge.dest.index)
+        try:
+            self.edge_dict[key]
             raise DuplicateEdge()
-        if (edge.origin in self.graph and edge.dest in self.graph):
-            self.graph[edge.origin].append(edge)
-            self.edge_list.append(edge)
-            self.edges += 1
-            key = (edge.origin.index, edge.dest.index)
-            self.edge_dict[key] = edge
-        elif (edge.origin not in self.graph):
-            raise NodeNotFound(edge.origin.index)
-        else:
-            raise NodeNotFound(edge.dest.index)
+        except KeyError:
+            pass
+
+        try:
+            self.index_dict[edge.origin.index]
+        except Exception:
+            raise NodeNotFound(edge.origin.index) 
+
+        try:
+            self.index_dict[edge.dest.index]
+        except Exception:
+            raise NodeNotFound(edge.dest.index) 
+
+        self.graph[edge.origin].append(edge)
+        self.edge_list.append(edge)
+        self.edges += 1
+        self.edge_dict[key] = edge
 
     def set_center(self, node: Node):
         """Sets the central node of the graph.
@@ -372,7 +382,8 @@ class Graph():
         Returns:
             The minimum number of zones.
         """
-        return math.ceil(self.total_weight() / truck_capacity)
+        res = math.ceil(self.total_weight() / truck_capacity)
+        return res if res > 0 else 1
 
     def save(self, path: str):
         """Saves a graph to a file.
@@ -384,13 +395,19 @@ class Graph():
             pickle.dump(self, backup, protocol=-1)
 
     def set_distance_matrix(self):
-        distances = [[0 for _ in range(self.nodes)] for _ in range(self.nodes)]
-        for n in range(self.nodes):
+        """Creates a distance matrix from a graph."""
+        aux = max([n.index for n in self.graph])
+        distances = [[0 for _ in range(aux + 1)] for _ in range(aux + 1)]
+        for n in range(aux + 1):
+            try:
+                self.get_node(n)
+            except:
+                continue
             for edge in self.graph[self.get_node(n)]:
                 distances[n][edge.dest.index] = edge.value
         self.distances = distances
 
-    def populate_from_file(self, file: str):
+    def populate_from_file(self, file: str, verbose: bool = False):
         """Populates a graph from the data in a file.
 
         An new graph is created form the data available in a file. The file 
@@ -419,6 +436,8 @@ class Graph():
 
         Args:
             file: The path of the file to read from.
+            verbose (optional): If the function should run in verbose mode.
+                Defaults to False
         
         Raises:
             FileNotFoundError: If the file to read is not found.
@@ -427,12 +446,37 @@ class Graph():
         """
         with open(file, 'r') as f:
             n = int(f.readline().strip())
-            for _ in range(n):
+            if verbose:
+                print("Loading graph")
+                printProgressBar(0,
+                            n,
+                            prefix="Adding nodes:",
+                            suffix=f"Complete (0/{n})",
+                            length=50)
+            for i in range(n):
+                if verbose:
+                    printProgressBar(i + 1,
+                                   n,
+                                   prefix="Adding nodes:",
+                                   suffix=f"Complete ({i + 1}/{n})",
+                                   length=50)
                 aux = f.readline().strip().split()
                 self.add_node(Node(aux[0], aux[1], aux[2], aux[3]))
 
             m = int(f.readline().strip())
-            for _ in range(m):
+            if verbose:
+                printProgressBar(0,
+                            m,
+                            prefix="Adding edges:",
+                            suffix=f"Complete (0/{m})",
+                            length=50)
+            for j in range(m):
+                if verbose:
+                    printProgressBar(j + 1,
+                                   m,
+                                   prefix="Adding edges:",
+                                   suffix=f"Complete ({j + 1}/{m})",
+                                   length=50)
                 aux = f.readline().strip().split()
                 self.add_edge(
                     Edge(aux[0], self.get_node(int(aux[1])),
@@ -441,6 +485,7 @@ class Graph():
             self.set_center(self.get_node(0))
             self.center.center = True
             self.set_distance_matrix()
+            if verbose: print("Graph loaded")
 
     def bfs(self, source: Node) -> list[int]:
         """Performs Breadth First Search on the graph from the node ``source``.
@@ -510,6 +555,69 @@ class Graph():
                     heapq.heappush(pq, (new_dist, next))
 
         return distances
+
+    def _min_key(self, 
+                 dists: list[float], 
+                 visited: list[bool]) -> tuple[float, int]:
+        """Gets the closest unvisited node.
+
+        Auxiliary function used on the calculation of the MST inside Prim's
+        algorithm.
+
+        Args:
+            dists: The current distance to all nodes.
+            visited: List of visited nodes.
+
+        Returns:
+            A tuple of the minimum distance and the closest node.
+        """
+        min_dist = float('inf')
+        min_idx = -1
+        for i in range(self.nodes):
+            if dists[i] < min_dist and not visited[i]:
+                min_dist = dists[i]
+                min_idx = i
+
+        return min_dist, min_idx
+
+    def prim(self, start: int | Node) -> tuple[float, list[tuple[int, int]]]:
+        """Calculates the MST of a graph using Prim's algorithm.
+
+        Prim is prefered over Kruskal in our graphs, knowing that the density
+        of our graphs is 1, as Prim's algorithm runs better on denser graphs.
+
+        Args:
+            start: The node where the construction of the MST will start. Can
+                either be the index of a node or the Node itself.
+
+        Returns:
+            A tuple of the value of the MST and a list of all the edges of the 
+            MST, represented as tuples of node indices.
+        """
+        if isinstance(start, Node):
+            start = start.index
+
+        res = 0
+        parent = [None] * self.nodes
+        key = [float('inf')] * self.nodes
+        key[start] = 0
+        visited = [False] * self.nodes
+        for i in range(self.nodes):
+            w, n = self._min_key(key, visited)
+            visited[n] = True
+            for v in range(self.nodes):
+                if (self.distances[n][v] > 0 and 
+                    not visited[v] and
+                    key[v] > self.distances[n][v]):
+                    key[v] = self.distances[n][v]
+                    parent[v] = n
+            res += w
+        
+        edges = []
+        for i, item in enumerate(parent):
+            edges.append((item, i))
+
+        return res, edges
 
     def precompute_shortest_paths(self):
         """Precomputes the shortest path between all node pairs in the graph.
@@ -719,6 +827,14 @@ class Graph():
         Allows to consider each zone as it's own individual graph, making it 
         easier to get the optimal path for a zone.
 
+        Due to algorithm constraints, the nodes will be renamed in the 
+        subgraph. If the n-th node in ``nodes`` has id 9, it will have the id
+        1 in the subgraph, altough it can still be traced, as all the other
+        attributes will be the same.
+
+        Note that the first node of ``nodes`` must have the center attribute 
+        set to ``True``.
+
         Args:
             nodes: A list of nodes for the new graph
 
@@ -730,44 +846,50 @@ class Graph():
             NodeNotFound: If the node is not in the graph
         """
         g = Graph()
-        for node in nodes:
-            g.add_node(node)
+        original_sub = {}
+        sub_original = {}
+        for i, node in enumerate(nodes):
+            new_node = Node(i, 
+                            node.weight, 
+                            node.coordinates[0], 
+                            node.coordinates[1], 
+                            node.center
+            )
+            g.add_node(new_node)
+            sub_original[new_node] = self.get_node(node.index)
+            original_sub[self.get_node(node.index)] = new_node
         for node in g.graph:
-            if node not in self.graph:
-                raise NodeNotFound(node.index)
-            edges = self.graph[node]
+            original_node = sub_original[node]
+            if original_node not in self.graph:
+                raise NodeNotFound(original_node.index)
+            edges = self.graph[original_node]
             for edge in edges:
-                if edge.dest in g.graph:
-                    g.add_edge(edge)
+                if edge.dest in nodes:
+                    new_edge = Edge(
+                        edge.speed,
+                        node,
+                        original_sub[edge.dest]
+                    )
+                    g.add_edge(new_edge)
+        
+        g.set_distance_matrix()
 
         return g
 
     def create_points(self,
                       path: list[int] | list[list[int]],
-                      vrp: bool = False
                      ) -> list[tuple[float, float]] | list[list[tuple, tuple]]:
         """Generates a list of coordinates from a list of node indices.
         
         Args:
             path: The list of indices of the nodes that form the path.
-            vrp: If the points should be generated for a VSP instance result.
-                Defaults to False.
 
         Returns:
             The list of coordinates.
         """
         res = []
-        if not vrp:
-            for idx in path:
-                res.append(self.get_node(idx).coordinates)
-        else:
-            res = []
-            for zone in path:
-                res_vrp = []
-                aux = [self.center.index] + zone + [self.center.index]
-                for idx in aux:
-                    res_vrp.append(self.get_node(idx).coordinates)
-                res.append(res_vrp)
+        for idx in path:
+            res.append(self.get_node(idx).coordinates)
 
         return res
 

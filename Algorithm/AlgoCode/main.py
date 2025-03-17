@@ -2,6 +2,7 @@
 
 import os
 from model import Graph
+import random
 from algorithms import Algorithms
 
 
@@ -13,16 +14,21 @@ def run():
     calculated for the initial graph using both TSP and VSP.
     """
     g = Graph()
-    print("Loading graph")
     g.populate_from_file(os.getcwd() + "/files/test2.txt")
     #g.populate_from_file(os.getcwd() + "/Algorithm/AlgoCode/files/test2.txt")
-    print("Graph loaded")
     algo = Algorithms(g)
-    _, v = algo.run_ga_tsp(ngen=g.nodes * 100,
+    """p, v = algo.run_ga_tsp(ngen=g.nodes * 100,
                            dir=os.getcwd() + "/plots",
-                           vrb=True)
-    print(f"Total value (TSP): {v}")
-    """res = g.divide_graph(725)
+                           name="_GA",
+                           vrb=False)
+    print(f"Total value (GA): {v}")"""
+    p2, v2 = algo.run_two_opt(dir=os.getcwd() + "/plots", name="_2opt")
+    print(f"Total value (2opt): {v2}")
+    p3, v3 = algo.run_sa(dir=os.getcwd() + "/plots", name="_SA")
+    print(f"Total value (SA): {v3}")
+    p4, v4 = algo.run_tabu_search(dir=os.getcwd() + "/plots", name="_TS")
+    print(f"Total value (TS): {v4}")
+    res = g.divide_graph(725)
     print(f"Zone count (TSP): {len(res)}")
     sg = []
     for i, z in enumerate(res):
@@ -30,12 +36,32 @@ def run():
     t = 0
     for i, graph in enumerate(sg):
         algo2 = Algorithms(graph)
-        p, v = algo2.run_ga_tsp(idx=i + 1,
+        p, v = algo2.run_ga_tsp(name=i + 1,
                                 vrb=False,
-                                dir=os.getcwd() + "/plots")
-        print(p)
+                                dir=os.getcwd() + "/plots/GA")
         t += v
-    print(f"Total value (TSP zoned): {t}")"""
+    print(f"Total value (GA zoned): {t}")
+    t = 0
+    for i, graph in enumerate(sg):
+        algo2 = Algorithms(graph)
+        p, v = algo2.run_two_opt(name=i + 1,
+                                dir=os.getcwd() + "/plots/2opt")
+        t += v
+    print(f"Total value (2opt zoned): {t}")
+    t = 0
+    for i, graph in enumerate(sg):
+        algo2 = Algorithms(graph)
+        p, v = algo2.run_sa(name=i + 1,
+                                dir=os.getcwd() + "/plots/SA")
+        t += v
+    print(f"Total value (SA zoned): {t}")
+    t = 0
+    for i, graph in enumerate(sg):
+        algo2 = Algorithms(graph)
+        p, v = algo2.run_tabu_search(name=i + 1,
+                                dir=os.getcwd() + "/plots/TS")
+        t += v
+    print(f"Total value (TS zoned): {t}")
 
 
 def run2():
@@ -49,16 +75,20 @@ def run2():
         _, v = algo.run_ga_tsp(dir=os.getcwd() + "/plots", idx=i, vrb=False)
 
 
-def run3():
+def compare_lower_bound():
     g = Graph()
-    print("Loading graph")
-    g.populate_from_file(os.getcwd() + "/files/test2.txt")
-    print("Graph loaded")
+    g.populate_from_file(os.getcwd() + "/files/test2.txt", verbose=1)
     algo = Algorithms(g)
-    path = [0, 12, 9, 1, 6, 5, 2, 8, 7, 4, 3, 10]
-    print(f"Fitness b4: {algo.evaluate(path)}")
-    path2 = algo.optimization(path)
-    print(f"Fitness after: {algo.evaluate(path2)}")
+    lower_bound, _ = algo.one_tree(0)
+    print(f"Lower bound = {lower_bound}")
+    _, sa = algo.run_sa(dir=os.getcwd() + "/plots", name="_SA")
+    print(f"SA = {sa}. Within {abs(100-((sa * 100) / lower_bound))}% of the lower bound.")
+    _, ts = algo.run_tabu_search(dir=os.getcwd() + "/plots", name="_TS")
+    print(f"TS = {ts}. Within {abs(100-((ts * 100) / lower_bound))}% of the lower bound.")
+    _, opt = algo.run_two_opt(dir=os.getcwd() + "/plots", name="_2opt")
+    print(f"2opt = {opt}. Within {abs(100-((opt * 100) / lower_bound))}% of the lower bound.")
+    opt = algo.branch_and_bound()
+    print(f"BnB = {opt}. Within {abs(100-((opt * 100) / lower_bound))}% of the lower bound.")
 
 
 def main():

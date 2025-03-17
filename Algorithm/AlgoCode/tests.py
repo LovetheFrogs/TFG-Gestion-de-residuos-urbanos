@@ -107,8 +107,8 @@ class TestGraphMethods(unittest.TestCase):
         with self.assertRaisesRegex(
                 NodeNotFound,
                 "The node searched for was not found in the structure. "
-                "Index searched: 4"):
-            self.g.add_edge(Edge(1, Node(4, 3, 4, 4), self.nodes[0]))
+                "Index searched: 5"):
+            self.g.add_edge(Edge(1, Node(5, 3, 4, 4), self.nodes[0]))
         with self.assertRaisesRegex(
                 NodeNotFound,
                 "The node searched for was not found in the structure. "
@@ -154,6 +154,15 @@ class TestGraphMethods(unittest.TestCase):
         """Tests generating nodes and edges from a file"""
         self.g.populate_from_file(os.getcwd() + "/files/test.txt")
         self.assertEqual(self.g.get_node(1).index, 1)
+
+    def test_distances(self):
+        """Test the integrity of the distance matrix."""
+        self.g.populate_from_file(os.getcwd() + "/files/test4.txt")
+        for i in range(self.g.nodes):
+            for j in range(self.g.nodes):
+                with self.subTest(i=int(str(i) + str(j))):
+                    self.assertEqual(self.g.distances[i][j],
+                                     self.g.distances[j][i])
 
     def test_bfs(self):
         """Tests bfs."""
@@ -207,29 +216,34 @@ class TestGraphMethods(unittest.TestCase):
     def test_create_subgraph(self):
         """Tests creating a subgraph from a list of nodes."""
         g2 = Graph()
-        g2.populate_from_file(f"{os.getcwd()}/files/test2.txt")
+        g2.populate_from_file(f"{os.getcwd()}/files/test4.txt")
         aux = g2.divide_graph(725)
         for i, zone in enumerate(aux):
             with self.subTest(i=i):
                 subgraph = g2.create_subgraph(zone)
-                self.assertEqual(g2.center, subgraph.center)
+                self.assertEqual(
+                    g2.center.coordinates[0], 
+                    subgraph.center.coordinates[0]
+                )
+                self.assertEqual(
+                    g2.center.coordinates[1], 
+                    subgraph.center.coordinates[1]
+                )
                 self.assertEqual(len(zone), subgraph.nodes)
                 self.assertEqual(subgraph.nodes * (subgraph.nodes - 1),
                                  subgraph.edges)
-
-    def test_ga_tsp(self):
-        """Tests the Genetic Algorithm (TSP)"""
-        g2 = Graph()
-        g2.populate_from_file(f"{os.getcwd()}/files/test2.txt")
-        algo = Algorithms(g2)
-        p, v = algo.run_ga_tsp(dir=f"{os.getcwd()}/plots", vrb=False)
-        os.remove(f"{os.getcwd()}/plots/Path0.png")
-        os.remove(f"{os.getcwd()}/plots/Evolution0.png")
-        self.assertEqual(p[-1], p[0])
-        random_path = ([
-            n.index - 1 for n in random.sample(g2.node_list, g2.nodes - 1)
-        ])
-        self.assertTrue(algo.evaluate_tsp(random_path)[0] > v)
+                self.assertEqual(
+                    len(subgraph.distances), 
+                    subgraph.nodes
+                )
+                for j in range(subgraph.nodes):
+                    for k in range(subgraph.nodes):
+                        with self.subTest(i=int(str(j) + str(k))):
+                            self.assertEqual(subgraph.distances[j][k],
+                                            subgraph.distances[k][j])
+                self.assertEqual(subgraph.set_num_zones(725), 1)
+                self.assertTrue(subgraph.can_pickup_all(725, 1))
+                self.assertLess(subgraph.total_weight(), 725)
 
     def test_save_and_load(self):
         """Tests saving and loading a graph."""
@@ -302,6 +316,59 @@ class TestGraphDefaults(unittest.TestCase):
                          "Graph with 5 nodes and 4 edges. Center: 0\n")
 
 
+class TestAlgorithms(unittest.TestCase):
+    """Testing of the algorithms used."""
+    def setUp(self):
+        self.g = Graph()
+        self.g.populate_from_file(f"{os.getcwd()}/files/test2.txt")
+        self.algo = Algorithms(self.g)
+
+    def test_ga_tsp(self):
+        """Tests the Genetic Algorithm (TSP)"""
+        p, v = self.algo.run_ga_tsp(dir=f"{os.getcwd()}/plots", name=0, vrb=False)
+        os.remove(f"{os.getcwd()}/plots/Path0.png")
+        os.remove(f"{os.getcwd()}/plots/Evolution0.png")
+        self.assertEqual(p[-1], p[0])
+        random_path = random.sample(
+            range(0, self.g.nodes), 
+            self.g.nodes
+        )
+        self.assertGreater(self.algo.evaluate_tsp(random_path)[0], v)
+
+    def test_two_opt(self):
+        """Tests the 2opt Algorithm."""
+        p, v = self.algo.run_two_opt(dir=f"{os.getcwd()}/plots", name=0)
+        os.remove(f"{os.getcwd()}/plots/Path0.png")
+        self.assertEqual(p[-1], p[0])
+        random_path = random.sample(
+            range(0, self.g.nodes), 
+            self.g.nodes
+        )
+        self.assertGreater(self.algo.evaluate(random_path), v)
+
+    def test_sa(self):
+        """Tests the Simulated Annealing Algorithm."""
+        p, v = self.algo.run_sa(dir=f"{os.getcwd()}/plots", name=0)
+        os.remove(f"{os.getcwd()}/plots/Path0.png")
+        self.assertEqual(p[-1], p[0])
+        random_path = random.sample(
+            range(0, self.g.nodes), 
+            self.g.nodes
+        )
+        self.assertGreater(self.algo.evaluate(random_path), v)
+
+    def test_tabu_search(self):
+        """Tests the Tabu-serch Algorithm."""
+        p, v = self.algo.run_tabu_search(dir=f"{os.getcwd()}/plots", name=0)
+        os.remove(f"{os.getcwd()}/plots/Path0.png")
+        self.assertEqual(p[-1], p[0])
+        random_path = random.sample(
+            range(0, self.g.nodes), 
+            self.g.nodes
+        )
+        self.assertGreater(self.algo.evaluate(random_path), v)
+
+
 class TestModelFileCreation(unittest.TestCase):
     """Training file creation script testing"""
 
@@ -341,7 +408,7 @@ class TestModelFileCreation(unittest.TestCase):
 
 def suite():
     suite = unittest.TestSuite()
-    suite.addTest(TestGraphMethods('test_ga_tsp'))
+    suite.addTest(TestGraphMethods('test_create_subgraph'))
     return suite
 
 

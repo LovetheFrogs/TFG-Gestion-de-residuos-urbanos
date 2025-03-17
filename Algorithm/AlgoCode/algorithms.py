@@ -5,7 +5,7 @@ from deap import base, creator, tools, algorithms
 import matplotlib.pyplot as plt
 import numpy as np
 import plotter
-from model import Graph
+from model import Graph, Node
 
 
 class Algorithms():
@@ -17,6 +17,37 @@ class Algorithms():
 
     def __init__(self, graph: 'Graph'):
         self.graph = graph
+
+    def one_tree(self, start: int | Node) -> tuple[float, list[tuple[int, int]]]:
+        """Calculates the 1-tree of the graph.
+
+        A 1-tree is a tree that contains only one cicle.
+
+        The 1-tree of a graph can be used as a lower-bound for the value of 
+        a TSP path. This implementation calls Prim's algorithm on a graph
+        instance and then adds the shortest edge from the start of the MST to 
+        create a cycle.
+
+        Args:
+            start: The node where the construction of the MST will start. Can
+                either be the index of a node or the Node itself.
+
+        Returns:
+            A tuple of the value of the MST and a list of all the edges of the 
+            MST, represented as tuples of node indices.
+        """
+        if isinstance(start, Node):
+            start = start.index
+        result, edges = self.graph.prim(start)
+        aux = [(i, w) for i, w in enumerate(self.graph.distances[0])]
+        aux.sort(key=lambda x : x[1])
+        for item in aux[1:]:
+            if not (start, item[0]) in edges:
+                result += item[1]
+                edges.append((start, item[0]))
+                break
+        
+        return result, edges
 
     def local_search(self, ind: list[int], mi: int = 50) -> list[int]:
         """Tries to improve the fitness of an individual making use of 2opt.
@@ -311,8 +342,8 @@ class Algorithms():
 
             # Population reseting
             if (cicles >= (mcic) + 1 or
-                    superGens_stagnated > self.graph.nodes * 7):
-                if superGens_stagnated > self.graph.nodes * 7 and verbose:
+                    superGens_stagnated > self.graph.nodes * 6.5):
+                if superGens_stagnated > self.graph.nodes * 6.5 and verbose:
                     print("Halted")
                 break
 
@@ -325,7 +356,7 @@ class Algorithms():
                    pop_size: int = 1000,
                    dir: str | None = None,
                    name: str = "",
-                   vrb: bool = True) -> tuple[list[int], float]:
+                   vrb: bool = False) -> tuple[list[int], float]:
         """Runs the Genetic Algorithm for the Traveling Salesman Problem.
         
         This function calls the wrapper functions that define the creator, 
@@ -374,18 +405,301 @@ class Algorithms():
             print("-- Best Ever Fitness = ", total_value)
 
         if dir:
-            self._plot_ga_results(best, logbook, dir, name)
+            self._plot_results(best, logbook, dir, name)
         else:
-            self._plot_ga_results(best, logbook).show()
+            self._plot_results(best, logbook).show()
 
         return best, total_value
 
-    def _plot_ga_results(self,
+    def two_opt(
+            self, 
+            path: list[int]) -> tuple[list[int], float]:
+        """2-opt algorithm for solving the Travelling Salesman Problem.
+
+        The 2-opt algorithm takes two edges of a path and removes them, it then
+        adds two new edges and checking if this improves the value of the 
+        path.
+
+        Args:
+            path: The starting path from where the 2-opt algorithm is applied.
+            threshold: The minimum improvement between 2-opt cicles.
+
+        Returns:
+            tuple[list[int], float]: _description_
+        """
+        best = path
+        best_value = self.evaluate(best)
+        improved = True
+        n = self.graph.nodes
+
+        while improved:
+            improved = False
+            for i in range(0, n - 1):
+                for j in range(i + 2, n):
+                    prev = self.evaluate(best)
+                    curr = self.evaluate(self._flip(best, i, j))
+
+                    if curr < prev:
+                        best = self._flip(best, i, j)
+                        best_value = self.evaluate(best)
+                        improved = True
+            
+        return best, best_value
+
+    def _flip(self, path: list[int], i: int, j: int) -> list[int]:
+        """Flips a section of a path.
+
+        Given a path, it flips the section between i and j so that path[i] will
+        be path[j], path[i + 1] will be path[j - 1] and so on.
+
+        Args:
+            path: The path where a section will be flipped.
+            i: The start of a section.
+            j: The end of a section.
+
+        Returns:
+            The result of performing the section flip on the given path.
+        """
+        new_path = np.concatenate((path[0:i],
+                                       path[j:-len(path) + i - 1:-1],
+                                       path[j + 1:len(path)]))
+        return [int(n) for n in new_path]
+
+    def run_two_opt(self, 
+                    path: list[int] | None = None,
+                    dir: str | None = None, 
+                    name: str = "") -> tuple[list[int], float]:
+        """Executes 2-opt optimization on a graph.
+
+        Args:
+            path (optional): The initial path from which 2-opt is executed. In
+                case it is not provided, 2-opt will start on a random path.
+                Defaults to None.
+            dir (optional): The directory where the plots should be saved. 
+                Defaults to None, in which case the plot(s) won't be saved.
+            name (optional): The name to add to the plots. Defaults to "".
+
+        Returns:
+            A tuple containing the best path found and its total value.
+        """
+        random.seed(169)
+
+        if not path:
+            path = random.sample(range(0, self.graph.nodes), self.graph.nodes)
+        best, best_value = self.two_opt(path)
+        best += [best[0]]
+        if dir:
+            self._plot_results(best, dir=dir, name=name)
+        else:
+            self._plot_results(best).show()
+
+
+        return best, best_value
+
+    def _get_neighbors(self, path: list[int]) -> list[list[int]]:
+        """Gets all the posible neighbors of a path.
+
+        A neighbor of a path `p` is another path `p'` where the position of
+        two nodes has been interchanged using the `_flip` function.
+
+        Args:
+            path: The path whose neighbors we want to find.
+
+        Returns:
+            The list of neighbor paths.
+        """
+        neighbors = []
+        for i in range(self.graph.nodes):
+            for j in range(i + 1, self.graph.nodes):
+                n = self._flip(path, i, j)
+                neighbors.append(n)
+        return neighbors
+
+    def simulated_annealing(self, 
+                            path: list[int], 
+                            niter: int, 
+                            mstag: int) -> tuple[list[int], float]:
+        """Simulated Annealing for solving the Travelling Salesman Problem.
+
+        The Simulated Annealing algorithm tries to find a solution by selecting
+        a new path, comparing its value to the current path's value and in case
+        it is better than the current one or if :math:`p \\in [0, 1]` is less 
+        than :math:`e^{-\\frac{\\Delta value}{Temperature}}` it is selected as 
+        the current solution.
+
+        Args:
+            path: The starting path.
+            niter: Maximum number of iterations.
+            mstag: Maximum number of iterations without improvements to the 
+                value of the objective function.
+
+        Returns:
+            A tuple containing the best path found and its value.
+        """
+        current_path = path
+        current_value = self.evaluate(current_path)
+        best_path = current_path
+        best_value = current_value
+        temperature = 5000
+        alpha = 0.99
+        stagnated = 0
+        it = 0
+
+        while it < niter and stagnated < mstag:
+            i = random.randint(0, self.graph.nodes)
+            j = random.randint(0, self.graph.nodes)
+            if i > j:
+                i, j = j, i
+            next_path = self._flip(current_path, i, j)
+            next_value = self.evaluate(next_path)
+
+            if ((next_value < 
+                 current_value) or 
+                (random.uniform(0, 1) <= 
+                 np.exp((current_value - next_value) / temperature))):
+                current_path, current_value = next_path, next_value
+                stagnated = 0
+
+                if current_value < best_value:
+                    best_path, best_value = current_path, current_value
+
+            else: stagnated += 1
+            temperature *= alpha
+            it += 1
+
+        return best_path, best_value
+
+    def run_sa(self, 
+               path: list[int] | None = None,
+               niter: int = 100000, 
+               mstag: int = 1500,
+               dir: str | None = None, 
+               name: str = "") -> tuple[list[int], float]:
+        """Executes Simulated Annealing on a graph
+
+        Args:
+            path (optional): The starting path. If it is `None`, a random one
+                will be created. Defaults to None.
+            niter (optional): Maximum number of iterations. Defaults to 100000.
+            mstag (optional): Maximum number of iterations without improvements
+                to the value of the objective function. Defaults to 1500.
+            dir (optional): The directory where the plots should be saved. 
+                Defaults to None, in which case the plot(s) won't be saved.
+            name (optional): The name to add to the plots. Defaults to "".
+
+        Returns:
+            A tuple containing the best path found and its total value.
+        """
+
+        if not path:
+            path = random.sample(range(0, self.graph.nodes), self.graph.nodes)
+        best, best_value = self.simulated_annealing(path,
+                                                    niter=niter, 
+                                                    mstag=mstag)
+        best += [best[0]]
+        if dir:
+            self._plot_results(best, dir=dir, name=name)
+        else:
+            self._plot_results(best).show()
+
+        return best, best_value
+
+    def tabu_search(self, 
+                    path: list[int], 
+                    niter: int, 
+                    mstag: int, 
+                    tsize: int = 100000) -> tuple[list[int], float]:
+        """Tabu-search for solving the Travelling Salesman Problem.
+
+        The Tabu-search algorithm explores a path's neighbors and tries to find
+        the best solution aviable by using a tabu list that stores the 
+        already-searched for neighbors. It can select a worse solution than
+        the current one. This allows to escape local optima.
+
+        Args:
+            path: The starting path.
+            niter: Maximum number of iterations.
+            mstag: Maximum number of iterations without improvements to the 
+                value of the objective function.
+            tsize (optional): The maximum size of the tabu list. Defaults to 
+                100000
+
+        Returns:
+            A tuple containing the best path found and its value.
+        """
+        best = path
+        current_path = best
+        tabu_list = []
+        i = 0
+        stagnated = 0
+
+        while i < niter and stagnated < mstag:
+            neighbors = self._get_neighbors(current_path)
+            best_neighbor = None
+            best_neighbor_value = float('inf')
+            for n in neighbors:
+                if n not in tabu_list:
+                    neighbor_value = self.evaluate(n)
+                    if neighbor_value < best_neighbor_value:
+                        best_neighbor = n
+                        best_neighbor_value = neighbor_value
+
+            if best_neighbor is None:
+                break
+
+            current_path = best_neighbor
+            tabu_list.append(best_neighbor)
+            if len(tabu_list) > tsize:
+                tabu_list.pop(0)
+            
+            if self.evaluate(best_neighbor) < self.evaluate(best):
+                best = best_neighbor
+                stagnated = 0
+            else:
+                stagnated += 1
+
+            i += 1
+
+        return best, self.evaluate(best)
+
+    def run_tabu_search(self,
+                        path: list[int] = None,
+                        niter: int = 1000,
+                        mstag: int = 100,
+                        dir: str | None = None, 
+                        name: str = "") -> tuple[list[int], float]:
+        """Executes Tabu-search on a graph.
+
+            path (optional): The starting path. If it is `None`, a random one
+                will be created. Defaults to None.
+            niter (optional): Maximum number of iterations. Defaults to 1000.
+            mstag (optional): Maximum number of iterations without improvements
+                to the value of the objective function. Defaults to 100.
+            dir (optional): The directory where the plots should be saved. 
+                Defaults to None, in which case the plot(s) won't be saved.
+            name (optional): The name to add to the plots. Defaults to "".
+
+        Returns:
+            A tuple containing the best path found and its total value.
+        """
+        if not path:
+            path = random.sample(range(0, self.graph.nodes), self.graph.nodes)
+        best, best_value = self.tabu_search(path,
+                                            niter=niter, 
+                                            mstag=mstag)
+        best += [best[0]]
+        if dir:
+            self._plot_results(best, dir=dir, name=name)
+        else:
+            self._plot_results(best).show()
+
+        return best, best_value
+
+    def _plot_results(self,
                          path: list[int],
-                         logbook: dict,
+                         logbook: dict | None = None,
                          dir: str | None = None,
-                         name: str = "",
-                         vrp: bool = False) -> plt:
+                         name: str = "") -> plt:
         """Sets up a plotter for the results of the Genetic Algorithm.
         
         This function uses the ``plotter`` module to plot the results of the
@@ -396,32 +710,27 @@ class Algorithms():
 
         Args:
             path: The best path found by the Genetic Algorithm.
-            logbook: The logbook containing the statistics of the Genetic
-                Algorithm execution.
-            dir (optional): The directory where the plots should be saved. Defaults to 
-                None, in which case the plot(s) won't be saved.
+            logbook (optional): The logbook containing the statistics of the 
+                Genetic lgorithm execution. Defaults to None
+            dir (optional): The directory where the plots should be saved. 
+                Defaults to None, in which case the plot(s) won't be saved.
             name (optional): The name to add to the plots. Defaults to "".
-            vrp (optional): If the result to plot is for a VRP or a TSP. 
-                Defaults to False.
 
         Returns:
             A ``matplotlib.pyplot`` object containing the plots.
         """
         pltr = plotter.Plotter()
         plt.figure(1)
-        if vrp:
-            path = [[self.graph.center.index] + z + [self.graph.center.index]
-                    for z in self.graph.extract_zones(path)]
-            pltr.numOfVehicles = len(path)
-        pltr.plot_map(self.graph.create_points(path, vrp=vrp), vrp,
+        pltr.plot_map(self.graph.create_points(path),
                       self.graph.center.coordinates)
         if dir:
             plt.savefig(f"{dir}/Path{name}.png")
             plt.clf()
-        plt.figure(2)
-        pltr.plot_evolution(logbook.select("min"), logbook.select("avg"))
-        if dir:
-            plt.savefig(f"{dir}/Evolution{name}.png")
-            plt.clf()
+        if logbook:
+            plt.figure(2)
+            pltr.plot_evolution(logbook.select("min"), logbook.select("avg"))
+            if dir:
+                plt.savefig(f"{dir}/Evolution{name}.png")
+                plt.clf()
 
         return plt
