@@ -5,7 +5,8 @@ from deap import base, creator, tools, algorithms
 import matplotlib.pyplot as plt
 import numpy as np
 import plotter
-from model import Graph
+from model import Graph, Node
+import exceptions
 
 
 class Algorithms():
@@ -17,6 +18,122 @@ class Algorithms():
 
     def __init__(self, graph: 'Graph'):
         self.graph = graph
+
+    def one_tree(self,
+                 start: int | Node = 0) -> tuple[float, list[tuple[int, int]]]:
+        """Calculates the 1-tree of the graph.
+
+        A 1-tree is a tree that contains only one cicle.
+
+        The 1-tree of a graph can be used as a lower-bound for the value of 
+        a TSP path. This implementation calls Prim's algorithm on a graph
+        instance and then adds the shortest edge from the start of the MST to 
+        create a cycle.
+
+        Args:
+            start: The node where the construction of the MST will start. Can
+                either be the index of a node or the Node itself. Defaults to
+                0.
+
+        Returns:
+            A tuple of the value of the 1-tree and a list of all the edges of 
+            the 1-tree, represented as tuples of node indices.
+        """
+        if self.graph.nodes == 2:
+            return None, self.graph.distances[0][1]
+        elif self.graph.nodes == 1:
+            return None, 0
+        elif self.graph.nodes == 0:
+            return None, None
+
+        if isinstance(start, Node):
+            start = start.index
+        if start > max([n.index for n in self.graph.node_list]):
+            raise exceptions.NodeNotFound(start)
+
+        result, edges = self.graph.prim(start)
+        aux = [(i, w) for i, w in enumerate(self.graph.distances[start])]
+        aux.sort(key=lambda x: x[1])
+        for item in aux[1:]:
+            if not (start, item[0]) in edges:
+                result += item[1]
+                edges.append((start, item[0]))
+                break
+
+        return edges, result
+
+    def held_karp_lb(self,
+                     start: int | Node = 0,
+                     miter: int = 1000) -> tuple[float, list[tuple[int, int]]]:
+        """Calculates the held-karp lower bound of a TSP tour.
+
+        The Held-Karp lower bound uses 1-trees to calculate a higher lower
+        bound than a 1-tree. To do so, it assigns a *penalty* to each edge and
+        updates the edge value accordingly. This penalty is the weight of the 
+        source and destination nodes of an edge multiplied by the difference
+        between the degree of the node and 2.
+
+        The algorithm has the property where we can get the value every 1-tree 
+        generated with this updated edge values would have with the normal 
+        values. To do so, we just need to calculate the result of the formula
+        :math:`v_{1-tree} - 2 * \\sum_{i = 0}^{n}{\\pi_{i}}` where :mat:`\\pi_{i}`
+        is the penalty for node i.
+
+        Args:
+            start: The start node to calculate the 1-tree. Defaults to 0.
+            miter: The number of iterations of the algorithm. Defaults to 1000.
+
+        Returns:
+            A tuple containing the Held-Karp lower-bound and the edges that form
+            the tree created by the algorithm. 
+        """
+        if self.graph.nodes == 2:
+            return None, self.graph.distances[0][1]
+        elif self.graph.nodes == 1:
+            return None, 0
+        elif self.graph.nodes == 0:
+            return None, None
+
+        if isinstance(start, Node):
+            start = start.index
+        if start > max([n.index for n in self.graph.node_list]):
+            raise exceptions.NodeNotFound(start)
+
+        n = self.graph.nodes
+        pi = [self.graph.get_node(i).weight for i in range(n)]
+        best_lb = -float('inf')
+        best = None
+        original_dist = [row[:] for row in self.graph.distances]
+
+        for it in range(miter):
+            self.graph.distances = [[
+                self.graph.distances[i][j] + pi[i] + pi[j] for j in range(n)
+            ] for i in range(n)]
+
+            one_tree_edges, one_tree_value = self.one_tree(start)
+
+            degree = [0] * n
+            for i, j in one_tree_edges:
+                if i:
+                    degree[i] += 1
+                if j:
+                    degree[j] += 1
+
+            subgrad = [d - 2 for d in degree]
+
+            lb = one_tree_value - (2 * sum(pi))
+            if lb > best_lb:
+                best_lb = lb
+                best = one_tree_edges
+
+            if all(d == 2 for d in degree):
+                break
+
+            for i in range(n):
+                pi[i] = subgrad[i] * self.graph.get_node(i).weight
+
+        self.graph.distances = original_dist
+        return best, best_lb
 
     def local_search(self, ind: list[int], mi: int = 50) -> list[int]:
         """Tries to improve the fitness of an individual making use of 2opt.
@@ -311,8 +428,8 @@ class Algorithms():
 
             # Population reseting
             if (cicles >= (mcic) + 1 or
-                    superGens_stagnated > self.graph.nodes * 7):
-                if superGens_stagnated > self.graph.nodes * 7 and verbose:
+                    superGens_stagnated > self.graph.nodes * 6.5):
+                if superGens_stagnated > self.graph.nodes * 6.5 and verbose:
                     print("Halted")
                 break
 
@@ -324,8 +441,8 @@ class Algorithms():
                    mutpb: float = 0.2,
                    pop_size: int = 1000,
                    dir: str | None = None,
-                   idx: int = 0,
-                   vrb: bool = True) -> tuple[list[int], float]:
+                   name: str = "",
+                   vrb: bool = False) -> tuple[list[int], float]:
         """Runs the Genetic Algorithm for the Traveling Salesman Problem.
         
         This function calls the wrapper functions that define the creator, 
@@ -341,13 +458,17 @@ class Algorithms():
             pop_size (optional): The size of the population. Defaults to 200.
             dir (optional): The directory where the plots should be saved. 
                 Defaults to None, in which case the plot(s) won't be saved.
-            idx (optional): The index for the plot to save. Defaults to 0.
-            vrb: (optional): Run the algorithm in verbose or non-verbose mode.
-                Defaults to True.
+            name (optional): The name to add to the plots. Defaults to "".
+            vrb (optional): Run the algorithm in verbose or non-verbose mode.
+                Defaults to False.
 
         Returns:
             A tuple containing the best path found and its total value.
         """
+        check = self._check_length()
+        if check:
+            return check[0], check[1]
+
         random.seed(169)
         if not self.graph.distances:
             self.graph.set_distance_matrix()
@@ -374,18 +495,342 @@ class Algorithms():
             print("-- Best Ever Fitness = ", total_value)
 
         if dir:
-            self._plot_ga_results(best, logbook, dir, idx)
+            self._plot_results(best, logbook, dir, name)
         else:
-            self._plot_ga_results(best, logbook).show()
+            self._plot_results(best, logbook).show()
 
         return best, total_value
 
-    def _plot_ga_results(self,
-                         path: list[int],
-                         logbook: dict,
-                         dir: str | None = None,
-                         idx: int = 0,
-                         vrp: bool = False) -> plt:
+    def _two_opt(self, path: list[int], vrb: bool) -> tuple[list[int], float]:
+        """2-opt algorithm for solving the Travelling Salesman Problem.
+
+        The 2-opt algorithm takes two edges of a path and removes them, it then
+        adds two new edges and checking if this improves the value of the 
+        path.
+
+        Args:
+            path: The starting path from where the 2-opt algorithm is applied.
+            threshold: The minimum improvement between 2-opt cicles.
+            vrb: Run the algorithm in verbose or non-verbose mode.
+
+        Returns:
+            tuple[list[int], float]: _description_
+        """
+        best = path
+        best_value = self.evaluate(best)
+        improved = True
+        n = self.graph.nodes
+
+        if vrb:
+            print(f"Start value: {best_value} - start path: {best}")
+
+        while improved:
+            improved = False
+            for i in range(0, n - 1):
+                for j in range(i + 2, n):
+                    prev = self.evaluate(best)
+                    curr = self.evaluate(self._flip(best, i, j))
+
+                    if curr < prev:
+                        best = self._flip(best, i, j)
+                        best_value = self.evaluate(best)
+                        improved = True
+
+                    if vrb:
+                        print(f"Best value: {best_value} - best path: {best}")
+
+        return best, best_value
+
+    def _flip(self, path: list[int], i: int, j: int) -> list[int]:
+        """Flips a section of a path.
+
+        Given a path, it flips the section between i and j so that path[i] will
+        be path[j], path[i + 1] will be path[j - 1] and so on.
+
+        Args:
+            path: The path where a section will be flipped.
+            i: The start of a section.
+            j: The end of a section.
+
+        Returns:
+            The result of performing the section flip on the given path.
+        """
+        new_path = np.concatenate(
+            (path[0:i], path[j:-len(path) + i - 1:-1], path[j + 1:len(path)]))
+        return [int(n) for n in new_path]
+
+    def run_two_opt(self,
+                    path: list[int] | None = None,
+                    dir: str | None = None,
+                    name: str = "",
+                    vrb: bool = False) -> tuple[list[int], float]:
+        """Executes 2-opt optimization on a graph.
+
+        Args:
+            path (optional): The initial path from which 2-opt is executed. In
+                case it is not provided, 2-opt will start on a random path.
+                Defaults to None.
+            dir (optional): The directory where the plots should be saved. 
+                Defaults to None, in which case the plot(s) won't be saved.
+            name (optional): The name to add to the plots. Defaults to "".
+            vrb (optional): Run the algorithm in verbose or non-verbose mode.
+                Defaults to False.
+
+        Returns:
+            A tuple containing the best path found and its total value.
+        """
+        check = self._check_length()
+        if check:
+            return check[0], check[1]
+
+        random.seed(169)
+
+        if not path:
+            path = random.sample(range(0, self.graph.nodes), self.graph.nodes)
+        best, best_value = self._two_opt(path, vrb)
+        best += [best[0]]
+        if dir:
+            self._plot_results(best, dir=dir, name=name)
+        else:
+            self._plot_results(best).show()
+
+        return best, best_value
+
+    def _get_neighbors(self, path: list[int]) -> list[list[int]]:
+        """Gets all the posible neighbors of a path.
+
+        A neighbor of a path `p` is another path `p'` where the position of
+        two nodes has been interchanged using the `_flip` function.
+
+        Args:
+            path: The path whose neighbors we want to find.
+
+        Returns:
+            The list of neighbor paths.
+        """
+        neighbors = []
+        for i in range(self.graph.nodes):
+            for j in range(i + 1, self.graph.nodes):
+                n = self._flip(path, i, j)
+                neighbors.append(n)
+        return neighbors
+
+    def _simulated_annealing(self, path: list[int], niter: int, mstag: int,
+                             vrb: bool) -> tuple[list[int], float]:
+        """Simulated Annealing for solving the Travelling Salesman Problem.
+
+        The Simulated Annealing algorithm tries to find a solution by selecting
+        a new path, comparing its value to the current path's value and in case
+        it is better than the current one or if :math:`p \\in [0, 1]` is less 
+        than :math:`e^{-\\frac{\\Delta value}{Temperature}}` it is selected as 
+        the current solution.
+
+        Args:
+            path: The starting path.
+            niter: Maximum number of iterations.
+            mstag: Maximum number of iterations without improvements to the 
+                value of the objective function.
+            vrb: Run the algorithm in verbose or non-verbose mode.
+
+        Returns:
+            A tuple containing the best path found and its value.
+        """
+        current_path = path
+        current_value = self.evaluate(current_path)
+        best_path = current_path
+        best_value = current_value
+        temperature = 5000
+        alpha = 0.99
+        stagnated = 0
+        it = 0
+
+        while it < niter and stagnated < mstag:
+            i = random.randint(0, self.graph.nodes)
+            j = random.randint(0, self.graph.nodes)
+            if i > j:
+                i, j = j, i
+            next_path = self._flip(current_path, i, j)
+            next_value = self.evaluate(next_path)
+
+            if ((next_value < current_value) or (random.uniform(0, 1) <= np.exp(
+                (current_value - next_value) / temperature))):
+                current_path, current_value = next_path, next_value
+
+                if current_value < best_value:
+                    best_path, best_value = current_path, current_value
+                    stagnated = 0
+
+            else:
+                stagnated += 1
+            temperature *= alpha
+            it += 1
+
+            if vrb:
+                print(f"Iteration {it}. "
+                      f"Best value: {best_value} - best path: {best_path} | "
+                      f"Temperature: {temperature} | "
+                      f"Stagnated: {stagnated}")
+
+        return best_path, best_value
+
+    def run_sa(self,
+               path: list[int] | None = None,
+               niter: int = 100000,
+               mstag: int = 1500,
+               dir: str | None = None,
+               name: str = "",
+               vrb: bool = False) -> tuple[list[int], float]:
+        """Executes Simulated Annealing on a graph
+
+        Args:
+            path (optional): The starting path. If it is `None`, a random one
+                will be created. Defaults to None.
+            niter (optional): Maximum number of iterations. Defaults to 100000.
+            mstag (optional): Maximum number of iterations without improvements
+                to the value of the objective function. Defaults to 1500.
+            dir (optional): The directory where the plots should be saved. 
+                Defaults to None, in which case the plot(s) won't be saved.
+            name (optional): The name to add to the plots. Defaults to "".
+            vrb (optional): Run the algorithm in verbose or non-verbose mode.
+                Defaults to False.
+
+        Returns:
+            A tuple containing the best path found and its total value.
+        """
+        check = self._check_length()
+        if check:
+            return check[0], check[1]
+
+        random.seed(169)
+
+        if not path:
+            path = random.sample(range(0, self.graph.nodes), self.graph.nodes)
+        best, best_value = self._simulated_annealing(path,
+                                                     niter=niter,
+                                                     mstag=mstag,
+                                                     vrb=vrb)
+        best += [best[0]]
+        if dir:
+            self._plot_results(best, dir=dir, name=name)
+        else:
+            self._plot_results(best).show()
+
+        return best, best_value
+
+    def _tabu_search(self,
+                     path: list[int],
+                     niter: int,
+                     mstag: int,
+                     vrb: bool,
+                     tsize: int = 100000) -> tuple[list[int], float]:
+        """Tabu-search for solving the Travelling Salesman Problem.
+
+        The Tabu-search algorithm explores a path's neighbors and tries to find
+        the best solution aviable by using a tabu list that stores the 
+        already-searched for neighbors. It can select a worse solution than
+        the current one. This allows to escape local optima.
+
+        Args:
+            path: The starting path.
+            niter: Maximum number of iterations.
+            mstag: Maximum number of iterations without improvements to the 
+                value of the objective function.
+            tsize (optional): The maximum size of the tabu list. Defaults to 
+                100000
+            vrb: Run the algorithm in verbose or non-verbose mode.
+
+        Returns:
+            A tuple containing the best path found and its value.
+        """
+        best = path
+        current_path = best
+        tabu_list = []
+        i = 0
+        stagnated = 0
+
+        while i < niter and stagnated < mstag:
+            neighbors = self._get_neighbors(current_path)
+            best_neighbor = None
+            best_neighbor_value = float('inf')
+            for n in neighbors:
+                if n not in tabu_list:
+                    neighbor_value = self.evaluate(n)
+                    if neighbor_value < best_neighbor_value:
+                        best_neighbor = n
+                        best_neighbor_value = neighbor_value
+
+            if best_neighbor is None:
+                break
+
+            current_path = best_neighbor
+            tabu_list.append(best_neighbor)
+            if len(tabu_list) > tsize:
+                tabu_list.pop(0)
+
+            if self.evaluate(best_neighbor) < self.evaluate(best):
+                best = best_neighbor
+                stagnated = 0
+            else:
+                stagnated += 1
+
+            i += 1
+
+            if vrb:
+                print(f"Iteration {i}. "
+                      f"Best value: {self.evaluate(best)} "
+                      f"- best path: {best} | "
+                      f"Stagnated: {stagnated}")
+
+        return best, self.evaluate(best)
+
+    def run_tabu_search(self,
+                        path: list[int] = None,
+                        niter: int = 1000,
+                        mstag: int = 100,
+                        dir: str | None = None,
+                        name: str = "",
+                        vrb: bool = False) -> tuple[list[int], float]:
+        """Executes Tabu-search on a graph.
+
+            path (optional): The starting path. If it is `None`, a random one
+                will be created. Defaults to None.
+            niter (optional): Maximum number of iterations. Defaults to 1000.
+            mstag (optional): Maximum number of iterations without improvements
+                to the value of the objective function. Defaults to 100.
+            dir (optional): The directory where the plots should be saved. 
+                Defaults to None, in which case the plot(s) won't be saved.
+            name (optional): The name to add to the plots. Defaults to "".
+            vrb (optional): Run the algorithm in verbose or non-verbose mode.
+                Defaults to False.
+
+        Returns:
+            A tuple containing the best path found and its total value.
+        """
+        check = self._check_length()
+        if check:
+            return check[0], check[1]
+
+        random.seed(169)
+
+        if not path:
+            path = random.sample(range(0, self.graph.nodes), self.graph.nodes)
+        best, best_value = self._tabu_search(path,
+                                             niter=niter,
+                                             mstag=mstag,
+                                             vrb=vrb)
+        best += [best[0]]
+        if dir:
+            self._plot_results(best, dir=dir, name=name)
+        else:
+            self._plot_results(best).show()
+
+        return best, best_value
+
+    def _plot_results(self,
+                      path: list[int],
+                      logbook: dict | None = None,
+                      dir: str | None = None,
+                      name: str = "") -> plt:
         """Sets up a plotter for the results of the Genetic Algorithm.
         
         This function uses the ``plotter`` module to plot the results of the
@@ -396,32 +841,64 @@ class Algorithms():
 
         Args:
             path: The best path found by the Genetic Algorithm.
-            logbook: The logbook containing the statistics of the Genetic
-                Algorithm execution.
-            dir (optional): The directory where the plots should be saved. Defaults to 
-                None, in which case the plot(s) won't be saved.
-            idx (optional): The index for the plot to save. Defaults to 0.
-            vrp (optional): If the result to plot is for a VRP or a TSP. 
-                Defaults to False.
+            logbook (optional): The logbook containing the statistics of the 
+                Genetic lgorithm execution. Defaults to None
+            dir (optional): The directory where the plots should be saved. 
+                Defaults to None, in which case the plot(s) won't be saved.
+            name (optional): The name to add to the plots. Defaults to "".
 
         Returns:
             A ``matplotlib.pyplot`` object containing the plots.
         """
         pltr = plotter.Plotter()
         plt.figure(1)
-        if vrp:
-            path = [[self.graph.center.index] + z + [self.graph.center.index]
-                    for z in self.graph.extract_zones(path)]
-            pltr.numOfVehicles = len(path)
-        pltr.plot_map(self.graph.create_points(path, vrp=vrp), vrp,
+        pltr.plot_map(self.graph.create_points(path),
                       self.graph.center.coordinates)
         if dir:
-            plt.savefig(f"{dir}/Path{idx}.png")
+            plt.savefig(f"{dir}/Path{name}.png")
             plt.clf()
-        plt.figure(2)
-        pltr.plot_evolution(logbook.select("min"), logbook.select("avg"))
-        if dir:
-            plt.savefig(f"{dir}/Evolution{idx}.png")
-            plt.clf()
+        if logbook:
+            plt.figure(2)
+            pltr.plot_evolution(logbook.select("min"), logbook.select("avg"))
+            if dir:
+                plt.savefig(f"{dir}/Evolution{name}.png")
+                plt.clf()
 
         return plt
+
+    def _check_length(self) -> tuple[list[int | None], float] | None:
+        """Gives a TSP tour and value for special cases where graphs are small.
+         
+        This function checks the length of a graph and returns the value of a 
+        TSP tour and value in the cases where the graph has 0, q or 2 nodes.
+
+        Returns:
+            This function has 4 different returns:
+            1- Return a tour with 3 nodes and the length of the single edge
+            of the graph when its length is 2.
+            2- Return a tour with one node and a value of 0 when the length
+            of the graph is 1.
+            3- Return an empty list and 0 when the graph is empty.
+            4- Return `None` if otherwise.
+        """
+        if self.graph.nodes == 2:
+            if self.graph.center:
+                p = [
+                    self.graph.center.index, self.graph.node_list[0].index,
+                    self.graph.center.index
+                ]
+            else:
+                p = [
+                    self.graph.node_list[0].index,
+                    self.graph.node_list[1].index, self.graph.node_list[0].index
+                ]
+            return p, self.graph.distances[0][1]
+        elif self.graph.nodes == 1:
+            if self.graph.center:
+                return [self.graph.center.index], 0
+            else:
+                return [self.graph.node_list[0]], 0
+        elif self.graph.nodes == 0:
+            return [], 0
+        else:
+            return None
