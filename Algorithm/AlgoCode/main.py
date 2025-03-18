@@ -2,7 +2,6 @@
 
 import os
 from model import Graph
-import random
 from algorithms import Algorithms
 
 

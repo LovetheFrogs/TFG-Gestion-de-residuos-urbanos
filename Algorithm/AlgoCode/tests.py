@@ -2,7 +2,6 @@
 
 import unittest
 import os
-import shutil
 import random
 from model import Node, Edge, Graph, load as lg
 import create_models as cm

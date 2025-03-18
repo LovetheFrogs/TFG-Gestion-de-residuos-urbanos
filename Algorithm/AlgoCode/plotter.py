@@ -1,7 +1,6 @@
 """Auxiliary module to plot the results of running the genetic algorithm."""
 
 import seaborn as sns
-import numpy as np
 import matplotlib.pyplot as plt
 
 
