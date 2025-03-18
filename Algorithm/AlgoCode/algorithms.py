@@ -7,6 +7,8 @@ import numpy as np
 import plotter
 from model import Graph, Node
 
+import os
+
 
 class Algorithms():
     """Class containing the diferent path-finding algorithms.
@@ -18,7 +20,7 @@ class Algorithms():
     def __init__(self, graph: 'Graph'):
         self.graph = graph
 
-    def one_tree(self, start: int | Node) -> tuple[float, list[tuple[int, int]]]:
+    def one_tree(self, start: int | Node = 0) -> tuple[float, list[tuple[int, int]]]:
         """Calculates the 1-tree of the graph.
 
         A 1-tree is a tree that contains only one cicle.
@@ -33,13 +35,13 @@ class Algorithms():
                 either be the index of a node or the Node itself.
 
         Returns:
-            A tuple of the value of the MST and a list of all the edges of the 
-            MST, represented as tuples of node indices.
+            A tuple of the value of the 1-tree and a list of all the edges of 
+            the 1-tree, represented as tuples of node indices.
         """
         if isinstance(start, Node):
             start = start.index
         result, edges = self.graph.prim(start)
-        aux = [(i, w) for i, w in enumerate(self.graph.distances[0])]
+        aux = [(i, w) for i, w in enumerate(self.graph.distances[start])]
         aux.sort(key=lambda x : x[1])
         for item in aux[1:]:
             if not (start, item[0]) in edges:
@@ -48,6 +50,43 @@ class Algorithms():
                 break
         
         return result, edges
+
+    def held_karp_lb(self, start: int | Node = 0, miter: int = 1000):
+        if isinstance(start, Node):
+            start = start.index
+        n = self.graph.nodes
+        pi = [self.graph.get_node(i).weight for i in range(n)]
+        best_lb = -float('inf')
+        best = None
+        original_dist = [row[:] for row in self.graph.distances]
+
+        for it in range(miter):
+            self.graph.distances = [[self.graph.distances[i][j] +
+                                    pi[i] + 
+                                    pi[j] for j in range(n)] for i in range(n)]
+            
+            one_tree_value, one_tree_edges = self.one_tree(start)
+
+            degree = [0] * n
+            for i, j in one_tree_edges:
+                if i: degree[i] += 1
+                if j: degree[j] += 1
+
+            subgrad = [d - 2 for d in degree]
+
+            lb = one_tree_value - (2 * sum(pi))
+            if lb > best_lb:
+                best_lb = lb
+                best = one_tree_edges
+
+            if all(d == 2 for d in degree):
+                break
+
+            for i in range(n):
+                pi[i] = subgrad[i] * self.graph.get_node(i).weight
+
+        self.graph.distances = original_dist
+        return best_lb, best
 
     def local_search(self, ind: list[int], mi: int = 50) -> list[int]:
         """Tries to improve the fitness of an individual making use of 2opt.
