@@ -480,7 +480,7 @@ class Algorithms():
 
         return best, total_value
 
-    def two_opt(
+    def _two_opt(
             self, 
             path: list[int]) -> tuple[list[int], float]:
         """2-opt algorithm for solving the Travelling Salesman Problem.
@@ -555,7 +555,7 @@ class Algorithms():
 
         if not path:
             path = random.sample(range(0, self.graph.nodes), self.graph.nodes)
-        best, best_value = self.two_opt(path)
+        best, best_value = self._two_opt(path)
         best += [best[0]]
         if dir:
             self._plot_results(best, dir=dir, name=name)
@@ -584,7 +584,7 @@ class Algorithms():
                 neighbors.append(n)
         return neighbors
 
-    def simulated_annealing(self, 
+    def _simulated_annealing(self, 
                             path: list[int], 
                             niter: int, 
                             mstag: int) -> tuple[list[int], float]:
@@ -662,7 +662,7 @@ class Algorithms():
 
         if not path:
             path = random.sample(range(0, self.graph.nodes), self.graph.nodes)
-        best, best_value = self.simulated_annealing(path,
+        best, best_value = self._simulated_annealing(path,
                                                     niter=niter, 
                                                     mstag=mstag)
         best += [best[0]]
@@ -673,7 +673,7 @@ class Algorithms():
 
         return best, best_value
 
-    def tabu_search(self, 
+    def _tabu_search(self, 
                     path: list[int], 
                     niter: int, 
                     mstag: int, 
@@ -753,7 +753,7 @@ class Algorithms():
         """
         if not path:
             path = random.sample(range(0, self.graph.nodes), self.graph.nodes)
-        best, best_value = self.tabu_search(path,
+        best, best_value = self._tabu_search(path,
                                             niter=niter, 
                                             mstag=mstag)
         best += [best[0]]
