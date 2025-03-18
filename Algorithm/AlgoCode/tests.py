@@ -368,6 +368,41 @@ class TestAlgorithms(unittest.TestCase):
         )
         self.assertGreater(self.algo.evaluate(random_path), v)
 
+    def test_one_tree(self):
+        """Tests the 1-tree lower bound Algorithm."""
+        v, e = self.algo.one_tree()
+        self.assertFalse(e[0][0])
+        _, vsa = self.algo.run_sa()
+        self.assertLessEqual(v, vsa)
+        with self.assertRaisesRegex(
+                NodeNotFound,
+                "The node searched for was not found in the structure. "
+                "Index searched: 20"):
+            self.algo.one_tree(20)
+        for i in range(len(e)):
+            with self.subTest(i=i):
+                edge = e[i]
+                self.assertNotEqual(edge[0], -1)
+                self.assertNotEqual(edge[1], -1)
+
+    def test_held_karp(self):
+        """Tests the Held-Karp lower bound algorithm."""
+        v, e = self.algo.held_karp_lb()
+        self.assertFalse(e[0][0])
+        _, vsa = self.algo.run_sa()
+        self.assertLessEqual(v, vsa)
+        with self.assertRaisesRegex(
+                NodeNotFound,
+                "The node searched for was not found in the structure. "
+                "Index searched: 20"):
+            self.algo.one_tree(20)
+        for i in range(len(e)):
+            with self.subTest(i=i):
+                edge = e[i]
+                self.assertNotEqual(edge[0], -1)
+                self.assertNotEqual(edge[1], -1)
+        self.assertGreaterEqual(v, self.algo.one_tree()[0])
+
 
 class TestModelFileCreation(unittest.TestCase):
     """Training file creation script testing"""
