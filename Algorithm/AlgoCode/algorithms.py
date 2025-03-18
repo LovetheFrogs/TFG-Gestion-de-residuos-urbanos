@@ -6,8 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import plotter
 from model import Graph, Node
-
-import os
+import exceptions
 
 
 class Algorithms():
@@ -42,6 +41,8 @@ class Algorithms():
         """
         if isinstance(start, Node):
             start = start.index
+        if start > max([n.index for n in self.graph.node_list]):
+            raise exceptions.NodeNotFound(start)
         result, edges = self.graph.prim(start)
         aux = [(i, w) for i, w in enumerate(self.graph.distances[start])]
         aux.sort(key=lambda x : x[1])
@@ -55,7 +56,7 @@ class Algorithms():
 
     def held_karp_lb(self, 
                      start: int | Node = 0, 
-                     miter: int = 1000000
+                     miter: int = 1000
                     ) -> tuple[float, list[tuple[int, int]]]:
         """Calculates the held-karp lower bound of a TSP tour.
 
@@ -68,7 +69,7 @@ class Algorithms():
         The algorithm has the property where we can get the value every 1-tree 
         generated with this updated edge values would have with the normal 
         values. To do so, we just need to calculate the result of the formula
-        :math:`v_{1-tree} - 2 * \sum_{i = 0}^{n}{\pi_{i}}` where :mat:`\pi_{i}`
+        :math:`v_{1-tree} - 2 * \\sum_{i = 0}^{n}{\\pi_{i}}` where :mat:`\\pi_{i}`
         is the penalty for node i.
 
         Args:
@@ -81,6 +82,8 @@ class Algorithms():
         """
         if isinstance(start, Node):
             start = start.index
+        if start > max([n.index for n in self.graph.node_list]):
+            raise exceptions.NodeNotFound(start)
         n = self.graph.nodes
         pi = [self.graph.get_node(i).weight for i in range(n)]
         best_lb = -float('inf')
