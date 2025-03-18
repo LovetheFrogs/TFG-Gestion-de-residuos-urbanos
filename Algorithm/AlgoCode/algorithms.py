@@ -458,8 +458,8 @@ class Algorithms():
             dir (optional): The directory where the plots should be saved. 
                 Defaults to None, in which case the plot(s) won't be saved.
             name (optional): The name to add to the plots. Defaults to "".
-            vrb: (optional): Run the algorithm in verbose or non-verbose mode.
-                Defaults to True.
+            vrb (optional): Run the algorithm in verbose or non-verbose mode.
+                Defaults to False.
 
         Returns:
             A tuple containing the best path found and its total value.
@@ -502,7 +502,8 @@ class Algorithms():
 
     def _two_opt(
             self, 
-            path: list[int]) -> tuple[list[int], float]:
+            path: list[int],
+            vrb: bool) -> tuple[list[int], float]:
         """2-opt algorithm for solving the Travelling Salesman Problem.
 
         The 2-opt algorithm takes two edges of a path and removes them, it then
@@ -512,6 +513,7 @@ class Algorithms():
         Args:
             path: The starting path from where the 2-opt algorithm is applied.
             threshold: The minimum improvement between 2-opt cicles.
+            vrb: Run the algorithm in verbose or non-verbose mode.
 
         Returns:
             tuple[list[int], float]: _description_
@@ -520,6 +522,9 @@ class Algorithms():
         best_value = self.evaluate(best)
         improved = True
         n = self.graph.nodes
+
+        if vrb:
+            print(f"Start value: {best_value} - start path: {best}")
 
         while improved:
             improved = False
@@ -532,6 +537,9 @@ class Algorithms():
                         best = self._flip(best, i, j)
                         best_value = self.evaluate(best)
                         improved = True
+
+                    if vrb:
+                        print(f"Best value: {best_value} - best path: {best}")
             
         return best, best_value
 
@@ -557,7 +565,8 @@ class Algorithms():
     def run_two_opt(self, 
                     path: list[int] | None = None,
                     dir: str | None = None, 
-                    name: str = "") -> tuple[list[int], float]:
+                    name: str = "",
+                    vrb: bool = False) -> tuple[list[int], float]:
         """Executes 2-opt optimization on a graph.
 
         Args:
@@ -567,6 +576,8 @@ class Algorithms():
             dir (optional): The directory where the plots should be saved. 
                 Defaults to None, in which case the plot(s) won't be saved.
             name (optional): The name to add to the plots. Defaults to "".
+            vrb (optional): Run the algorithm in verbose or non-verbose mode.
+                Defaults to False.
 
         Returns:
             A tuple containing the best path found and its total value.
@@ -579,7 +590,7 @@ class Algorithms():
 
         if not path:
             path = random.sample(range(0, self.graph.nodes), self.graph.nodes)
-        best, best_value = self._two_opt(path)
+        best, best_value = self._two_opt(path, vrb)
         best += [best[0]]
         if dir:
             self._plot_results(best, dir=dir, name=name)
@@ -611,7 +622,8 @@ class Algorithms():
     def _simulated_annealing(self, 
                             path: list[int], 
                             niter: int, 
-                            mstag: int) -> tuple[list[int], float]:
+                            mstag: int,
+                            vrb: bool) -> tuple[list[int], float]:
         """Simulated Annealing for solving the Travelling Salesman Problem.
 
         The Simulated Annealing algorithm tries to find a solution by selecting
@@ -625,6 +637,7 @@ class Algorithms():
             niter: Maximum number of iterations.
             mstag: Maximum number of iterations without improvements to the 
                 value of the objective function.
+            vrb: Run the algorithm in verbose or non-verbose mode.
 
         Returns:
             A tuple containing the best path found and its value.
@@ -651,14 +664,20 @@ class Algorithms():
                 (random.uniform(0, 1) <= 
                  np.exp((current_value - next_value) / temperature))):
                 current_path, current_value = next_path, next_value
-                stagnated = 0
 
                 if current_value < best_value:
                     best_path, best_value = current_path, current_value
+                    stagnated = 0
 
             else: stagnated += 1
             temperature *= alpha
             it += 1
+
+            if vrb:
+                print(f"Iteration {it}. "
+                      f"Best value: {best_value} - best path: {best_path} | "
+                      f"Temperature: {temperature} | "
+                      f"Stagnated: {stagnated}")
 
         return best_path, best_value
 
@@ -667,7 +686,8 @@ class Algorithms():
                niter: int = 100000, 
                mstag: int = 1500,
                dir: str | None = None, 
-               name: str = "") -> tuple[list[int], float]:
+               name: str = "",
+               vrb: bool = False) -> tuple[list[int], float]:
         """Executes Simulated Annealing on a graph
 
         Args:
@@ -679,6 +699,8 @@ class Algorithms():
             dir (optional): The directory where the plots should be saved. 
                 Defaults to None, in which case the plot(s) won't be saved.
             name (optional): The name to add to the plots. Defaults to "".
+            vrb (optional): Run the algorithm in verbose or non-verbose mode.
+                Defaults to False.
 
         Returns:
             A tuple containing the best path found and its total value.
@@ -693,7 +715,8 @@ class Algorithms():
             path = random.sample(range(0, self.graph.nodes), self.graph.nodes)
         best, best_value = self._simulated_annealing(path,
                                                     niter=niter, 
-                                                    mstag=mstag)
+                                                    mstag=mstag,
+                                                    vrb=vrb)
         best += [best[0]]
         if dir:
             self._plot_results(best, dir=dir, name=name)
@@ -706,6 +729,7 @@ class Algorithms():
                     path: list[int], 
                     niter: int, 
                     mstag: int, 
+                    vrb: bool,
                     tsize: int = 100000) -> tuple[list[int], float]:
         """Tabu-search for solving the Travelling Salesman Problem.
 
@@ -721,6 +745,7 @@ class Algorithms():
                 value of the objective function.
             tsize (optional): The maximum size of the tabu list. Defaults to 
                 100000
+            vrb: Run the algorithm in verbose or non-verbose mode.
 
         Returns:
             A tuple containing the best path found and its value.
@@ -758,6 +783,13 @@ class Algorithms():
 
             i += 1
 
+            if vrb:
+                print(f"Iteration {i}. "
+                      f"Best value: {self.evaluate(best)} "
+                      f"- best path: {best} | "
+                      f"Stagnated: {stagnated}")
+
+
         return best, self.evaluate(best)
 
     def run_tabu_search(self,
@@ -765,7 +797,8 @@ class Algorithms():
                         niter: int = 1000,
                         mstag: int = 100,
                         dir: str | None = None, 
-                        name: str = "") -> tuple[list[int], float]:
+                        name: str = "",
+                        vrb: bool = False) -> tuple[list[int], float]:
         """Executes Tabu-search on a graph.
 
             path (optional): The starting path. If it is `None`, a random one
@@ -776,6 +809,8 @@ class Algorithms():
             dir (optional): The directory where the plots should be saved. 
                 Defaults to None, in which case the plot(s) won't be saved.
             name (optional): The name to add to the plots. Defaults to "".
+            vrb (optional): Run the algorithm in verbose or non-verbose mode.
+                Defaults to False.
 
         Returns:
             A tuple containing the best path found and its total value.
@@ -790,7 +825,8 @@ class Algorithms():
             path = random.sample(range(0, self.graph.nodes), self.graph.nodes)
         best, best_value = self._tabu_search(path,
                                             niter=niter, 
-                                            mstag=mstag)
+                                            mstag=mstag,
+                                            vrb=vrb)
         best += [best[0]]
         if dir:
             self._plot_results(best, dir=dir, name=name)
