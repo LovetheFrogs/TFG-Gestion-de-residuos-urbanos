@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import plotter
 from model import Graph, Node
+import exceptions
 
 
 class Algorithms():
@@ -18,7 +19,8 @@ class Algorithms():
     def __init__(self, graph: 'Graph'):
         self.graph = graph
 
-    def one_tree(self, start: int | Node) -> tuple[float, list[tuple[int, int]]]:
+    def one_tree(self, 
+                 start: int | Node = 0) -> tuple[float, list[tuple[int, int]]]:
         """Calculates the 1-tree of the graph.
 
         A 1-tree is a tree that contains only one cicle.
@@ -30,16 +32,19 @@ class Algorithms():
 
         Args:
             start: The node where the construction of the MST will start. Can
-                either be the index of a node or the Node itself.
+                either be the index of a node or the Node itself. Defaults to
+                0.
 
         Returns:
-            A tuple of the value of the MST and a list of all the edges of the 
-            MST, represented as tuples of node indices.
+            A tuple of the value of the 1-tree and a list of all the edges of 
+            the 1-tree, represented as tuples of node indices.
         """
         if isinstance(start, Node):
             start = start.index
+        if start > max([n.index for n in self.graph.node_list]):
+            raise exceptions.NodeNotFound(start)
         result, edges = self.graph.prim(start)
-        aux = [(i, w) for i, w in enumerate(self.graph.distances[0])]
+        aux = [(i, w) for i, w in enumerate(self.graph.distances[start])]
         aux.sort(key=lambda x : x[1])
         for item in aux[1:]:
             if not (start, item[0]) in edges:
@@ -48,6 +53,70 @@ class Algorithms():
                 break
         
         return result, edges
+
+    def held_karp_lb(self, 
+                     start: int | Node = 0, 
+                     miter: int = 1000
+                    ) -> tuple[float, list[tuple[int, int]]]:
+        """Calculates the held-karp lower bound of a TSP tour.
+
+        The Held-Karp lower bound uses 1-trees to calculate a higher lower
+        bound than a 1-tree. To do so, it assigns a *penalty* to each edge and
+        updates the edge value accordingly. This penalty is the weight of the 
+        source and destination nodes of an edge multiplied by the difference
+        between the degree of the node and 2.
+
+        The algorithm has the property where we can get the value every 1-tree 
+        generated with this updated edge values would have with the normal 
+        values. To do so, we just need to calculate the result of the formula
+        :math:`v_{1-tree} - 2 * \\sum_{i = 0}^{n}{\\pi_{i}}` where :mat:`\\pi_{i}`
+        is the penalty for node i.
+
+        Args:
+            start: The start node to calculate the 1-tree. Defaults to 0.
+            miter: The number of iterations of the algorithm. Defaults to 1000.
+
+        Returns:
+            A tuple containing the Held-Karp lower-bound and the edges that form
+            the tree created by the algorithm. 
+        """
+        if isinstance(start, Node):
+            start = start.index
+        if start > max([n.index for n in self.graph.node_list]):
+            raise exceptions.NodeNotFound(start)
+        n = self.graph.nodes
+        pi = [self.graph.get_node(i).weight for i in range(n)]
+        best_lb = -float('inf')
+        best = None
+        original_dist = [row[:] for row in self.graph.distances]
+
+        for it in range(miter):
+            self.graph.distances = [[self.graph.distances[i][j] +
+                                    pi[i] + 
+                                    pi[j] for j in range(n)] for i in range(n)]
+            
+            one_tree_value, one_tree_edges = self.one_tree(start)
+
+            degree = [0] * n
+            for i, j in one_tree_edges:
+                if i: degree[i] += 1
+                if j: degree[j] += 1
+
+            subgrad = [d - 2 for d in degree]
+
+            lb = one_tree_value - (2 * sum(pi))
+            if lb > best_lb:
+                best_lb = lb
+                best = one_tree_edges
+
+            if all(d == 2 for d in degree):
+                break
+
+            for i in range(n):
+                pi[i] = subgrad[i] * self.graph.get_node(i).weight
+
+        self.graph.distances = original_dist
+        return best_lb, best
 
     def local_search(self, ind: list[int], mi: int = 50) -> list[int]:
         """Tries to improve the fitness of an individual making use of 2opt.

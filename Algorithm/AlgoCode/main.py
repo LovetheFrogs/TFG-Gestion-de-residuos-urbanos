@@ -75,24 +75,18 @@ def run2():
         _, v = algo.run_ga_tsp(dir=os.getcwd() + "/plots", idx=i, vrb=False)
 
 
-def compare_lower_bound():
+def run3():
     g = Graph()
-    g.populate_from_file(os.getcwd() + "/files/test2.txt", verbose=1)
+    g.populate_from_file(os.getcwd() + "/files/test2.txt")
     algo = Algorithms(g)
-    lower_bound, _ = algo.one_tree(0)
-    print(f"Lower bound = {lower_bound}")
-    _, sa = algo.run_sa(dir=os.getcwd() + "/plots", name="_SA")
-    print(f"SA = {sa}. Within {abs(100-((sa * 100) / lower_bound))}% of the lower bound.")
-    _, ts = algo.run_tabu_search(dir=os.getcwd() + "/plots", name="_TS")
-    print(f"TS = {ts}. Within {abs(100-((ts * 100) / lower_bound))}% of the lower bound.")
-    _, opt = algo.run_two_opt(dir=os.getcwd() + "/plots", name="_2opt")
-    print(f"2opt = {opt}. Within {abs(100-((opt * 100) / lower_bound))}% of the lower bound.")
-    opt = algo.branch_and_bound()
-    print(f"BnB = {opt}. Within {abs(100-((opt * 100) / lower_bound))}% of the lower bound.")
+    a, b = algo.held_karp_lb(0)
+    print(f"{a} - {b}")
+    a, b = algo.one_tree(0)
+    print(f"{a} - {b}")
 
 
 def main():
-    run()
+    run3()
 
 
 if __name__ == '__main__':
