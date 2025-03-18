@@ -20,7 +20,8 @@ class Algorithms():
     def __init__(self, graph: 'Graph'):
         self.graph = graph
 
-    def one_tree(self, start: int | Node = 0) -> tuple[float, list[tuple[int, int]]]:
+    def one_tree(self, 
+                 start: int | Node = 0) -> tuple[float, list[tuple[int, int]]]:
         """Calculates the 1-tree of the graph.
 
         A 1-tree is a tree that contains only one cicle.
@@ -32,7 +33,8 @@ class Algorithms():
 
         Args:
             start: The node where the construction of the MST will start. Can
-                either be the index of a node or the Node itself.
+                either be the index of a node or the Node itself. Defaults to
+                0.
 
         Returns:
             A tuple of the value of the 1-tree and a list of all the edges of 
@@ -51,7 +53,32 @@ class Algorithms():
         
         return result, edges
 
-    def held_karp_lb(self, start: int | Node = 0, miter: int = 1000):
+    def held_karp_lb(self, 
+                     start: int | Node = 0, 
+                     miter: int = 1000000
+                    ) -> tuple[float, list[tuple[int, int]]]:
+        """Calculates the held-karp lower bound of a TSP tour.
+
+        The Held-Karp lower bound uses 1-trees to calculate a higher lower
+        bound than a 1-tree. To do so, it assigns a *penalty* to each edge and
+        updates the edge value accordingly. This penalty is the weight of the 
+        source and destination nodes of an edge multiplied by the difference
+        between the degree of the node and 2.
+
+        The algorithm has the property where we can get the value every 1-tree 
+        generated with this updated edge values would have with the normal 
+        values. To do so, we just need to calculate the result of the formula
+        :math:`v_{1-tree} - 2 * \sum_{i = 0}^{n}{\pi_{i}}` where :mat:`\pi_{i}`
+        is the penalty for node i.
+
+        Args:
+            start: The start node to calculate the 1-tree. Defaults to 0.
+            miter: The number of iterations of the algorithm. Defaults to 1000.
+
+        Returns:
+            A tuple containing the Held-Karp lower-bound and the edges that form
+            the tree created by the algorithm. 
+        """
         if isinstance(start, Node):
             start = start.index
         n = self.graph.nodes
