@@ -11,8 +11,8 @@ class Plotter():
         pass
 
     def plot_map(self, data: list[tuple[float, float]] |
-                 list[list[tuple[float, float]]],
-                 center: tuple[float, float]) -> plt:
+                 list[list[tuple[float, float]]], center: tuple[float,
+                                                                float]) -> plt:
         """Creates a plot of the nodes in a path.
 
         Shows how the best route joins each node to each other.

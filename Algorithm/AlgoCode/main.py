@@ -43,22 +43,19 @@ def run():
     t = 0
     for i, graph in enumerate(sg):
         algo2 = Algorithms(graph)
-        p, v = algo2.run_two_opt(name=i + 1,
-                                dir=os.getcwd() + "/plots/2opt")
+        p, v = algo2.run_two_opt(name=i + 1, dir=os.getcwd() + "/plots/2opt")
         t += v
     print(f"Total value (2opt zoned): {t}")
     t = 0
     for i, graph in enumerate(sg):
         algo2 = Algorithms(graph)
-        p, v = algo2.run_sa(name=i + 1,
-                                dir=os.getcwd() + "/plots/SA")
+        p, v = algo2.run_sa(name=i + 1, dir=os.getcwd() + "/plots/SA")
         t += v
     print(f"Total value (SA zoned): {t}")
     t = 0
     for i, graph in enumerate(sg):
         algo2 = Algorithms(graph)
-        p, v = algo2.run_tabu_search(name=i + 1,
-                                dir=os.getcwd() + "/plots/TS")
+        p, v = algo2.run_tabu_search(name=i + 1, dir=os.getcwd() + "/plots/TS")
         t += v
     print(f"Total value (TS zoned): {t}")
 

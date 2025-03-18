@@ -313,12 +313,12 @@ class Graph():
         try:
             self.index_dict[edge.origin.index]
         except Exception:
-            raise NodeNotFound(edge.origin.index) 
+            raise NodeNotFound(edge.origin.index)
 
         try:
             self.index_dict[edge.dest.index]
         except Exception:
-            raise NodeNotFound(edge.dest.index) 
+            raise NodeNotFound(edge.dest.index)
 
         self.graph[edge.origin].append(edge)
         self.edge_list.append(edge)
@@ -449,34 +449,34 @@ class Graph():
             if verbose:
                 print("Loading graph")
                 printProgressBar(0,
-                            n,
-                            prefix="Adding nodes:",
-                            suffix=f"Complete (0/{n})",
-                            length=50)
+                                 n,
+                                 prefix="Adding nodes:",
+                                 suffix=f"Complete (0/{n})",
+                                 length=50)
             for i in range(n):
                 if verbose:
                     printProgressBar(i + 1,
-                                   n,
-                                   prefix="Adding nodes:",
-                                   suffix=f"Complete ({i + 1}/{n})",
-                                   length=50)
+                                     n,
+                                     prefix="Adding nodes:",
+                                     suffix=f"Complete ({i + 1}/{n})",
+                                     length=50)
                 aux = f.readline().strip().split()
                 self.add_node(Node(aux[0], aux[1], aux[2], aux[3]))
 
             m = int(f.readline().strip())
             if verbose:
                 printProgressBar(0,
-                            m,
-                            prefix="Adding edges:",
-                            suffix=f"Complete (0/{m})",
-                            length=50)
+                                 m,
+                                 prefix="Adding edges:",
+                                 suffix=f"Complete (0/{m})",
+                                 length=50)
             for j in range(m):
                 if verbose:
                     printProgressBar(j + 1,
-                                   m,
-                                   prefix="Adding edges:",
-                                   suffix=f"Complete ({j + 1}/{m})",
-                                   length=50)
+                                     m,
+                                     prefix="Adding edges:",
+                                     suffix=f"Complete ({j + 1}/{m})",
+                                     length=50)
                 aux = f.readline().strip().split()
                 self.add_edge(
                     Edge(aux[0], self.get_node(int(aux[1])),
@@ -485,7 +485,8 @@ class Graph():
             self.set_center(self.get_node(0))
             self.center.center = True
             self.set_distance_matrix()
-            if verbose: print("Graph loaded")
+            if verbose:
+                print("Graph loaded")
 
     def bfs(self, source: Node) -> list[int]:
         """Performs Breadth First Search on the graph from the node ``source``.
@@ -556,8 +557,7 @@ class Graph():
 
         return distances
 
-    def _min_key(self, 
-                 dists: list[float], 
+    def _min_key(self, dists: list[float],
                  visited: list[bool]) -> tuple[float, int]:
         """Gets the closest unvisited node.
 
@@ -606,13 +606,12 @@ class Graph():
             w, n = self._min_key(key, visited)
             visited[n] = True
             for v in range(self.nodes):
-                if (self.distances[n][v] > 0 and 
-                    not visited[v] and
-                    key[v] > self.distances[n][v]):
+                if (self.distances[n][v] > 0 and not visited[v] and
+                        key[v] > self.distances[n][v]):
                     key[v] = self.distances[n][v]
                     parent[v] = n
             res += w
-        
+
         edges = []
         for i, item in enumerate(parent):
             edges.append((item, i))
@@ -849,12 +848,8 @@ class Graph():
         original_sub = {}
         sub_original = {}
         for i, node in enumerate(nodes):
-            new_node = Node(i, 
-                            node.weight, 
-                            node.coordinates[0], 
-                            node.coordinates[1], 
-                            node.center
-            )
+            new_node = Node(i, node.weight, node.coordinates[0],
+                            node.coordinates[1], node.center)
             g.add_node(new_node)
             sub_original[new_node] = self.get_node(node.index)
             original_sub[self.get_node(node.index)] = new_node
@@ -865,20 +860,17 @@ class Graph():
             edges = self.graph[original_node]
             for edge in edges:
                 if edge.dest in nodes:
-                    new_edge = Edge(
-                        edge.speed,
-                        node,
-                        original_sub[edge.dest]
-                    )
+                    new_edge = Edge(edge.speed, node, original_sub[edge.dest])
                     g.add_edge(new_edge)
-        
+
         g.set_distance_matrix()
 
         return g
 
-    def create_points(self,
-                      path: list[int] | list[list[int]],
-                     ) -> list[tuple[float, float]] | list[list[tuple, tuple]]:
+    def create_points(
+        self,
+        path: list[int] | list[list[int]],
+    ) -> list[tuple[float, float]] | list[list[tuple, tuple]]:
         """Generates a list of coordinates from a list of node indices.
         
         Args:
