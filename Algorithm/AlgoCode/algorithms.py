@@ -24,6 +24,23 @@ class Algorithms():
                          start: int | Node = 0,
                          dir: str | None = None,
                          name: str = "") -> tuple[list[int], float]:
+        """Gets a tour by executing the Nearest Neighbor algorithm.
+
+        The Nearest Neighbor (NN) algorithm creates a tour by visiting the 
+        nodes of a graph in order of distance, visitng the closest next. If the
+        closest neighbor is already visited, it moves to the next one and so 
+        on.
+
+        Args:
+            start: The node from where NN will start. Can either be the index 
+            of a node or the Node itself. Defaults to 0.
+            dir (optional): The directory where the plots should be saved. 
+                Defaults to None, in which case the plot(s) won't be saved.
+            name (optional): The name to add to the plots. Defaults to "".
+
+        Returns:
+            A tupple containing the tour and its value.
+        """
         if isinstance(start, Node):
             start = start.index
 
