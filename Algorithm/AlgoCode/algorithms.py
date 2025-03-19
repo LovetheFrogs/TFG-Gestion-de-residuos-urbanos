@@ -46,7 +46,7 @@ class Algorithms():
 
         if self.graph.nodes == 2:
             p = [n.index for n in self.graph.graph.keys()]
-            p += p[0]
+            p += [p[0]]
             return p, self.evaluate(p)
         elif self.graph.nodes == 1:
             return [n.index for n in self.graph.graph.keys()], 0
@@ -77,7 +77,6 @@ class Algorithms():
             self._plot_results(path).show()
 
         return path, self.evaluate(path)
-
 
     def one_tree(self,
                  start: int | Node = 0) -> tuple[list[tuple[int, int]], float]:
