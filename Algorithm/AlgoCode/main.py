@@ -81,8 +81,18 @@ def run3():
     print(f"{a} - {b}")
 
 
+def run4():
+    g = Graph()
+    g.populate_from_file(os.getcwd() + "/files/test2.txt")
+    algo = Algorithms(g)
+    _, lb = algo.held_karp_lb()
+    p, v = algo.nearest_neighbor(dir=f"{os.getcwd()}/plots", name="_NN")
+    print(f"Nearest Neighbor: value = {v} | path = {p}")
+    print(f"Within {abs(100-((v * 100) / lb))}% of the lower bound.")
+
+
 def main():
-    run3()
+    run4()
 
 
 if __name__ == '__main__':
