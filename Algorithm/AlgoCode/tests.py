@@ -559,6 +559,69 @@ class TestAlgorithms(unittest.TestCase):
         self.assertFalse(e)
 
 
+class TestTouringAlgorithms(unittest.TestCase):
+    """Tests the tour construction algorithms."""
+    def setUp(self):
+        self.g = Graph()
+        self.g.populate_from_file(f"{os.getcwd()}/files/test2.txt")
+        self.algo = Algorithms(self.g)
+        self.subgraphs = [
+            self.g.create_subgraph(z) for z in self.g.divide_graph(725)
+        ]
+        self.g2nodes = Graph()
+        self.aux1 = Node(0, 100, 0, 0, True)
+        self.aux2 = Node(1, 150, 1, 1)
+        self.g2nodes.add_node(self.aux1)
+        self.g2nodes.add_node(self.aux2)
+        self.g2nodes.add_edge(Edge(1, self.aux1, self.aux2))
+        self.g2nodes.set_distance_matrix()
+        self.g1node = Graph()
+        self.g1node.add_node(self.aux1)
+        self.g1node.set_distance_matrix()
+        self.g0nodes = Graph()
+
+    def test_nearest_neighbor(self):
+        po, vo = self.algo.nearest_neighbor(dir=f"{os.getcwd()}/plots", name=0)
+        os.remove(f"{os.getcwd()}/plots/Path0.png")
+        self.assertEqual(po[-1], po[0])
+        random_path = random.sample(range(0, self.g.nodes), self.g.nodes)
+        self.assertGreater(self.algo.evaluate(random_path), vo)
+
+        # Test on a graph with two nodes.
+        p, v = Algorithms(self.g2nodes).nearest_neighbor(
+                                                    dir=f"{os.getcwd()}/plots",
+                                                    name=0)
+        self.assertEqual(v, self.g2nodes.edge_list[0].value)
+        self.assertTrue(
+            p == [self.aux1.index, self.aux2.index, self.aux1.index])
+
+        # Test on a graph with one node.
+        p, v = Algorithms(self.g1node).nearest_neighbor(
+                                                    dir=f"{os.getcwd()}/plots",
+                                                   name=0)
+        self.assertEqual(v, 0)
+        self.assertTrue(p == [self.aux1.index])
+
+        # Test on a graph with no nodes.
+        p, v = Algorithms(self.g0nodes).nearest_neighbor(
+                                                    dir=f"{os.getcwd()}/plots",
+                                                    name=0)
+        self.assertEqual(v, 0)
+        self.assertTrue(p == [])
+
+        # Test on a bunch of subgraphs.
+        for i in range(len(self.subgraphs)):
+            with self.subTest(i=i):
+                ps, vs = Algorithms(self.subgraphs[i]).nearest_neighbor(
+                    dir=f"{os.getcwd()}/plots", name=0)
+                os.remove(f"{os.getcwd()}/plots/Path0.png")
+                self.assertLessEqual(vs, vo)
+                self.assertLessEqual(len(ps), len(po))
+                self.assertLess(
+                    sum(self.subgraphs[i].get_node(n).weight for n in ps[1:]),
+                    725)
+
+
 class TestModelFileCreation(unittest.TestCase):
     """Training file creation script testing"""
 
