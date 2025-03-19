@@ -113,6 +113,7 @@ def generate_edges(nodes: set[int]) -> tuple[int, str]:
     edge_data = []
     tot_edges = node_count * (node_count - 1)
     edges = 0
+    edges_added = set()
 
     if VERBOSE:
         utils.printProgressBar(0,
@@ -121,16 +122,20 @@ def generate_edges(nodes: set[int]) -> tuple[int, str]:
                                suffix=f"Complete (0/{tot_edges})",
                                length=50)
 
-    for node1 in nodes:
-        for node2 in nodes:
-            if node1 == node2:
+    for node1 in nodes_list:
+        for node2 in nodes_list:
+            if node1 == node2 or (node1, node2) in edges_added:
                 continue
+            edges_added.add((node1, node2))
             speed = random.uniform(MIN_SPEED, MAX_SPEED)
             edge_data.append(f"{speed:.1f} "
                              f"{node1} {node2}")
+            if (node2, node1) in edges_added:
+                continue
+            edges_added.add((node2, node1))
             edge_data.append(f"{speed:.1f} "
                              f"{node2} {node1}")
-            edges += 1
+            edges += 2
 
             if VERBOSE:
                 utils.printProgressBar(edges,
