@@ -5,8 +5,8 @@ import time
 import shutil
 import utils
 import create_models
-from algorithms import Algorithms
-from model import Graph
+from problem.algorithms import Algorithms
+from problem import Graph
 
 
 class Benchmark():

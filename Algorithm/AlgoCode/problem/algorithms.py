@@ -5,9 +5,9 @@ from deap import base, creator, tools, algorithms
 import matplotlib.pyplot as plt
 import numpy as np
 import heapq
-import plotter
-from model import Graph, Node
-import exceptions
+import utils.plotter as plotter
+from problem.model import Graph, Node
+import problem.exceptions as exceptions
 
 
 class Algorithms():
