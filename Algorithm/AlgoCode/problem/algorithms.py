@@ -964,12 +964,12 @@ class Algorithms():
                       self.graph.center.coordinates)
         if dir:
             plt.savefig(f"{dir}/{name}.png")
-            plt.clf()
+            plt.close()
         if logbook:
             plt.figure(2)
             pltr.plot_evolution(logbook.select("min"), logbook.select("avg"))
             if dir:
                 plt.savefig(f"{dir}/Evolution_{name}.png")
-                plt.clf()
+                plt.close()
 
         return plt
