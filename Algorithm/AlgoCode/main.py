@@ -81,8 +81,16 @@ def run3():
     print(f"{a} - {b}")
 
 
+def run4():
+    g = Graph()
+    g.populate_from_file(os.getcwd() + "/files/test1.txt")
+    algo = Algorithms(g)
+    p, v = algo.nearest_neighbor(dir=f"{os.getcwd()}/plots", name="_NN")
+    print(f"Nearest Neighbor: value = {v} | path = {p}")
+
+
 def main():
-    run3()
+    run4()
 
 
 if __name__ == '__main__':
