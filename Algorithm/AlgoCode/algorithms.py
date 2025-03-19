@@ -4,6 +4,7 @@ import random
 from deap import base, creator, tools, algorithms
 import matplotlib.pyplot as plt
 import numpy as np
+import heapq
 import plotter
 from model import Graph, Node
 import exceptions
@@ -19,8 +20,50 @@ class Algorithms():
     def __init__(self, graph: 'Graph'):
         self.graph = graph
 
+    def nearest_neighbor(self,
+                         start: int | Node = 0,
+                         dir: str | None = None,
+                         name: str = "") -> tuple[list[int], float]:
+        if isinstance(start, Node):
+            start = start.index
+
+        if self.graph.nodes == 2:
+            p = [n.index for n in self.graph.graph.keys()]
+            p += p[0]
+            return p, self.evaluate(p)
+        elif self.graph.nodes == 1:
+            return [n.index for n in self.graph.graph.keys()], 0
+        elif self.graph.nodes == 0:
+            return [], 0
+        
+        path = []
+        visited = [False] * self.graph.nodes
+        pq = []
+        heapq.heappush(pq, start)
+        while pq:
+            u = heapq.heappop(pq)
+            visited[u] = True
+            path.append(u)
+            neighbors = [(n, d) for n, d in enumerate(self.graph.distances[u])]
+            neighbors.sort(key=lambda x: x[1])
+
+            for n, _ in neighbors:
+                if not visited[n]:
+                    heapq.heappush(pq, n)
+                    break
+
+        path.append(path[0])
+
+        if dir:
+            self._plot_results(path, dir=dir, name=name)
+        else:
+            self._plot_results(path).show()
+
+        return path, self.evaluate(path)
+
+
     def one_tree(self,
-                 start: int | Node = 0) -> tuple[float, list[tuple[int, int]]]:
+                 start: int | Node = 0) -> tuple[list[tuple[int, int]], float]:
         """Calculates the 1-tree of the graph.
 
         A 1-tree is a tree that contains only one cicle.
@@ -64,7 +107,7 @@ class Algorithms():
 
     def held_karp_lb(self,
                      start: int | Node = 0,
-                     miter: int = 1000) -> tuple[float, list[tuple[int, int]]]:
+                     miter: int = 1000) -> tuple[list[tuple[int, int]], float]:
         """Calculates the held-karp lower bound of a TSP tour.
 
         The Held-Karp lower bound uses 1-trees to calculate a higher lower
@@ -243,7 +286,7 @@ class Algorithms():
         if hasattr(creator, 'Individual'):
             del creator.Individual
 
-        creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
+        creator.create("FitnessMin", base.Fitness, weights=(-1.0, ))
         creator.create("Individual",
                        list,
                        typecode='i',
@@ -268,8 +311,8 @@ class Algorithms():
             The toolbox defined for the genetic algorithm.
         """
         toolbox = base.Toolbox()
-        toolbox.register("random_order", random.sample, range(self.graph.nodes),
-                         self.graph.nodes)
+        toolbox.register("random_order", random.sample,
+                         range(self.graph.nodes), self.graph.nodes)
         toolbox.register("individual_creator", tools.initIterate,
                          creator.Individual, toolbox.random_order)
         toolbox.register("population_creator", tools.initRepeat, list,
@@ -407,8 +450,8 @@ class Algorithms():
                 if verbose:
                     print("Stagnated")
                 if ((mut_exploder < 5 or
-                     (mut_exploder < mut_exp and self.graph.nodes >= 20)) and
-                        mut_exploder < self.graph.nodes):
+                     (mut_exploder < mut_exp and self.graph.nodes >= 20))
+                        and mut_exploder < self.graph.nodes):
                     toolbox.register("mutate",
                                      tools.mutShuffleIndexes,
                                      indpb=1 /
@@ -427,8 +470,8 @@ class Algorithms():
                 gens_stagnated = 0
 
             # Population reseting
-            if (cicles >= (mcic) + 1 or
-                    superGens_stagnated > self.graph.nodes * 6.5):
+            if (cicles >= (mcic) + 1
+                    or superGens_stagnated > self.graph.nodes * 6.5):
                 if superGens_stagnated > self.graph.nodes * 6.5 and verbose:
                     print("Halted")
                 break
@@ -652,8 +695,9 @@ class Algorithms():
             next_path = self._flip(current_path, i, j)
             next_value = self.evaluate(next_path)
 
-            if ((next_value < current_value) or (random.uniform(0, 1) <= np.exp(
-                (current_value - next_value) / temperature))):
+            if ((next_value < current_value)
+                    or (random.uniform(0, 1) <= np.exp(
+                        (current_value - next_value) / temperature))):
                 current_path, current_value = next_path, next_value
 
                 if current_value < best_value:
@@ -890,7 +934,8 @@ class Algorithms():
             else:
                 p = [
                     self.graph.node_list[0].index,
-                    self.graph.node_list[1].index, self.graph.node_list[0].index
+                    self.graph.node_list[1].index,
+                    self.graph.node_list[0].index
                 ]
             return p, self.graph.distances[0][1]
         elif self.graph.nodes == 1:
