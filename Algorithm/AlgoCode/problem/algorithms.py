@@ -915,13 +915,13 @@ class Algorithms():
         pltr.plot_map(self.graph.create_points(path),
                       self.graph.center.coordinates)
         if dir:
-            plt.savefig(f"{dir}/Path{name}.png")
+            plt.savefig(f"{dir}/{name}.png")
             plt.clf()
         if logbook:
             plt.figure(2)
             pltr.plot_evolution(logbook.select("min"), logbook.select("avg"))
             if dir:
-                plt.savefig(f"{dir}/Evolution{name}.png")
+                plt.savefig(f"{dir}/Evolution_{name}.png")
                 plt.clf()
 
         return plt
