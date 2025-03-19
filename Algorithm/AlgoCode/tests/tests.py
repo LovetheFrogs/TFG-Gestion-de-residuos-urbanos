@@ -509,7 +509,9 @@ class TestAlgorithms(unittest.TestCase):
         """Tests the 1-tree lower bound Algorithm."""
         e, v = self.algo.one_tree()
         self.assertFalse(e[0][0])
-        _, vsa = self.algo.run_sa()
+        _, vsa = self.algo.run_sa(dir=f"{os.getcwd()}/problem/plots",
+                                   name="Path0")
+        os.remove(f"{os.getcwd()}/problem/plots/Path0.png")
         self.assertLessEqual(v, vsa)
         with self.assertRaisesRegex(
                 NodeNotFound,
@@ -541,7 +543,9 @@ class TestAlgorithms(unittest.TestCase):
         """Tests the Held-Karp lower bound algorithm."""
         e, v = self.algo.held_karp_lb()
         self.assertFalse(e[0][0])
-        _, vsa = self.algo.run_sa()
+        _, vsa = self.algo.run_sa(dir=f"{os.getcwd()}/problem/plots",
+                                   name="Path0")
+        os.remove(f"{os.getcwd()}/problem/plots/Path0.png")
         self.assertLessEqual(v, vsa)
         with self.assertRaisesRegex(
                 NodeNotFound,
@@ -680,7 +684,7 @@ def suite():
 
 
 def main():
-    """Runs all the tests."""
+    """Runs all the selected tests."""
     runner = unittest.TextTestRunner()
     runner.run(suite())
 
