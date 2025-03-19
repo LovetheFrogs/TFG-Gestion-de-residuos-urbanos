@@ -233,7 +233,7 @@ class TestGraphMethods(unittest.TestCase):
                         with self.subTest(i=int(str(j) + str(k))):
                             self.assertEqual(subgraph.distances[j][k],
                                              subgraph.distances[k][j])
-                self.assertEqual(subgraph.set_num_zones(725), 1)
+                self.assertEqual(subgraph.get_min_num_zones(725), 1)
                 self.assertTrue(subgraph.can_pickup_all(725, 1))
                 self.assertLess(subgraph.total_weight(), 725)
 
@@ -339,7 +339,7 @@ class TestAlgorithms(unittest.TestCase):
         os.remove(f"{os.getcwd()}/problem/plots/Evolution_Path0.png")
         self.assertEqual(po[-1], po[0])
         random_path = random.sample(range(0, self.g.nodes), self.g.nodes)
-        self.assertGreater(self.algo.evaluate_tsp(random_path)[0], vo)
+        self.assertGreater(self.algo._evaluate_tsp(random_path)[0], vo)
 
         # Test on a graph with two nodes.
         p, v = Algorithms(self.g2nodes).run_ga_tsp(
@@ -434,7 +434,7 @@ class TestAlgorithms(unittest.TestCase):
         # Test on a graph with two nodes.
         p, v = Algorithms(self.g2nodes).run_sa(
             dir=f"{os.getcwd()}/problem/plots",
-                                               name="Path0")
+            name="Path0")
         self.assertEqual(v, self.g2nodes.edge_list[0].value)
         self.assertTrue(
             p == [self.aux1.index, self.aux2.index, self.aux1.index])
@@ -442,14 +442,14 @@ class TestAlgorithms(unittest.TestCase):
         # Test on a graph with one node.
         p, v = Algorithms(self.g1node).run_sa(
             dir=f"{os.getcwd()}/problem/plots",
-                                              name="Path0")
+            name="Path0")
         self.assertEqual(v, 0)
         self.assertTrue(p == [self.aux1.index])
 
         # Test on a graph with no nodes.
         p, v = Algorithms(self.g0nodes).run_sa(
             dir=f"{os.getcwd()}/problem/plots",
-                                               name="Path0")
+            name="Path0")
         self.assertEqual(v, 0)
         self.assertTrue(p == [])
 
@@ -593,6 +593,7 @@ class TestTouringAlgorithms(unittest.TestCase):
         self.g0nodes = Graph()
 
     def test_nearest_neighbor(self):
+        """Tests the Nearest Neighbor Algorithm."""
         po, vo = self.algo.nearest_neighbor(dir=f"{os.getcwd()}/problem/plots",
                                              name="Path0")
         os.remove(f"{os.getcwd()}/problem/plots/Path0.png")
@@ -674,7 +675,7 @@ class TestModelFileCreation(unittest.TestCase):
 
 def suite():
     suite = unittest.TestSuite()
-    suite.addTest(TestGraphMethods('test_create_subgraph'))
+    suite.addTest(TestAlgorithms('test_simulated_annealing'))
     return suite
 
 
