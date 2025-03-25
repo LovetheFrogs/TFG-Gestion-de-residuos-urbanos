@@ -2,6 +2,7 @@
 
 import seaborn as sns
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 class Plotter():
@@ -9,6 +10,14 @@ class Plotter():
 
     def __init__(self):
         pass
+
+    def plot_points(self, data: list[tuple[float, float]], 
+                    center: tuple[float, float]) -> plt:
+        plt.scatter(*zip(*data), marker='.', color='red')
+        plt.plot(center[0], center[1], marker='x', markersize=10, color='green')
+        plt.title('Bins.')
+        
+        return plt
 
     def plot_map(self, data: list[tuple[float, float]] |
                  list[list[tuple[float, float]]], center: tuple[float,
@@ -18,8 +27,8 @@ class Plotter():
         Shows how the best route joins each node to each other.
 
         Args:
-            data: List of nodes. In vrp mode it will be a list of lists of 
-                nodes (one for each zone).
+            data: List of nodes. In multi-zone mode it will be a list of lists 
+                of nodes (one for each zone).
         
         Returns:
             A plot of the nodes and how they are connected in a path.
