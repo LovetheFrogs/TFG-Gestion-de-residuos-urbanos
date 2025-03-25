@@ -198,7 +198,7 @@ def create_dataset():
     """
     if len(sys.argv) > 1:
         update_global()
-    path = CWD + "/files/datasets"
+    path = CWD + "/utils/datasets"
     if not os.path.isdir(path):
         os.makedirs(path)
 

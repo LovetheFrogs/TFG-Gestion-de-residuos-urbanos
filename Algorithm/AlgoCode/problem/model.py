@@ -1,6 +1,5 @@
 # Created by LovetheFrogs for URJC's tfg
 
-# Check YAPF (Yet Another Python Formatter)
 # Use google code-style - https://google.github.io/styleguide/pyguide.html
 # Use google docstrings - https://gist.github.com/redlotus/3bc387c2591e3e908c9b63b97b11d24e
 # PEP 484 - https://www.writethedocs.org/guide/writing/reStructuredText/
@@ -21,8 +20,8 @@ import math
 import heapq
 import pickle
 from typing import Union
-from exceptions import *
-from utils import printProgressBar
+from problem.exceptions import *
+from utils.utils import printProgressBar
 
 
 def load(path: str) -> Union['Graph', None]:
@@ -225,6 +224,7 @@ class Graph():
         self.center = None
         self.distances = None
 
+    # Functions to create a graph.
     def get_node(self, idx: int) -> Node:
         """Gets a node from the graph.
 
@@ -346,54 +346,6 @@ class Graph():
         self.center.center = True
         self.node_list.remove(node)
 
-    def total_weight(self) -> float:
-        """Calculates the sum weight of all the nodes in the graph.
-
-        Returns:
-            The total weight of all the nodes.
-        """
-        return sum(node.weight for node in self.node_list)
-
-    def can_pickup_all(self, truck_capacity: float, truck_count: int) -> bool:
-        """Computes if all the trucks can pick up the bins in one round.
-
-        Args:
-            truck_capacity: The capacity of each truck.
-            truck_count: The number of available trucks.
-
-        Returns:
-            True if the bins can be picked up in one round, False if not.
-        """
-        total_waste = self.total_weight()
-        total_capacity = truck_capacity * truck_count
-        return total_waste < total_capacity
-
-    def set_num_zones(self, truck_capacity: float) -> int:
-        """Computes the minimum number of zones.
-        
-        The minimum number of zones is calculated if each truck's capacity 
-        is maximized. As such, the program does not guarantee division in 
-        this number of zones, as it may not be possible while keeping zone 
-        distribution sensible.
-
-        Args:
-            truck_capacity: The capacity of each truck.
-
-        Returns:
-            The minimum number of zones.
-        """
-        res = math.ceil(self.total_weight() / truck_capacity)
-        return res if res > 0 else 1
-
-    def save(self, path: str):
-        """Saves a graph to a file.
-        
-        Args:
-            path: The path where the current graph will be saved.
-        """
-        with open(path, 'wb') as backup:
-            pickle.dump(self, backup, protocol=-1)
-
     def set_distance_matrix(self):
         """Creates a distance matrix from a graph."""
         aux = max([n.index for n in self.graph])
@@ -488,6 +440,98 @@ class Graph():
             if verbose:
                 print("Graph loaded")
 
+    def create_subgraph(self, nodes: list[Node]) -> 'Graph':
+        """Creates a new graph from an existing one.
+
+        The new graph will have the nodes from the current graph that are in 
+        the ``nodes`` argument, as well as the edges connecting them, 
+        effectively making it a subgraph of the current one.
+
+        Allows to consider each zone as it's own individual graph, making it 
+        easier to get the optimal path for a zone.
+
+        Due to algorithm constraints, the nodes will be renamed in the 
+        subgraph. If the n-th node in ``nodes`` has id 9, it will have the id
+        1 in the subgraph, altough it can still be traced, as all the other
+        attributes will be the same.
+
+        Note that the first node of ``nodes`` must have the center attribute 
+        set to ``True``.
+
+        Args:
+            nodes: A list of nodes for the new graph
+
+        Returns:
+            A new subgraph that comes from the graph instance this function is 
+            called on.
+
+        Raises:
+            NodeNotFound: If the node is not in the graph
+        """
+        g = Graph()
+        original_sub = {}
+        sub_original = {}
+        for i, node in enumerate(nodes):
+            new_node = Node(i, node.weight, node.coordinates[0],
+                            node.coordinates[1], node.center)
+            g.add_node(new_node)
+            sub_original[new_node] = self.get_node(node.index)
+            original_sub[self.get_node(node.index)] = new_node
+        for node in g.graph:
+            original_node = sub_original[node]
+            if original_node not in self.graph:
+                raise NodeNotFound(original_node.index)
+            edges = self.graph[original_node]
+            for edge in edges:
+                if edge.dest in nodes:
+                    new_edge = Edge(edge.speed, node, original_sub[edge.dest])
+                    g.add_edge(new_edge)
+
+        g.set_distance_matrix()
+
+        return g
+
+    # Extra functions to get information about graph divisions.
+    def total_weight(self) -> float:
+        """Calculates the sum weight of all the nodes in the graph.
+
+        Returns:
+            The total weight of all the nodes.
+        """
+        return sum(node.weight for node in self.node_list)
+
+    def can_pickup_all(self, truck_capacity: float, truck_count: int) -> bool:
+        """Computes if all the trucks can pick up the bins in one round.
+
+        Args:
+            truck_capacity: The capacity of each truck.
+            truck_count: The number of available trucks.
+
+        Returns:
+            True if the bins can be picked up in one round, False if not.
+        """
+        total_waste = self.total_weight()
+        total_capacity = truck_capacity * truck_count
+        return total_waste < total_capacity
+
+    def get_min_num_zones(self, truck_capacity: float) -> int:
+        """Computes the minimum number of zones.
+        
+        The minimum number of zones is calculated if each truck's capacity 
+        is maximized. As such, the program does not guarantee division in 
+        this number of zones, as it may not be possible while keeping zone 
+        distribution sensible.
+
+        Args:
+            truck_capacity: The capacity of each truck.
+
+        Returns:
+            The minimum number of zones.
+        """
+        res = math.ceil(self.total_weight() / truck_capacity)
+        return res if res > 0 else 1
+
+    # Commonly used graph algorithms.
     def bfs(self, source: Node) -> list[int]:
         """Performs Breadth First Search on the graph from the node ``source``.
 
@@ -638,7 +682,8 @@ class Graph():
             for i, n in enumerate(distances):
                 self.shortest_paths[start.index, i] = distances[i]
 
-    def create_zones(self, angled_nodes: list[Node],
+    # Zone creation functions
+    def _create_zones(self, angled_nodes: list[Node],
                      truck_capacity: float) -> list[list[Node]]:
         """Divides the graph in zones.
 
@@ -680,7 +725,7 @@ class Graph():
 
         return zones
 
-    def postprocess_zones(self, zones: list[list[Node]],
+    def _postprocess_zones(self, zones: list[list[Node]],
                           truck_capacity: float) -> list[list[Node]]:
         """Evaluates zones to determine if a frontier node should be moved.
         
@@ -811,66 +856,15 @@ class Graph():
             y_coordinates = node.coordinates[1] - self.center.coordinates[1]
             node.angle = math.atan2(y_coordinates, x_coordinates)
         angled_nodes = sorted(self.node_list, key=lambda n: n.angle)
-        zones = self.create_zones(angled_nodes, truck_capacity)
-        zones = self.postprocess_zones(zones, truck_capacity)
+        zones = self._create_zones(angled_nodes, truck_capacity)
+        zones = self._postprocess_zones(zones, truck_capacity)
 
         return zones
-
-    def create_subgraph(self, nodes: list[Node]) -> 'Graph':
-        """Creates a new graph from an existing one.
-
-        The new graph will have the nodes from the current graph that are in 
-        the ``nodes`` argument, as well as the edges connecting them, 
-        effectively making it a subgraph of the current one.
-
-        Allows to consider each zone as it's own individual graph, making it 
-        easier to get the optimal path for a zone.
-
-        Due to algorithm constraints, the nodes will be renamed in the 
-        subgraph. If the n-th node in ``nodes`` has id 9, it will have the id
-        1 in the subgraph, altough it can still be traced, as all the other
-        attributes will be the same.
-
-        Note that the first node of ``nodes`` must have the center attribute 
-        set to ``True``.
-
-        Args:
-            nodes: A list of nodes for the new graph
-
-        Returns:
-            A new subgraph that comes from the graph instance this function is 
-            called on.
-
-        Raises:
-            NodeNotFound: If the node is not in the graph
-        """
-        g = Graph()
-        original_sub = {}
-        sub_original = {}
-        for i, node in enumerate(nodes):
-            new_node = Node(i, node.weight, node.coordinates[0],
-                            node.coordinates[1], node.center)
-            g.add_node(new_node)
-            sub_original[new_node] = self.get_node(node.index)
-            original_sub[self.get_node(node.index)] = new_node
-        for node in g.graph:
-            original_node = sub_original[node]
-            if original_node not in self.graph:
-                raise NodeNotFound(original_node.index)
-            edges = self.graph[original_node]
-            for edge in edges:
-                if edge.dest in nodes:
-                    new_edge = Edge(edge.speed, node, original_sub[edge.dest])
-                    g.add_edge(new_edge)
-
-        g.set_distance_matrix()
-
-        return g
 
     def create_points(
         self,
         path: list[int] | list[list[int]],
-    ) -> list[tuple[float, float]] | list[list[tuple, tuple]]:
+        ) -> list[tuple[float, float]] | list[list[tuple, tuple]]:
         """Generates a list of coordinates from a list of node indices.
         
         Args:
@@ -885,6 +879,17 @@ class Graph():
 
         return res
 
+    # Helper function to save a graph to a file.
+    def save(self, path: str):
+        """Saves a graph to a file.
+        
+        Args:
+            path: The path where the current graph will be saved.
+        """
+        with open(path, 'wb') as backup:
+            pickle.dump(self, backup, protocol=-1)
+
+    # Magic functions.
     def __len__(self):
         """Returns the length of a Graph instance.
         

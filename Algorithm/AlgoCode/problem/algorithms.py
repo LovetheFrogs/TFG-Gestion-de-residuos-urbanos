@@ -5,9 +5,9 @@ from deap import base, creator, tools, algorithms
 import matplotlib.pyplot as plt
 import numpy as np
 import heapq
-import plotter
-from model import Graph, Node
-import exceptions
+import utils.plotter as plotter
+from problem.model import Graph, Node
+import problem.exceptions as exceptions
 
 
 class Algorithms():
@@ -20,64 +20,22 @@ class Algorithms():
     def __init__(self, graph: 'Graph'):
         self.graph = graph
 
-    def nearest_neighbor(self,
-                         start: int | Node = 0,
-                         dir: str | None = None,
-                         name: str = "") -> tuple[list[int], float]:
-        """Gets a tour by executing the Nearest Neighbor algorithm.
-
-        The Nearest Neighbor (NN) algorithm creates a tour by visiting the 
-        nodes of a graph in order of distance, visitng the closest next. If the
-        closest neighbor is already visited, it moves to the next one and so 
-        on.
+    # Function that returns the value of a tour.
+    def evaluate(self, individual: list[int]) -> float:
+        """Calculates the fitness value of a path.
 
         Args:
-            start: The node from where NN will start. Can either be the index 
-            of a node or the Node itself. Defaults to 0.
-            dir (optional): The directory where the plots should be saved. 
-                Defaults to None, in which case the plot(s) won't be saved.
-            name (optional): The name to add to the plots. Defaults to "".
+            individual: The path to evaluate.
 
         Returns:
-            A tupple containing the tour and its value.
+            The fitness of the path.
         """
-        if isinstance(start, Node):
-            start = start.index
+        total_value = self.graph.distances[individual[-1]][individual[0]]
+        for ind1, ind2 in zip(individual[0:-1], individual[1:]):
+            total_value += self.graph.distances[ind1][ind2]
+        return (total_value)
 
-        if self.graph.nodes == 2:
-            p = [n.index for n in self.graph.graph.keys()]
-            p += [p[0]]
-            return p, self.evaluate(p)
-        elif self.graph.nodes == 1:
-            return [n.index for n in self.graph.graph.keys()], 0
-        elif self.graph.nodes == 0:
-            return [], 0
-        
-        path = []
-        visited = [False] * self.graph.nodes
-        pq = []
-        heapq.heappush(pq, start)
-        while pq:
-            u = heapq.heappop(pq)
-            visited[u] = True
-            path.append(u)
-            neighbors = [(n, d) for n, d in enumerate(self.graph.distances[u])]
-            neighbors.sort(key=lambda x: x[1])
-
-            for n, _ in neighbors:
-                if not visited[n]:
-                    heapq.heappush(pq, n)
-                    break
-
-        path.append(path[0])
-
-        if dir:
-            self._plot_results(path, dir=dir, name=name)
-        else:
-            self._plot_results(path).show()
-
-        return path, self.evaluate(path)
-
+    # Lower bound algorithms.
     def one_tree(self,
                  start: int | Node = 0) -> tuple[list[tuple[int, int]], float]:
         """Calculates the 1-tree of the graph.
@@ -194,7 +152,67 @@ class Algorithms():
         self.graph.distances = original_dist
         return best, best_lb
 
-    def local_search(self, ind: list[int], mi: int = 50) -> list[int]:
+    # Computing a simple tour.
+    def nearest_neighbor(self,
+                         start: int | Node = 0,
+                         dir: str | None = None,
+                         name: str = "") -> tuple[list[int], float]:
+        """Gets a tour by executing the Nearest Neighbor algorithm.
+
+        The Nearest Neighbor (NN) algorithm creates a tour by visiting the 
+        nodes of a graph in order of distance, visitng the closest next. If the
+        closest neighbor is already visited, it moves to the next one and so 
+        on.
+
+        Args:
+            start: The node from where NN will start. Can either be the index 
+            of a node or the Node itself. Defaults to 0.
+            dir (optional): The directory where the plots should be saved. 
+                Defaults to None, in which case the plot(s) won't be saved.
+            name (optional): The name to add to the plots. Defaults to "".
+
+        Returns:
+            A tupple containing the tour and its value.
+        """
+        if isinstance(start, Node):
+            start = start.index
+
+        if self.graph.nodes == 2:
+            p = [n.index for n in self.graph.graph.keys()]
+            p += [p[0]]
+            return p, self.evaluate(p)
+        elif self.graph.nodes == 1:
+            return [n.index for n in self.graph.graph.keys()], 0
+        elif self.graph.nodes == 0:
+            return [], 0
+        
+        path = []
+        visited = [False] * self.graph.nodes
+        pq = []
+        heapq.heappush(pq, start)
+        while pq:
+            u = heapq.heappop(pq)
+            visited[u] = True
+            path.append(u)
+            neighbors = [(n, d) for n, d in enumerate(self.graph.distances[u])]
+            neighbors.sort(key=lambda x: x[1])
+
+            for n, _ in neighbors:
+                if not visited[n]:
+                    heapq.heappush(pq, n)
+                    break
+
+        path.append(path[0])
+
+        if dir:
+            self._plot_results(path, dir=dir, name=name)
+        else:
+            self._plot_results(path).show()
+
+        return path, self.evaluate(path)
+
+    # Private helper functions used in heuristic algorithms.
+    def _local_search(self, ind: list[int], mi: int = 50) -> list[int]:
         """Tries to improve the fitness of an individual making use of 2opt.
 
         Args:
@@ -205,7 +223,7 @@ class Algorithms():
             The improved individual.
         """
         improved = True
-        best_fitness = self.evaluate_tsp(ind)
+        best_fitness = self._evaluate_tsp(ind)
         it = 0
         while improved and it < mi:
             improved = False
@@ -215,7 +233,7 @@ class Algorithms():
                         continue
                     ni = ind.copy()
                     ni[i:j + 1] = ni[i:j + 1][::-1]
-                    new_fitness = self.evaluate_tsp(ind)
+                    new_fitness = self._evaluate_tsp(ind)
                     if new_fitness < best_fitness:
                         ind = ni
                         best_fitness = new_fitness
@@ -226,37 +244,24 @@ class Algorithms():
             it += 1
         return ind
 
-    def evaluate(self, individual: list[int]) -> float:
-        """Calculates the fitness value of a path.
-
-        Args:
-            individual: The path to evaluate.
-
-        Returns:
-            The fitness of the path.
-        """
-        total_value = self.graph.distances[individual[-1]][individual[0]]
-        for ind1, ind2 in zip(individual[0:-1], individual[1:]):
-            total_value += self.graph.distances[ind1][ind2]
-        return (total_value)
-
-    def evaluate_tsp(self, individual: list[int]) -> tuple[float, ...]:
-        """Wrapper that calls the valuation function.
+    def _evaluate_tsp(self, individual: list[int]) -> tuple[float, ...]:
+        """Wrapper that calls the evaluation function.
         
-        The algorithms used for this evaluation function is a genetic 
+        The algorithm used for this evaluation function is a genetic 
         algorithms and, as such, it tries to minimize/maximize the value of a
         function to find a solution to a problem. In this case, the problem is
         finding the path in a graph that optimizes a series of objectives 
         (minimizes the value of a fitness function). The ``evaluate_tsp`` 
-        calls the evaluation function to check the result of evaluating said 
-        objective function for a given path and returns a tuple, as required
-        by DEAP.
+        wrapper calls the evaluation function to check the result of evaluating 
+        said objective function for a given path (individual) and returns a 
+        tuple, as required by the DEAP library.
         
         Currently, the objective function gives the cost of the path, which is
         the sum of the values of the edges that form the path, made up of how 
         long they are and the theorical time they take to travel trough times
         2.5 to account for real-world time wastes (traffic stops, dense trafic
-        and such).
+        and such). It also accounts for a small time of 2 minutes to pick up 
+        a node.
         
         Args:
             individual: The path to evaluate.
@@ -280,6 +285,82 @@ class Algorithms():
         new_ind.fitness.values = ind.fitness.values
         return new_ind
 
+    def _flip(self, path: list[int], i: int, j: int) -> list[int]:
+        """Flips a section of a path.
+
+        Given a path, it flips the section between i and j so that path[i] will
+        be path[j], path[i + 1] will be path[j - 1] and so on.
+
+        Args:
+            path: The path where a section will be flipped.
+            i: The start of a section.
+            j: The end of a section.
+
+        Returns:
+            The result of performing the section flip on the given path.
+        """
+        new_path = np.concatenate(
+            (path[0:i], path[j:-len(path) + i - 1:-1], path[j + 1:len(path)]))
+        return [int(n) for n in new_path]
+
+    def _get_neighbors(self, path: list[int]) -> list[list[int]]:
+        """Gets all the posible neighbors of a path.
+
+        A neighbor of a path `p` is another path `p'` where the position of
+        two nodes has been interchanged using the `_flip` function.
+
+        Args:
+            path: The path whose neighbors we want to find.
+
+        Returns:
+            The list of neighbor paths.
+        """
+        neighbors = []
+        for i in range(self.graph.nodes):
+            for j in range(i + 1, self.graph.nodes):
+                n = self._flip(path, i, j)
+                neighbors.append(n)
+        return neighbors
+
+    def _check_length(self) -> tuple[list[int | None], float] | None:
+        """Gives a TSP tour and value for special cases where graphs are small.
+         
+        This function checks the length of a graph and returns the value of a 
+        TSP tour and value in the cases where the graph has 0, q or 2 nodes.
+
+        Returns:
+            This function has 4 different returns:
+            1- Return a tour with 3 nodes and the length of the single edge
+            of the graph when its length is 2.
+            2- Return a tour with one node and a value of 0 when the length
+            of the graph is 1.
+            3- Return an empty list and 0 when the graph is empty.
+            4- Return `None` if otherwise.
+        """
+        if self.graph.nodes == 2:
+            if self.graph.center:
+                p = [
+                    self.graph.center.index, self.graph.node_list[0].index,
+                    self.graph.center.index
+                ]
+            else:
+                p = [
+                    self.graph.node_list[0].index,
+                    self.graph.node_list[1].index,
+                    self.graph.node_list[0].index
+                ]
+            return p, self.graph.distances[0][1]
+        elif self.graph.nodes == 1:
+            if self.graph.center:
+                return [self.graph.center.index], 0
+            else:
+                return [self.graph.node_list[0]], 0
+        elif self.graph.nodes == 0:
+            return [], 0
+        else:
+            return None
+
+    # Private helper functions used in the genetic algorithm.
     def _define_creator(self) -> creator:
         """Defines a deap creator for the genetic algorithms.
         
@@ -334,7 +415,7 @@ class Algorithms():
         toolbox.register("population_creator", tools.initRepeat, list,
                          toolbox.individual_creator)
 
-        toolbox.register("evaluate", self.evaluate_tsp)
+        toolbox.register("evaluate", self._evaluate_tsp)
         toolbox.register("select", tools.selTournament, tournsize=2)
 
         toolbox.register("mate", tools.cxOrdered)
@@ -367,7 +448,8 @@ class Algorithms():
 
         return population, stats, hof
 
-    def eaSimpleWithElitism(self,
+    # Metaheuristic algorithms.
+    def _eaSimpleWithElitism(self,
                             population,
                             toolbox,
                             cxpb,
@@ -432,9 +514,9 @@ class Algorithms():
 
             elite = halloffame.items
             for i, e in enumerate(elite):
-                ie = self.local_search(e)
+                ie = self._local_search(e)
                 e[:] = ie[:]
-                e.fitness.values = self.evaluate_tsp(e)
+                e.fitness.values = self._evaluate_tsp(e)
 
             # add the best back to population:
             offspring.extend(halloffame.items)
@@ -494,72 +576,6 @@ class Algorithms():
 
         return population, logbook
 
-    def run_ga_tsp(self,
-                   ngen: int = 3000,
-                   cxpb: float = 0.7,
-                   mutpb: float = 0.2,
-                   pop_size: int = 1000,
-                   dir: str | None = None,
-                   name: str = "",
-                   vrb: bool = False) -> tuple[list[int], float]:
-        """Runs the Genetic Algorithm for the Traveling Salesman Problem.
-        
-        This function calls the wrapper functions that define the creator, 
-        toolbox and the attributes for the Genetic Algorithm designed to solve
-        the Traveling Salesman Problem. It then runs the Genetic Algorithm and 
-        returns the best path found and its total value, while also calling the
-        wrapper function to plot the results.
-
-        Args:
-            ngen (optional): The number of generations. Defaults to 100.
-            cxpb (optional): The mating probability. Defaults to 0.9.
-            mutpb (optional): The mutation probability. Defaults to 0.1.
-            pop_size (optional): The size of the population. Defaults to 200.
-            dir (optional): The directory where the plots should be saved. 
-                Defaults to None, in which case the plot(s) won't be saved.
-            name (optional): The name to add to the plots. Defaults to "".
-            vrb (optional): Run the algorithm in verbose or non-verbose mode.
-                Defaults to False.
-
-        Returns:
-            A tuple containing the best path found and its total value.
-        """
-        check = self._check_length()
-        if check:
-            return check[0], check[1]
-
-        random.seed(169)
-        if not self.graph.distances:
-            self.graph.set_distance_matrix()
-
-        creator = self._define_creator()
-        toolbox = self._define_toolbox()
-        population, stats, hof, = self._define_ga(toolbox, pop_size)
-
-        population, logbook = self.eaSimpleWithElitism(population,
-                                                       toolbox,
-                                                       cxpb=cxpb,
-                                                       mutpb=mutpb,
-                                                       ngen=ngen,
-                                                       stats=stats,
-                                                       halloffame=hof,
-                                                       verbose=vrb)
-
-        best = [i for i in hof.items[0]]
-        best += [best[0]]
-        total_value = self.evaluate_tsp(best)[0]
-
-        if vrb:
-            print("-- Best Ever Individual = ", best)
-            print("-- Best Ever Fitness = ", total_value)
-
-        if dir:
-            self._plot_results(best, logbook, dir, name)
-        else:
-            self._plot_results(best, logbook).show()
-
-        return best, total_value
-
     def _two_opt(self, path: list[int], vrb: bool) -> tuple[list[int], float]:
         """2-opt algorithm for solving the Travelling Salesman Problem.
 
@@ -599,80 +615,6 @@ class Algorithms():
                         print(f"Best value: {best_value} - best path: {best}")
 
         return best, best_value
-
-    def _flip(self, path: list[int], i: int, j: int) -> list[int]:
-        """Flips a section of a path.
-
-        Given a path, it flips the section between i and j so that path[i] will
-        be path[j], path[i + 1] will be path[j - 1] and so on.
-
-        Args:
-            path: The path where a section will be flipped.
-            i: The start of a section.
-            j: The end of a section.
-
-        Returns:
-            The result of performing the section flip on the given path.
-        """
-        new_path = np.concatenate(
-            (path[0:i], path[j:-len(path) + i - 1:-1], path[j + 1:len(path)]))
-        return [int(n) for n in new_path]
-
-    def run_two_opt(self,
-                    path: list[int] | None = None,
-                    dir: str | None = None,
-                    name: str = "",
-                    vrb: bool = False) -> tuple[list[int], float]:
-        """Executes 2-opt optimization on a graph.
-
-        Args:
-            path (optional): The initial path from which 2-opt is executed. In
-                case it is not provided, 2-opt will start on a random path.
-                Defaults to None.
-            dir (optional): The directory where the plots should be saved. 
-                Defaults to None, in which case the plot(s) won't be saved.
-            name (optional): The name to add to the plots. Defaults to "".
-            vrb (optional): Run the algorithm in verbose or non-verbose mode.
-                Defaults to False.
-
-        Returns:
-            A tuple containing the best path found and its total value.
-        """
-        check = self._check_length()
-        if check:
-            return check[0], check[1]
-
-        random.seed(169)
-
-        if not path:
-            path = random.sample(range(0, self.graph.nodes), self.graph.nodes)
-        best, best_value = self._two_opt(path, vrb)
-        best += [best[0]]
-        if dir:
-            self._plot_results(best, dir=dir, name=name)
-        else:
-            self._plot_results(best).show()
-
-        return best, best_value
-
-    def _get_neighbors(self, path: list[int]) -> list[list[int]]:
-        """Gets all the posible neighbors of a path.
-
-        A neighbor of a path `p` is another path `p'` where the position of
-        two nodes has been interchanged using the `_flip` function.
-
-        Args:
-            path: The path whose neighbors we want to find.
-
-        Returns:
-            The list of neighbor paths.
-        """
-        neighbors = []
-        for i in range(self.graph.nodes):
-            for j in range(i + 1, self.graph.nodes):
-                n = self._flip(path, i, j)
-                neighbors.append(n)
-        return neighbors
 
     def _simulated_annealing(self, path: list[int], niter: int, mstag: int,
                              vrb: bool) -> tuple[list[int], float]:
@@ -732,50 +674,6 @@ class Algorithms():
                       f"Stagnated: {stagnated}")
 
         return best_path, best_value
-
-    def run_sa(self,
-               path: list[int] | None = None,
-               niter: int = 100000,
-               mstag: int = 1500,
-               dir: str | None = None,
-               name: str = "",
-               vrb: bool = False) -> tuple[list[int], float]:
-        """Executes Simulated Annealing on a graph
-
-        Args:
-            path (optional): The starting path. If it is `None`, a random one
-                will be created. Defaults to None.
-            niter (optional): Maximum number of iterations. Defaults to 100000.
-            mstag (optional): Maximum number of iterations without improvements
-                to the value of the objective function. Defaults to 1500.
-            dir (optional): The directory where the plots should be saved. 
-                Defaults to None, in which case the plot(s) won't be saved.
-            name (optional): The name to add to the plots. Defaults to "".
-            vrb (optional): Run the algorithm in verbose or non-verbose mode.
-                Defaults to False.
-
-        Returns:
-            A tuple containing the best path found and its total value.
-        """
-        check = self._check_length()
-        if check:
-            return check[0], check[1]
-
-        random.seed(169)
-
-        if not path:
-            path = random.sample(range(0, self.graph.nodes), self.graph.nodes)
-        best, best_value = self._simulated_annealing(path,
-                                                     niter=niter,
-                                                     mstag=mstag,
-                                                     vrb=vrb)
-        best += [best[0]]
-        if dir:
-            self._plot_results(best, dir=dir, name=name)
-        else:
-            self._plot_results(best).show()
-
-        return best, best_value
 
     def _tabu_search(self,
                      path: list[int],
@@ -843,6 +741,155 @@ class Algorithms():
 
         return best, self.evaluate(best)
 
+    # Wrappers to run metaheuristic algorithms.
+    def run_ga_tsp(self,
+                   ngen: int = 3000,
+                   cxpb: float = 0.7,
+                   mutpb: float = 0.2,
+                   pop_size: int = 1000,
+                   dir: str | None = None,
+                   name: str = "",
+                   vrb: bool = False) -> tuple[list[int], float]:
+        """Runs the Genetic Algorithm for the Traveling Salesman Problem.
+        
+        This function calls the wrapper functions that define the creator, 
+        toolbox and the attributes for the Genetic Algorithm designed to solve
+        the Traveling Salesman Problem. It then runs the Genetic Algorithm and 
+        returns the best path found and its total value, while also calling the
+        wrapper function to plot the results.
+
+        Args:
+            ngen (optional): The number of generations. Defaults to 100.
+            cxpb (optional): The mating probability. Defaults to 0.9.
+            mutpb (optional): The mutation probability. Defaults to 0.1.
+            pop_size (optional): The size of the population. Defaults to 200.
+            dir (optional): The directory where the plots should be saved. 
+                Defaults to None, in which case the plot(s) won't be saved.
+            name (optional): The name to add to the plots. Defaults to "".
+            vrb (optional): Run the algorithm in verbose or non-verbose mode.
+                Defaults to False.
+
+        Returns:
+            A tuple containing the best path found and its total value.
+        """
+        check = self._check_length()
+        if check:
+            return check[0], check[1]
+
+        random.seed(169)
+        if not self.graph.distances:
+            self.graph.set_distance_matrix()
+
+        creator = self._define_creator()
+        toolbox = self._define_toolbox()
+        population, stats, hof, = self._define_ga(toolbox, pop_size)
+
+        population, logbook = self._eaSimpleWithElitism(population,
+                                                       toolbox,
+                                                       cxpb=cxpb,
+                                                       mutpb=mutpb,
+                                                       ngen=ngen,
+                                                       stats=stats,
+                                                       halloffame=hof,
+                                                       verbose=vrb)
+
+        best = [i for i in hof.items[0]]
+        best += [best[0]]
+        total_value = self._evaluate_tsp(best)[0]
+
+        if vrb:
+            print("-- Best Ever Individual = ", best)
+            print("-- Best Ever Fitness = ", total_value)
+
+        if dir:
+            self._plot_results(best, logbook, dir=dir, name=name)
+        else:
+            plt = self._plot_results(best, logbook).show()
+
+        return best, total_value
+
+    def run_two_opt(self,
+                    path: list[int] | None = None,
+                    dir: str | None = None,
+                    name: str = "",
+                    vrb: bool = False) -> tuple[list[int], float]:
+        """Executes 2-opt optimization on a graph.
+
+        Args:
+            path (optional): The initial path from which 2-opt is executed. In
+                case it is not provided, 2-opt will start on a random path.
+                Defaults to None.
+            dir (optional): The directory where the plots should be saved. 
+                Defaults to None, in which case the plot(s) won't be saved.
+            name (optional): The name to add to the plots. Defaults to "".
+            vrb (optional): Run the algorithm in verbose or non-verbose mode.
+                Defaults to False.
+
+        Returns:
+            A tuple containing the best path found and its total value.
+        """
+        check = self._check_length()
+        if check:
+            return check[0], check[1]
+
+        random.seed(169)
+
+        if not path:
+            path = random.sample(range(0, self.graph.nodes), self.graph.nodes)
+        best, best_value = self._two_opt(path, vrb)
+        best += [best[0]]
+        
+        if dir:
+            self._plot_results(best, dir=dir, name=name)
+        else:
+            self._plot_results(best).show()
+
+        return best, best_value
+
+    def run_sa(self,
+               path: list[int] | None = None,
+               niter: int = 100000,
+               mstag: int = 1500,
+               dir: str | None = None,
+               name: str = "",
+               vrb: bool = False) -> tuple[list[int], float]:
+        """Executes Simulated Annealing on a graph
+
+        Args:
+            path (optional): The starting path. If it is `None`, a random one
+                will be created. Defaults to None.
+            niter (optional): Maximum number of iterations. Defaults to 100000.
+            mstag (optional): Maximum number of iterations without improvements
+                to the value of the objective function. Defaults to 1500.
+            dir (optional): The directory where the plots should be saved. 
+                Defaults to None, in which case the plot(s) won't be saved.
+            name (optional): The name to add to the plots. Defaults to "".
+            vrb (optional): Run the algorithm in verbose or non-verbose mode.
+                Defaults to False.
+
+        Returns:
+            A tuple containing the best path found and its total value.
+        """
+        check = self._check_length()
+        if check:
+            return check[0], check[1]
+
+        random.seed(169)
+
+        if not path:
+            path = random.sample(range(0, self.graph.nodes), self.graph.nodes)
+        best, best_value = self._simulated_annealing(path,
+                                                     niter=niter,
+                                                     mstag=mstag,
+                                                     vrb=vrb)
+        best += [best[0]]
+        if dir:
+            self._plot_results(best, dir=dir, name=name)
+        else:
+            self._plot_results(best).show()
+
+        return best, best_value
+
     def run_tabu_search(self,
                         path: list[int] = None,
                         niter: int = 1000,
@@ -886,6 +933,7 @@ class Algorithms():
 
         return best, best_value
 
+    # Helper function for plotting results.
     def _plot_results(self,
                       path: list[int],
                       logbook: dict | None = None,
@@ -915,51 +963,13 @@ class Algorithms():
         pltr.plot_map(self.graph.create_points(path),
                       self.graph.center.coordinates)
         if dir:
-            plt.savefig(f"{dir}/Path{name}.png")
-            plt.clf()
+            plt.savefig(f"{dir}/{name}.png")
+            plt.close()
         if logbook:
             plt.figure(2)
             pltr.plot_evolution(logbook.select("min"), logbook.select("avg"))
             if dir:
-                plt.savefig(f"{dir}/Evolution{name}.png")
-                plt.clf()
+                plt.savefig(f"{dir}/Evolution_{name}.png")
+                plt.close()
 
         return plt
-
-    def _check_length(self) -> tuple[list[int | None], float] | None:
-        """Gives a TSP tour and value for special cases where graphs are small.
-         
-        This function checks the length of a graph and returns the value of a 
-        TSP tour and value in the cases where the graph has 0, q or 2 nodes.
-
-        Returns:
-            This function has 4 different returns:
-            1- Return a tour with 3 nodes and the length of the single edge
-            of the graph when its length is 2.
-            2- Return a tour with one node and a value of 0 when the length
-            of the graph is 1.
-            3- Return an empty list and 0 when the graph is empty.
-            4- Return `None` if otherwise.
-        """
-        if self.graph.nodes == 2:
-            if self.graph.center:
-                p = [
-                    self.graph.center.index, self.graph.node_list[0].index,
-                    self.graph.center.index
-                ]
-            else:
-                p = [
-                    self.graph.node_list[0].index,
-                    self.graph.node_list[1].index,
-                    self.graph.node_list[0].index
-                ]
-            return p, self.graph.distances[0][1]
-        elif self.graph.nodes == 1:
-            if self.graph.center:
-                return [self.graph.center.index], 0
-            else:
-                return [self.graph.node_list[0]], 0
-        elif self.graph.nodes == 0:
-            return [], 0
-        else:
-            return None
