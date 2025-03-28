@@ -49,7 +49,7 @@ def run():
     print(f"Total cost = {total}")
     
     # Print all paths calculated
-    algo.plot_all_paths(points, dir=f"{cwd}/problem/plots", name="AllPaths")
+    algo.plot_multiple_paths(points, dir=f"{cwd}/problem/plots", name="AllPaths")
     
 
 

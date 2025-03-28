@@ -37,7 +37,7 @@ class Algorithms():
             the zones, represented as lists of node indices.
         """
         zones = self.graph.divide_graph(zone_weight)
-        subgraphs = [g.create_subgraph(z) for z in zones]
+        subgraphs = [self.graph.create_subgraph(z) for z in zones]
         
         points = []
         for zone in zones:
@@ -967,6 +967,20 @@ class Algorithms():
         return best, best_value
 
     # Helper functions for plotting results.
+    def plot_multiple_paths(self,
+                       paths: list[list[tuple[float, float]]],
+                       dir: str | None = None,
+                       name: str | None = None) -> plt:
+        pltr = plotter.Plotter()
+        plt.figure(1)
+        pltr.plot_all_paths(paths, self.graph.center.coordinates)
+        
+        if dir:
+            plt.savefig(f"{dir}/{name}.png")
+            plt.close()
+            
+        return plt
+    
     def _plot_results(self,
                       path: list[int],
                       logbook: dict | None = None,
@@ -1013,7 +1027,7 @@ class Algorithms():
                         name: str = "") -> plt:
         pltr = plotter.Plotter()
         plt.figure(1)
-        pltr.plot_points(self.graph.create_points(range(1, g.nodes)),
+        pltr.plot_points(self.graph.create_points(range(1, self.graph.nodes)),
                          self.graph.center.coordinates)
         if dir:
             plt.savefig(f"{dir}/Original{name}.png")
