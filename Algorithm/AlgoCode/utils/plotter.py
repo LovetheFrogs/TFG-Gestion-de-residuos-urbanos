@@ -19,8 +19,7 @@ class Plotter():
         
         return plt
 
-    def plot_map(self, data: list[tuple[float, float]] |
-                 list[list[tuple[float, float]]], center: tuple[float,
+    def plot_map(self, data: list[tuple[float, float]], center: tuple[float,
                                                                 float]) -> plt:
         """Creates a plot of the nodes in a path.
 
@@ -36,6 +35,19 @@ class Plotter():
         plt.scatter(*zip(*data), marker='.', color='red')
         plt.plot(*zip(*data), linestyle='-', color='blue')
         plt.title('Best path found')
+        plt.plot(center[0], center[1], marker='x', markersize=10, color='green')
+
+        return plt
+
+    def plot_all_paths(self, data: list[list[tuple[float, float]]],
+                       center: tuple[float, float]):
+        color = iter(plt.cm.rainbow(np.linspace(0, 1, len(data))))
+        for path in data:
+            col = next(color)
+            plt.scatter(*zip(*path), marker='.', color=col)
+            plt.plot(*zip(*path), linestyle='--', color=col)
+            
+        plt.title('Best paths found')
         plt.plot(center[0], center[1], marker='x', markersize=10, color='green')
 
         return plt
