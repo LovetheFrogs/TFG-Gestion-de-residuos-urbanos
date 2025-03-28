@@ -20,6 +20,39 @@ class Algorithms():
     def __init__(self, graph: 'Graph'):
         self.graph = graph
 
+    # Divides a graph into zones and creates needed plots & subgraphs.
+    def divide(self, zone_weight: float, dir: str | None = None,
+               name: str = "") -> tuple[list[Graph], list[list[int]]]:
+        """Divides a graph into zones of a given weight.
+
+        Args:
+            zone_weight: The maximum weight of the zones.
+            dir (optional): The directory where the plots created should be
+                saved. Defaults to None, in which case the plot(s) won't be 
+                saved and will rather be shown to screen.
+            name (optional): The name to add to the plots. Defaults to "".
+
+        Returns:
+            A tuple containing a list of the subgraphs created and a list of 
+            the zones, represented as lists of node indices.
+        """
+        zones = self.graph.divide_graph(zone_weight)
+        subgraphs = [g.create_subgraph(z) for z in zones]
+        
+        points = []
+        for zone in zones:
+            l = []
+            for node in zone:
+                l.append(node.index)
+            points.append(self.graph.create_points(l))
+        
+        if dir:
+            self._plot_divisions(points, dir=dir, name=name)
+        else:
+            self._plot_divisions(points).show()
+        
+        return subgraphs, zones
+
     # Function that returns the value of a tour.
     def evaluate(self, individual: list[int]) -> float:
         """Calculates the fitness value of a path.
@@ -933,7 +966,7 @@ class Algorithms():
 
         return best, best_value
 
-    # Helper function for plotting results.
+    # Helper functions for plotting results.
     def _plot_results(self,
                       path: list[int],
                       logbook: dict | None = None,
@@ -971,5 +1004,25 @@ class Algorithms():
             if dir:
                 plt.savefig(f"{dir}/Evolution_{name}.png")
                 plt.close()
+            
+        return plt
 
+    def _plot_divisions(self,
+                        points: list[list[tuple[float, float]]],
+                        dir: str | None = None,
+                        name: str = "") -> plt:
+        pltr = plotter.Plotter()
+        plt.figure(1)
+        pltr.plot_points(self.graph.create_points(range(1, g.nodes)),
+                         self.graph.center.coordinates)
+        if dir:
+            plt.savefig(f"{dir}/Original{name}.png")
+            plt.close()
+            
+        plt.figure(2)
+        pltr.plot_zones(points, self.graph.center.coordinates)
+        if dir:
+            plt.savefig(f"{dir}/Divisions{name}.png")
+            plt.close()
+            
         return plt
