@@ -15,7 +15,7 @@ class Plotter():
                     center: tuple[float, float]) -> plt:
         plt.scatter(*zip(*data), marker='.', color='red')
         plt.plot(center[0], center[1], marker='x', markersize=10, color='green')
-        plt.title('Bins.')
+        plt.title('Bins')
         
         return plt
 
@@ -58,3 +58,34 @@ class Plotter():
         plt.title('Min and Average fitness evolution')
 
         return plt
+    
+    def plot_zones(self, data: list[list[tuple[float, float]]], 
+                   center: tuple[float, float]) -> plt:
+        color = iter(plt.cm.rainbow(np.linspace(0, 1, len(data))))
+        x_limits = (0, 0)
+        y_limits = (0, 0)
+        for i, zone in enumerate(data):
+            x_limits = (min(x_limits[0], min([x[0] for x in zone])), max(x_limits[1], max([x[0] for x in zone])))
+            y_limits = (min(y_limits[0], min([x[1] for x in zone])), max(y_limits[1], max([x[1] for x in zone])))
+            plt.scatter(*zip(*zone), marker='.', color=next(color))
+            last_node = zone[0]
+            first_node = data[i - 1][-1]
+            middle_x = (last_node[0] + first_node[0]) / 2
+            middle_y = (last_node[1] + first_node[1]) / 2
+            dx = middle_x - center[0]
+            dy = middle_y - center[1]
+            scale = 1000
+            end = (center[0] + dx * scale, center[1] + dy * scale)
+            plt.plot((center[0], end[0]), (center[1], end[1]),
+                     color='grey', linestyle='--', linewidth=1)
+
+                
+        plt.plot(center[0], center[1], marker='x', markersize=10, color='green')
+        plt.title("Zone division")
+        plt.xlim(x_limits[0] - 10 if x_limits[0] < 0 else x_limits[0] + 10,
+                 x_limits[1] + 10 if x_limits[1] > 0 else x_limits[1] - 10)
+        plt.ylim(y_limits[0] - 10 if y_limits[0] < 0 else y_limits[0] + 10,
+                 y_limits[1] + 10 if y_limits[1] > 0 else y_limits[1] - 10)
+
+        return plt
+                
