@@ -481,6 +481,30 @@ class Algorithms():
 
         return population, stats, hof
 
+    def _seed_population(self, toolbox: base.Toolbox, path: list,
+                         pop_size: int) -> list[int]:
+        """Creates a population of `pop_size` individuals, all being `path`.
+
+        Args:
+            toolbox: The toolbox for the genetic algorithm.
+            path: The path to seed the population with.
+            pop_size: The population size.
+
+        Returns:
+            A new population of individuals, all being `path`.
+        """
+        def _return_same(path):
+            return path
+        
+        toolbox.register("seeded_order", _return_same, path)
+        toolbox.register("seeded_individual_creator", tools.initIterate,
+                         creator.Individual, toolbox.seeded_order)
+        toolbox.register("population_seeder", tools.initRepeat, list,
+                         toolbox.seeded_individual_creator)
+        population = toolbox.population_seeder(n=pop_size)
+            
+        return population
+
     # Metaheuristic algorithms.
     def _eaSimpleWithElitism(self,
                             population,
@@ -776,6 +800,7 @@ class Algorithms():
 
     # Wrappers to run metaheuristic algorithms.
     def run_ga_tsp(self,
+                   path: list[int] | None = None,
                    ngen: int = 3000,
                    cxpb: float = 0.7,
                    mutpb: float = 0.2,
@@ -792,6 +817,9 @@ class Algorithms():
         wrapper function to plot the results.
 
         Args:
+            path (optional): The initial path from which teh GA is executed. In
+                    case it is not provided, it will start on a random path.
+                    Defaults to None.
             ngen (optional): The number of generations. Defaults to 100.
             cxpb (optional): The mating probability. Defaults to 0.9.
             mutpb (optional): The mutation probability. Defaults to 0.1.
@@ -816,6 +844,9 @@ class Algorithms():
         creator = self._define_creator()
         toolbox = self._define_toolbox()
         population, stats, hof, = self._define_ga(toolbox, pop_size)
+
+        if path:
+            population = self._seed_population(toolbox, path[:-1], pop_size)
 
         population, logbook = self._eaSimpleWithElitism(population,
                                                        toolbox,
