@@ -13,6 +13,15 @@ class Plotter():
 
     def plot_points(self, data: list[tuple[float, float]], 
                     center: tuple[float, float]) -> plt:
+        """_summary_
+
+        Args:
+            data: A list of point coordinates
+            center: The coordinates of the center node.
+
+        Returns:
+            A plot of the nodes that make up a graph.
+        """
         plt.scatter(*zip(*data), marker='.', color='red')
         plt.plot(center[0], center[1], marker='x', markersize=10, color='green')
         plt.title('Bins')
@@ -28,6 +37,7 @@ class Plotter():
         Args:
             data: List of nodes. In multi-zone mode it will be a list of lists 
                 of nodes (one for each zone).
+            center: The coordinates of the center node.
         
         Returns:
             A plot of the nodes and how they are connected in a path.
@@ -39,8 +49,18 @@ class Plotter():
 
         return plt
 
-    def plot_all_paths(self, data: list[list[tuple[float, float]]],
+    def plot_multiple_paths(self, data: list[list[tuple[float, float]]],
                        center: tuple[float, float]):
+        """Plots multiple paths.
+
+        Args:
+            data: List containing different lists, each containing the 
+                coordinates of a node in a path.
+            center: The coordinates of the center node.
+
+        Returns:
+            A plot with all the paths that need to be represented.
+        """
         color = iter(plt.cm.rainbow(np.linspace(0, 1, len(data))))
         for path in data:
             col = next(color)
@@ -73,6 +93,16 @@ class Plotter():
     
     def plot_zones(self, data: list[list[tuple[float, float]]], 
                    center: tuple[float, float]) -> plt:
+        """Plots all the nodes in a graph and identifies the zones they form.
+
+        Args:
+            data: A list of lists, each one containing the coordinates of the
+                nodes in a zone.
+            center: The coordinates of the center node.
+
+        Returns:
+            A plot containing all the nodes and their respective zones.
+        """
         color = iter(plt.cm.rainbow(np.linspace(0, 1, len(data))))
         x_limits = (0, 0)
         y_limits = (0, 0)

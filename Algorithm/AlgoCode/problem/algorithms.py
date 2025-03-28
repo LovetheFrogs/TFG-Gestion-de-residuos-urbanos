@@ -971,9 +971,21 @@ class Algorithms():
                        paths: list[list[tuple[float, float]]],
                        dir: str | None = None,
                        name: str | None = None) -> plt:
+        """Prepares a list of path node's coordinates to plot them.
+
+        Args:
+            paths: A list of lists, each containing the coordinates of the 
+                nodes that make up each path.
+            dir (optional): The directory where the plots should be saved. 
+                Defaults to None, in which case the plot(s) won't be saved.
+            name (optional): The name to add to the plots. Defaults to "".
+
+        Returns:
+            A ``matplotlib.pyplot`` object containing the plots.
+        """
         pltr = plotter.Plotter()
         plt.figure(1)
-        pltr.plot_all_paths(paths, self.graph.center.coordinates)
+        pltr.plot_multiple_paths(paths, self.graph.center.coordinates)
         
         if dir:
             plt.savefig(f"{dir}/{name}.png")
@@ -1025,6 +1037,18 @@ class Algorithms():
                         points: list[list[tuple[float, float]]],
                         dir: str | None = None,
                         name: str = "") -> plt:
+        """Creates a plot for the different zones created in a graph.
+
+        Args:
+            points: A list of lists, each containing the coordinates of each
+                node in a zone.
+            dir (optional): The directory where the plots should be saved. 
+                Defaults to None, in which case the plot(s) won't be saved.
+            name (optional): The name to add to the plots. Defaults to "".
+
+        Returns:
+            A ``matplotlib.pyplot`` object containing the plots.
+        """
         pltr = plotter.Plotter()
         plt.figure(1)
         pltr.plot_points(self.graph.create_points(range(1, self.graph.nodes)),
