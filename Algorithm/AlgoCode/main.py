@@ -34,7 +34,7 @@ def run():
         print(f"|   Nearest Neighbor tour value = {nnv:.2f} "
               f"(Within {abs(100 - ((100 * nnv) / lb)):.1f}% "
               f"of the lower bound)")
-        tsp, tsv = algo.run_ta(path=nnp, 
+        tsp, tsv = algo.run_tabu_search(path=nnp, 
                                       dir=f"{cwd}/problem/plots", 
                                       name=f"subgraph{i + 1}")
         print(f"|   Tabu search tour value = {tsv:.2f} "
