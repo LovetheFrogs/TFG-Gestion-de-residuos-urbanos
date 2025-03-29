@@ -146,44 +146,47 @@ class Algorithms():
 
         if isinstance(start, Node):
             start = start.index
-        if start > max([n.index for n in self.graph.node_list]):
+        if start >= self.graph.nodes:
             raise exceptions.NodeNotFound(start)
 
         n = self.graph.nodes
-        pi = [self.graph.get_node(i).weight for i in range(n)]
+        pi = [0.0 for _ in range(n)]
         best_lb = -float('inf')
-        best = None
+        best_edges = None
         original_dist = [row[:] for row in self.graph.distances]
 
         for it in range(miter):
-            self.graph.distances = [[
-                self.graph.distances[i][j] + pi[i] + pi[j] for j in range(n)
-            ] for i in range(n)]
+            adjusted_dist = []
+            for i in range(n):
+                adjusted_row = []
+                for j in range(n):
+                    adjusted_row.append(self.graph.distances[i][j] + pi[i] + pi[j])
+                adjusted_dist.append(adjusted_row)
+            self.graph.distances = adjusted_dist
 
             one_tree_edges, one_tree_value = self.one_tree(start)
 
             degree = [0] * n
-            for i, j in one_tree_edges:
-                if i:
-                    degree[i] += 1
-                if j:
-                    degree[j] += 1
+            for u, v in one_tree_edges:
+                degree[u] += 1
+                degree[v] += 1
 
             subgrad = [d - 2 for d in degree]
-
-            lb = one_tree_value - (2 * sum(pi))
+            lb = one_tree_value - 2 * sum(pi)
             if lb > best_lb:
                 best_lb = lb
-                best = one_tree_edges
+                best_edges = one_tree_edges
 
             if all(d == 2 for d in degree):
                 break
 
+            t = 1.0 / (it + 1)
             for i in range(n):
-                pi[i] = subgrad[i] * self.graph.get_node(i).weight
+                pi[i] += t * subgrad[i]
 
-        self.graph.distances = original_dist
-        return best, best_lb
+            self.graph.distances = original_dist
+
+        return best_edges, best_lb
 
     # Computing a simple tour.
     def nearest_neighbor(self,
