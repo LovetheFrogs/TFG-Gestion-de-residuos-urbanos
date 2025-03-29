@@ -20,6 +20,39 @@ class Algorithms():
     def __init__(self, graph: 'Graph'):
         self.graph = graph
 
+    # Divides a graph into zones and creates needed plots & subgraphs.
+    def divide(self, zone_weight: float, dir: str | None = None,
+               name: str = "") -> tuple[list[Graph], list[list[int]]]:
+        """Divides a graph into zones of a given weight.
+
+        Args:
+            zone_weight: The maximum weight of the zones.
+            dir (optional): The directory where the plots created should be
+                saved. Defaults to None, in which case the plot(s) won't be 
+                saved and will rather be shown to screen.
+            name (optional): The name to add to the plots. Defaults to "".
+
+        Returns:
+            A tuple containing a list of the subgraphs created and a list of 
+            the zones, represented as lists of node indices.
+        """
+        zones = self.graph.divide_graph(zone_weight)
+        subgraphs = [self.graph.create_subgraph(z) for z in zones]
+        
+        points = []
+        for zone in zones:
+            l = []
+            for node in zone:
+                l.append(node.index)
+            points.append(self.graph.create_points(l))
+        
+        if dir:
+            self._plot_divisions(points, dir=dir, name=name)
+        else:
+            self._plot_divisions(points).show()
+        
+        return subgraphs, zones
+
     # Function that returns the value of a tour.
     def evaluate(self, individual: list[int]) -> float:
         """Calculates the fitness value of a path.
@@ -113,44 +146,47 @@ class Algorithms():
 
         if isinstance(start, Node):
             start = start.index
-        if start > max([n.index for n in self.graph.node_list]):
+        if start >= self.graph.nodes:
             raise exceptions.NodeNotFound(start)
 
         n = self.graph.nodes
-        pi = [self.graph.get_node(i).weight for i in range(n)]
+        pi = [0.0 for _ in range(n)]
         best_lb = -float('inf')
-        best = None
+        best_edges = None
         original_dist = [row[:] for row in self.graph.distances]
 
         for it in range(miter):
-            self.graph.distances = [[
-                self.graph.distances[i][j] + pi[i] + pi[j] for j in range(n)
-            ] for i in range(n)]
+            adjusted_dist = []
+            for i in range(n):
+                adjusted_row = []
+                for j in range(n):
+                    adjusted_row.append(self.graph.distances[i][j] + pi[i] + pi[j])
+                adjusted_dist.append(adjusted_row)
+            self.graph.distances = adjusted_dist
 
             one_tree_edges, one_tree_value = self.one_tree(start)
 
             degree = [0] * n
-            for i, j in one_tree_edges:
-                if i:
-                    degree[i] += 1
-                if j:
-                    degree[j] += 1
+            for u, v in one_tree_edges:
+                degree[u] += 1
+                degree[v] += 1
 
             subgrad = [d - 2 for d in degree]
-
-            lb = one_tree_value - (2 * sum(pi))
+            lb = one_tree_value - 2 * sum(pi)
             if lb > best_lb:
                 best_lb = lb
-                best = one_tree_edges
+                best_edges = one_tree_edges
 
             if all(d == 2 for d in degree):
                 break
 
+            t = 1.0 / (it + 1)
             for i in range(n):
-                pi[i] = subgrad[i] * self.graph.get_node(i).weight
+                pi[i] += t * subgrad[i]
 
-        self.graph.distances = original_dist
-        return best, best_lb
+            self.graph.distances = original_dist
+
+        return best_edges, best_lb
 
     # Computing a simple tour.
     def nearest_neighbor(self,
@@ -448,6 +484,30 @@ class Algorithms():
 
         return population, stats, hof
 
+    def _seed_population(self, toolbox: base.Toolbox, path: list,
+                         pop_size: int) -> list[int]:
+        """Creates a population of `pop_size` individuals, all being `path`.
+
+        Args:
+            toolbox: The toolbox for the genetic algorithm.
+            path: The path to seed the population with.
+            pop_size: The population size.
+
+        Returns:
+            A new population of individuals, all being `path`.
+        """
+        def _return_same(path):
+            return path
+        
+        toolbox.register("seeded_order", _return_same, path)
+        toolbox.register("seeded_individual_creator", tools.initIterate,
+                         creator.Individual, toolbox.seeded_order)
+        toolbox.register("population_seeder", tools.initRepeat, list,
+                         toolbox.seeded_individual_creator)
+        population = toolbox.population_seeder(n=pop_size)
+            
+        return population
+
     # Metaheuristic algorithms.
     def _eaSimpleWithElitism(self,
                             population,
@@ -743,6 +803,7 @@ class Algorithms():
 
     # Wrappers to run metaheuristic algorithms.
     def run_ga_tsp(self,
+                   path: list[int] | None = None,
                    ngen: int = 3000,
                    cxpb: float = 0.7,
                    mutpb: float = 0.2,
@@ -759,6 +820,9 @@ class Algorithms():
         wrapper function to plot the results.
 
         Args:
+            path (optional): The initial path from which teh GA is executed. In
+                    case it is not provided, it will start on a random path.
+                    Defaults to None.
             ngen (optional): The number of generations. Defaults to 100.
             cxpb (optional): The mating probability. Defaults to 0.9.
             mutpb (optional): The mutation probability. Defaults to 0.1.
@@ -783,6 +847,9 @@ class Algorithms():
         creator = self._define_creator()
         toolbox = self._define_toolbox()
         population, stats, hof, = self._define_ga(toolbox, pop_size)
+
+        if path:
+            population = self._seed_population(toolbox, path[:-1], pop_size)
 
         population, logbook = self._eaSimpleWithElitism(population,
                                                        toolbox,
@@ -933,7 +1000,33 @@ class Algorithms():
 
         return best, best_value
 
-    # Helper function for plotting results.
+    # Helper functions for plotting results.
+    def plot_multiple_paths(self,
+                       paths: list[list[tuple[float, float]]],
+                       dir: str | None = None,
+                       name: str | None = None) -> plt:
+        """Prepares a list of path node's coordinates to plot them.
+
+        Args:
+            paths: A list of lists, each containing the coordinates of the 
+                nodes that make up each path.
+            dir (optional): The directory where the plots should be saved. 
+                Defaults to None, in which case the plot(s) won't be saved.
+            name (optional): The name to add to the plots. Defaults to "".
+
+        Returns:
+            A ``matplotlib.pyplot`` object containing the plots.
+        """
+        pltr = plotter.Plotter()
+        plt.figure(1)
+        pltr.plot_multiple_paths(paths, self.graph.center.coordinates)
+        
+        if dir:
+            plt.savefig(f"{dir}/{name}.png")
+            plt.close()
+            
+        return plt
+    
     def _plot_results(self,
                       path: list[int],
                       logbook: dict | None = None,
@@ -971,5 +1064,37 @@ class Algorithms():
             if dir:
                 plt.savefig(f"{dir}/Evolution_{name}.png")
                 plt.close()
+            
+        return plt
 
+    def _plot_divisions(self,
+                        points: list[list[tuple[float, float]]],
+                        dir: str | None = None,
+                        name: str = "") -> plt:
+        """Creates a plot for the different zones created in a graph.
+
+        Args:
+            points: A list of lists, each containing the coordinates of each
+                node in a zone.
+            dir (optional): The directory where the plots should be saved. 
+                Defaults to None, in which case the plot(s) won't be saved.
+            name (optional): The name to add to the plots. Defaults to "".
+
+        Returns:
+            A ``matplotlib.pyplot`` object containing the plots.
+        """
+        pltr = plotter.Plotter()
+        plt.figure(1)
+        pltr.plot_points(self.graph.create_points(range(1, self.graph.nodes)),
+                         self.graph.center.coordinates)
+        if dir:
+            plt.savefig(f"{dir}/Original{name}.png")
+            plt.close()
+            
+        plt.figure(2)
+        pltr.plot_zones(points, self.graph.center.coordinates)
+        if dir:
+            plt.savefig(f"{dir}/Divisions{name}.png")
+            plt.close()
+            
         return plt

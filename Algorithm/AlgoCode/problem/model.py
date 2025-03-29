@@ -629,6 +629,9 @@ class Graph():
 
         Prim is prefered over Kruskal in our graphs, knowing that the density
         of our graphs is 1, as Prim's algorithm runs better on denser graphs.
+        
+        This implementation is modified to exclude the start node from the MST,
+        as it is used to calculate 1-trees.
 
         Args:
             start: The node where the construction of the MST will start. Can
@@ -644,9 +647,10 @@ class Graph():
         res = 0
         parent = [None] * self.nodes
         key = [float('inf')] * self.nodes
-        key[start] = 0
         visited = [False] * self.nodes
         for i in range(self.nodes):
+            if i is start:
+                continue
             w, n = self._min_key(key, visited)
             visited[n] = True
             for v in range(self.nodes):
@@ -654,11 +658,13 @@ class Graph():
                         key[v] > self.distances[n][v]):
                     key[v] = self.distances[n][v]
                     parent[v] = n
-            res += w
+            if n is not start:
+                res += w
 
         edges = []
         for i, item in enumerate(parent):
-            edges.append((item, i))
+            if i is not start and item is not start:
+                edges.append((item, i))
 
         return res, edges
 
