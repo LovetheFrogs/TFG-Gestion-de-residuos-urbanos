@@ -107,6 +107,18 @@ class Node():
 
         return abs(lat_distance) + abs(alt_distance)
 
+    def get_distance_twod(self, b: 'Node') -> float:
+        """Computes the 2D-Euclidean distance between two nodes.
+
+        Args:
+            b: The node to which we want to know the distance to.
+
+        Returns:
+            The absolute value of the euclidean distance.
+        """
+        return abs(math.sqrt(pow((self.coordinates[0] - b.coordinates[0]), 2)
+                             + pow((self.coordinates[1] - b.coordinates[1]), 2)))
+
     def change_status(self):
         """Visits or unvisits the a depending on the previous status"""
         self.visited = not self.visited
@@ -153,9 +165,13 @@ class Edge():
 
     """
 
-    def __init__(self, speed: float, origin: Node, dest: Node):
+    def __init__(self, speed: float, origin: Node, dest: Node, 
+                 bidimensional: bool = False):
         #: float: The length of the edge from origin to dest.
-        self.length = origin.get_distance(dest)
+        if not bidimensional:
+            self.length = origin.get_distance(dest)
+        else:
+            self.length = origin.get_distance_twod(dest)
         #: float: The average speed to traverse the edge.
         self.speed = float(speed)
         #: Node: The origin of the edge.
@@ -165,7 +181,10 @@ class Edge():
         #: float: Time it takes to traverse the edge, given a speed and length.
         self.time = 2.5 * ((float(self.length)) / self.speed)
         #: float: The cost of the edge plus 0.033 for node pickup (2 mins).
-        self.value = self.length + self.time + 0.033
+        if not bidimensional:
+            self.value = self.length + self.time + 0.033
+        else:
+            self.value = self.length
 
     def __repr__(self) -> str:
         """Changes the default representation of an edge.
@@ -439,6 +458,44 @@ class Graph():
             self.set_distance_matrix()
             if verbose:
                 print("Graph loaded")
+
+    def populate_from_tsplib(self, file: str):
+        """Populates a graph from a TSPLib instance.
+        
+        The ``file`` argument contains a TSPLib file to be read from. The 
+        instance of the TSP must have ``EDGE_WEIGHT_TYPE`` equal to ``EUC_2D``
+        and it is checked for at execution, raising an exception if the 
+        restriction is not followed.
+
+        Args:
+            file: The data of a TSPLib instance.
+        """
+        with open(file, "r") as f:
+            n = 0
+            l = ""
+            while l != "EOF":
+                l = f.readline().strip()
+                aux = l.split()
+                if aux[0] == "DIMENSION:":
+                    n = int(aux[1])
+                    
+                elif aux[0] == "EDGE_WEIGHT_TYPE:":
+                    if aux[1] != "EUC_2D":
+                        raise WrongEdgeType
+                    
+                elif l == "NODE_COORD_SECTION":
+                    for i in range(n):
+                        l = f.readline().strip().split()
+                        self.add_node(Node(i, 0, l[1], l[2]))
+                        
+        for n in self.node_list:
+            for m in self.node_list:
+                if n == m: continue
+                self.add_edge(Edge(20, n, m, True))
+            
+        self.set_center(self.node_list[0])
+        self.set_distance_matrix()
+                    
 
     def create_subgraph(self, nodes: list[Node]) -> 'Graph':
         """Creates a new graph from an existing one.
