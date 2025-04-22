@@ -1,0 +1,1 @@
+Folder where the results of benchmarks are saved.
