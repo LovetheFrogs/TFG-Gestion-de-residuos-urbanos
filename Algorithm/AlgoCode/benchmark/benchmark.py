@@ -15,7 +15,7 @@ from problem.model import Graph
 from tabulate import tabulate
 
 
-BENCHMARK_SIZE = 100
+BENCHMARK_SIZE = 1
 MIN_FILE_SIZE = 50
 MAX_FILE_SIZE = 100
 CWD = os.getcwd()
@@ -197,6 +197,7 @@ class Benchmark():
 
     def save_results(self):
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        os.mkdir(f"{CWD}/benchmark/results/benchmark_{timestamp}")
         with open(f"{CWD}/benchmark/results/benchmark_{timestamp}/results.txt", "w") as file:
             file.write(self.data)
         with open(f"{CWD}/benchmark/results/benchmark_{timestamp}/data.json", "w") as file:
