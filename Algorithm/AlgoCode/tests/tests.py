@@ -4,7 +4,7 @@ import unittest
 import os
 import random
 from problem.model import Node, Edge, Graph, load as lg
-import utils.create_models as cm
+from utils import create_models as cm
 from problem.exceptions import *
 from problem.algorithms import Algorithms
 

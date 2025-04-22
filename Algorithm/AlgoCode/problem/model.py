@@ -647,6 +647,7 @@ class Graph():
         res = 0
         parent = [None] * self.nodes
         key = [float('inf')] * self.nodes
+        key[start] = 0
         visited = [False] * self.nodes
         for i in range(self.nodes):
             if i is start:
