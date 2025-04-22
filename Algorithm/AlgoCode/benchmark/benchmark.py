@@ -3,6 +3,7 @@
 import datetime
 import os
 import sys
+import json
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..'))
 sys.path.insert(0, project_root)
@@ -172,7 +173,8 @@ class Benchmark():
         
         table = []
         data = ""
-        data += "Results" + NEW_LINE
+        data += f"Results - {BENCHMARK_SIZE} files, between {MIN_FILE_SIZE} "
+        data += f"and {MAX_FILE_SIZE} nodes." + NEW_LINE
         headers = ("Case min(value) avg(value) max(value) " +
                  "min(time) avg(time) max(time) " +
                  "min(%) avg(%) max(%)").split()
@@ -195,8 +197,10 @@ class Benchmark():
 
     def save_results(self):
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        with open(f"{CWD}/benchmark/results/benchmark_{timestamp}.txt", "w") as file:
+        with open(f"{CWD}/benchmark/results/benchmark_{timestamp}/results.txt", "w") as file:
             file.write(self.data)
+        with open(f"{CWD}/benchmark/results/benchmark_{timestamp}/data.json", "w") as file:
+            json.dump(self.results, file)
 
     def __repr__(self) -> str:
         """Changes the default representation of the benchmark.
