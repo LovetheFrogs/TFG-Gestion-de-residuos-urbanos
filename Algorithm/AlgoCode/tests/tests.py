@@ -153,6 +153,12 @@ class TestGraphCreation(unittest.TestCase):
         self.g.populate_from_file(os.getcwd() + "/tests/files/test.txt")
         self.assertEqual(self.g.get_node(1).index, 1)
 
+    def test_from_TSPLib(self):
+        """Tests generating nodes and edges from a TSPLib file."""
+        self.g.populate_from_tsplib(os.getcwd() + "/tests/files/berlin52.tsp")
+        self.assertEqual(self.g.get_node(1).index, 1)
+        self.assertEqual(self.g.nodes, 52)
+
     def test_distances(self):
         """Test the integrity of the distance matrix."""
         self.g.populate_from_file(os.getcwd() + "/tests/files/test4.txt")
