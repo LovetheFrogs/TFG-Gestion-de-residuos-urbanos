@@ -4,7 +4,7 @@ import unittest
 import os
 import random
 from problem.model import Node, Edge, Graph, load as lg
-import utils.create_models as cm
+from utils import create_models as cm
 from problem.exceptions import *
 from problem.algorithms import Algorithms
 
@@ -152,6 +152,12 @@ class TestGraphCreation(unittest.TestCase):
         """Tests generating nodes and edges from a file"""
         self.g.populate_from_file(os.getcwd() + "/tests/files/test.txt")
         self.assertEqual(self.g.get_node(1).index, 1)
+
+    def test_from_TSPLib(self):
+        """Tests generating nodes and edges from a TSPLib file."""
+        self.g.populate_from_tsplib(os.getcwd() + "/tests/files/berlin52.tsp")
+        self.assertEqual(self.g.get_node(1).index, 1)
+        self.assertEqual(self.g.nodes, 52)
 
     def test_distances(self):
         """Test the integrity of the distance matrix."""
