@@ -1,4 +1,9 @@
-"""Benchmark for different solutions for the presented problem."""
+"""Benchmark for different solutions for the presented problem.
+
+The benchmark module has several constants, read the documentation to learn
+how they can be changed. They indicate the benchmark mode, the number of sample
+files, and the nodes (min and max) of such files.
+"""
 
 import datetime
 import os
@@ -63,6 +68,7 @@ class Benchmark():
                     continue
 
     def create_variables(self):
+        """Creates variables needed depending on the run mode."""
         if MODE == 0:
             self.results = {"NN": [],
                             "2opt": [],
@@ -157,6 +163,7 @@ class Benchmark():
         if VERBOSE: print("-#- Benchmark completed -#-")
 
     def create_benchmark_files(self):
+        """Creates the test files if running in mode 0."""
         cm.DATA_SIZE = BENCHMARK_SIZE
         cm.MAX_NODES = MAX_FILE_SIZE
         cm.MIN_NODES = MIN_FILE_SIZE
@@ -170,6 +177,20 @@ class Benchmark():
                     f"{CWD}/benchmark/files/log.txt")
 
     def run_simple_benchmark(self, i: int, stage: int, total_stages: int) -> int:
+        """Runs simple algorithms for mode 0.
+
+        Args:
+            i: The graph instance being evaluated.
+            stage: The stage of the benchmark.
+            total_stages (int): The total number of stages of the benchmark.
+
+        Raises:
+            ValueError: If the lower bound is superior to any of the results
+                obtained.
+
+        Returns:
+            The current stage of the benchmark. 
+        """
         if VERBOSE:
             stage += 1
             text = f"Lower bound (graph {i + 1})"
@@ -238,6 +259,20 @@ class Benchmark():
         return stage
 
     def run_combined_benchmark(self, i: int, stage: int, total_stages: int) -> int:
+        """Runs combined algorithms for mode 0.
+
+        Args:
+            i: The graph instance being evaluated.
+            stage: The stage of the benchmark.
+            total_stages (int): The total number of stages of the benchmark.
+
+        Raises:
+            ValueError: If the lower bound is superior to any of the results
+                obtained.
+
+        Returns:
+            The current stage of the benchmark. 
+        """
         if VERBOSE:
             stage += 1
             text = f"Lower bound + NN (graph {i + 1})"
@@ -298,6 +333,19 @@ class Benchmark():
         return stage
 
     def run_tsplib_simple(self, stage: int, total_stages: int) -> int:
+        """Runs simple algorithms for mode 1.
+
+        Args:
+            stage: The stage of the benchmark.
+            total_stages (int): The total number of stages of the benchmark.
+
+        Raises:
+            ValueError: If the lower bound is superior to any of the results
+                obtained.
+
+        Returns:
+            The current stage of the benchmark. 
+        """
         for test, opt in self.optimal.items():
             g = Graph()
             g.populate_from_tsplib(f"{CWD}/benchmark/TSPLib/{test}.tsp")
@@ -363,6 +411,19 @@ class Benchmark():
         return stage
 
     def run_tsplib_combined(self, stage: int, total_stages: int) -> int:
+        """Runs combined algorithms for mode 1.
+
+        Args:
+            stage: The stage of the benchmark.
+            total_stages (int): The total number of stages of the benchmark.
+
+        Raises:
+            ValueError: If the lower bound is superior to any of the results
+                obtained.
+
+        Returns:
+            The current stage of the benchmark. 
+        """
         for test, opt in self.optimal.items():
             g = Graph()
             g.populate_from_tsplib(f"{CWD}/benchmark/TSPLib/{test}.tsp")
@@ -427,6 +488,7 @@ class Benchmark():
         return stage
             
     def generate_results(self):
+        """Generates the result sheet."""
         if VERBOSE: print("Generating results")
         
         table = []
@@ -472,6 +534,7 @@ class Benchmark():
         if VERBOSE: print("Results generated")
 
     def save_results(self):
+        """Dumps results to a text file and raw data to a JSON file."""
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         path = f"{CWD}/benchmark/results/benchmark_{timestamp}"
         os.mkdir(f"{path}")
