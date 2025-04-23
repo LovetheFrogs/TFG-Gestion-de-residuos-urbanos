@@ -105,3 +105,19 @@ class EmptyGraph(Exception):
             *args):
         self.message = message
         super(EmptyGraph, self).__init__(message, *args)
+        
+
+class WrongEdgeType(Exception):
+    """Used when a passed in TSPLib instance is not of type ``EUC_2D``.
+    
+    Args:
+        message (optional): Description of the error, 
+            default is `The edge type is not EUC_2D.`
+        *args: Variable length argument list.
+    """
+    def __init__(
+            self,
+            message: str = "The edge type is not EUC_2D.",
+            *args):
+        self.message = message
+        super(WrongEdgeType, self).__init__(message, *args)

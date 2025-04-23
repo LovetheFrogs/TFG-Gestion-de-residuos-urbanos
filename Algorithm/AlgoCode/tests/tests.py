@@ -3,10 +3,10 @@
 import unittest
 import os
 import random
-from model import Node, Edge, Graph, load as lg
-import create_models as cm
-from exceptions import *
-from algorithms import Algorithms
+from problem.model import Node, Edge, Graph, load as lg
+from utils import create_models as cm
+from problem.exceptions import *
+from problem.algorithms import Algorithms
 
 
 class TestNode(unittest.TestCase):
@@ -63,9 +63,8 @@ class TestEdge(unittest.TestCase):
         self.assertEqual(self.edge.dest, self.node2)
 
 
-class TestGraphMethods(unittest.TestCase):
-    """Graph module tests."""
-
+class TestGraphCreation(unittest.TestCase):
+    """Tests graph creation functions."""
     def setUp(self):
         self.nodes = [
             Node(0, 0, 0, 0, True),
@@ -151,17 +150,56 @@ class TestGraphMethods(unittest.TestCase):
 
     def test_from_file(self):
         """Tests generating nodes and edges from a file"""
-        self.g.populate_from_file(os.getcwd() + "/files/test.txt")
+        self.g.populate_from_file(os.getcwd() + "/tests/files/test.txt")
         self.assertEqual(self.g.get_node(1).index, 1)
+
+    def test_from_TSPLib(self):
+        """Tests generating nodes and edges from a TSPLib file."""
+        self.g.populate_from_tsplib(os.getcwd() + "/tests/files/berlin52.tsp")
+        self.assertEqual(self.g.get_node(1).index, 1)
+        self.assertEqual(self.g.nodes, 52)
 
     def test_distances(self):
         """Test the integrity of the distance matrix."""
-        self.g.populate_from_file(os.getcwd() + "/files/test4.txt")
+        self.g.populate_from_file(os.getcwd() + "/tests/files/test4.txt")
         for i in range(self.g.nodes):
             for j in range(self.g.nodes):
                 with self.subTest(i=int(str(i) + str(j))):
                     self.assertEqual(self.g.distances[i][j],
                                      self.g.distances[j][i])
+                    
+    def test_save_and_load(self):
+        """Tests saving and loading a graph."""
+        for node in self.nodes:
+            self.g.add_node(node)
+        for edge in self.edges:
+            self.g.add_edge(edge)
+        self.g.save(f"{os.getcwd()}/problem/data/gbkp")
+        aux = lg(f"{os.getcwd()}/problem/data/gbkp")
+        self.assertNotEqual(aux, None)
+        self.assertTrue(isinstance(aux, Graph))
+        self.assertEqual([aux.nodes, aux.edges], [self.g.nodes, self.g.edges])
+        os.remove(f"{os.getcwd()}/problem/data/gbkp")
+
+
+class TestGraphAlgorithms(unittest.TestCase):
+    """Tests graph's built-in algorithms."""
+    def setUp(self):
+        self.nodes = [
+            Node(0, 0, 0, 0, True),
+            Node(1, 1, 1, 2),
+            Node(2, 2, 3, -2),
+            Node(3, 3, 0, 5),
+            Node(4, 4, -7, 0)
+        ]
+        self.edges = []
+        self.edges.append(Edge(10, self.nodes[0], self.nodes[2]))
+        self.edges.append(Edge(4, self.nodes[1], self.nodes[4]))
+        self.edges.append(Edge(2, self.nodes[3], self.nodes[2]))
+        self.edges.append(Edge(4, self.nodes[2], self.nodes[0]))
+
+        self.g = Graph()
+    
 
     def test_bfs(self):
         """Tests bfs."""
@@ -203,26 +241,28 @@ class TestGraphMethods(unittest.TestCase):
                                                            (3.0, -2.0),
                                                            (0.0, 5.0)])
 
+
+class TestSubgraphCreation(unittest.TestCase):
+    def setUp(self):
+        self.g = Graph()
+        self.g.populate_from_file(f"{os.getcwd()}/tests/files/test2.txt")
+    
     def test_divide_graph(self):
         """Tests graph division into zones."""
-        g2 = Graph()
-        g2.populate_from_file(f"{os.getcwd()}/files/test2.txt")
-        aux = g2.divide_graph(725)
+        aux = self.g.divide_graph(725)
         zones = [[n.index for n in z] for z in aux]
         self.assertEqual(zones,
                          [[0, 9, 3, 4, 10], [0, 11, 2, 7, 8], [0, 5, 6, 1, 12]])
 
     def test_create_subgraph(self):
         """Tests creating a subgraph from a list of nodes."""
-        g2 = Graph()
-        g2.populate_from_file(f"{os.getcwd()}/files/test4.txt")
-        aux = g2.divide_graph(725)
+        aux = self.g.divide_graph(725)
         for i, zone in enumerate(aux):
             with self.subTest(i=i):
-                subgraph = g2.create_subgraph(zone)
-                self.assertEqual(g2.center.coordinates[0],
+                subgraph = self.g.create_subgraph(zone)
+                self.assertEqual(self.g.center.coordinates[0],
                                  subgraph.center.coordinates[0])
-                self.assertEqual(g2.center.coordinates[1],
+                self.assertEqual(self.g.center.coordinates[1],
                                  subgraph.center.coordinates[1])
                 self.assertEqual(len(zone), subgraph.nodes)
                 self.assertEqual(subgraph.nodes * (subgraph.nodes - 1),
@@ -233,22 +273,9 @@ class TestGraphMethods(unittest.TestCase):
                         with self.subTest(i=int(str(j) + str(k))):
                             self.assertEqual(subgraph.distances[j][k],
                                              subgraph.distances[k][j])
-                self.assertEqual(subgraph.set_num_zones(725), 1)
+                self.assertEqual(subgraph.get_min_num_zones(725), 1)
                 self.assertTrue(subgraph.can_pickup_all(725, 1))
                 self.assertLess(subgraph.total_weight(), 725)
-
-    def test_save_and_load(self):
-        """Tests saving and loading a graph."""
-        for node in self.nodes:
-            self.g.add_node(node)
-        for edge in self.edges:
-            self.g.add_edge(edge)
-        self.g.save(f"{os.getcwd()}/data/gbkp")
-        aux = lg(f"{os.getcwd()}/data/gbkp")
-        self.assertNotEqual(aux, None)
-        self.assertTrue(isinstance(aux, Graph))
-        self.assertEqual([aux.nodes, aux.edges], [self.g.nodes, self.g.edges])
-        os.remove(f"{os.getcwd()}/data/gbkp")
 
 
 class TestGraphDefaults(unittest.TestCase):
@@ -306,14 +333,14 @@ class TestGraphDefaults(unittest.TestCase):
         """Tests result of printing a graph."""
         self.assertEqual(self.g.__repr__(),
                          "Graph with 5 nodes and 4 edges. Center: 0\n")
-
+    
 
 class TestAlgorithms(unittest.TestCase):
     """Testing of the algorithms used."""
 
     def setUp(self):
         self.g = Graph()
-        self.g.populate_from_file(f"{os.getcwd()}/files/test2.txt")
+        self.g.populate_from_file(f"{os.getcwd()}/tests/files/test2.txt")
         self.algo = Algorithms(self.g)
         self.subgraphs = [
             self.g.create_subgraph(z) for z in self.g.divide_graph(725)
@@ -332,34 +359,37 @@ class TestAlgorithms(unittest.TestCase):
 
     def test_ga_tsp(self):
         """Tests the Genetic Algorithm (TSP)"""
-        po, vo = self.algo.run_ga_tsp(dir=f"{os.getcwd()}/plots",
-                                      name=0,
+        po, vo = self.algo.run_ga_tsp(dir=f"{os.getcwd()}/problem/plots",
+                                      name="Path0",
                                       vrb=False)
-        os.remove(f"{os.getcwd()}/plots/Path0.png")
-        os.remove(f"{os.getcwd()}/plots/Evolution0.png")
+        os.remove(f"{os.getcwd()}/problem/plots/Path0.png")
+        os.remove(f"{os.getcwd()}/problem/plots/Evolution_Path0.png")
         self.assertEqual(po[-1], po[0])
         random_path = random.sample(range(0, self.g.nodes), self.g.nodes)
-        self.assertGreater(self.algo.evaluate_tsp(random_path)[0], vo)
+        self.assertGreater(self.algo._evaluate_tsp(random_path)[0], vo)
 
         # Test on a graph with two nodes.
-        p, v = Algorithms(self.g2nodes).run_ga_tsp(dir=f"{os.getcwd()}/plots",
-                                                   name=0,
-                                                   vrb=False)
+        p, v = Algorithms(self.g2nodes).run_ga_tsp(
+            dir=f"{os.getcwd()}/problem/plots",
+            name="Path0",
+            vrb=False)
         self.assertEqual(v, self.g2nodes.edge_list[0].value)
         self.assertTrue(
             p == [self.aux1.index, self.aux2.index, self.aux1.index])
 
         # Test on a graph with one node.
-        p, v = Algorithms(self.g1node).run_ga_tsp(dir=f"{os.getcwd()}/plots",
-                                                  name=0,
-                                                  vrb=False)
+        p, v = Algorithms(self.g1node).run_ga_tsp(
+            dir=f"{os.getcwd()}/problem/plots",
+            name="Path0",
+            vrb=False)
         self.assertEqual(v, 0)
         self.assertTrue(p == [self.aux1.index])
 
         # Test on a graph with no nodes.
-        p, v = Algorithms(self.g0nodes).run_ga_tsp(dir=f"{os.getcwd()}/plots",
-                                                   name=0,
-                                                   vrb=False)
+        p, v = Algorithms(self.g0nodes).run_ga_tsp(
+            dir=f"{os.getcwd()}/problem/plots",
+            name="Path0",
+            vrb=False)
         self.assertEqual(v, 0)
         self.assertTrue(p == [])
 
@@ -367,9 +397,9 @@ class TestAlgorithms(unittest.TestCase):
         for i in range(len(self.subgraphs)):
             with self.subTest(i=i):
                 ps, vs = Algorithms(self.subgraphs[i]).run_ga_tsp(
-                    dir=f"{os.getcwd()}/plots", name=0, vrb=False)
-                os.remove(f"{os.getcwd()}/plots/Path0.png")
-                os.remove(f"{os.getcwd()}/plots/Evolution0.png")
+                    dir=f"{os.getcwd()}/problem/plots", name="Path0", vrb=False)
+                os.remove(f"{os.getcwd()}/problem/plots/Path0.png")
+                os.remove(f"{os.getcwd()}/problem/plots/Evolution_Path0.png")
                 self.assertLessEqual(vs, vo)
                 self.assertLessEqual(len(ps), len(po))
                 self.assertLess(
@@ -378,28 +408,32 @@ class TestAlgorithms(unittest.TestCase):
 
     def test_two_opt(self):
         """Tests the 2opt Algorithm."""
-        po, vo = self.algo.run_two_opt(dir=f"{os.getcwd()}/plots", name=0)
-        os.remove(f"{os.getcwd()}/plots/Path0.png")
+        po, vo = self.algo.run_two_opt(
+            dir=f"{os.getcwd()}/problem/plots", name="Path0")
+        os.remove(f"{os.getcwd()}/problem/plots/Path0.png")
         self.assertEqual(po[-1], po[0])
         random_path = random.sample(range(0, self.g.nodes), self.g.nodes)
         self.assertGreater(self.algo.evaluate(random_path), vo)
 
         # Test on a graph with two nodes.
-        p, v = Algorithms(self.g2nodes).run_two_opt(dir=f"{os.getcwd()}/plots",
-                                                    name=0)
+        p, v = Algorithms(self.g2nodes).run_two_opt(
+            dir=f"{os.getcwd()}/problem/plots",
+                                                    name="Path0")
         self.assertEqual(v, self.g2nodes.edge_list[0].value)
         self.assertTrue(
             p == [self.aux1.index, self.aux2.index, self.aux1.index])
 
         # Test on a graph with one node.
-        p, v = Algorithms(self.g1node).run_two_opt(dir=f"{os.getcwd()}/plots",
-                                                   name=0)
+        p, v = Algorithms(self.g1node).run_two_opt(
+            dir=f"{os.getcwd()}/problem/plots",
+                                                   name="Path0")
         self.assertEqual(v, 0)
         self.assertTrue(p == [self.aux1.index])
 
         # Test on a graph with no nodes.
-        p, v = Algorithms(self.g0nodes).run_two_opt(dir=f"{os.getcwd()}/plots",
-                                                    name=0)
+        p, v = Algorithms(self.g0nodes).run_two_opt(
+            dir=f"{os.getcwd()}/problem/plots",
+                                                    name="Path0")
         self.assertEqual(v, 0)
         self.assertTrue(p == [])
 
@@ -407,8 +441,8 @@ class TestAlgorithms(unittest.TestCase):
         for i in range(len(self.subgraphs)):
             with self.subTest(i=i):
                 ps, vs = Algorithms(self.subgraphs[i]).run_two_opt(
-                    dir=f"{os.getcwd()}/plots", name=0)
-                os.remove(f"{os.getcwd()}/plots/Path0.png")
+                    dir=f"{os.getcwd()}/problem/plots", name="Path0")
+                os.remove(f"{os.getcwd()}/problem/plots/Path0.png")
                 self.assertLessEqual(vs, vo)
                 self.assertLessEqual(len(ps), len(po))
                 self.assertLess(
@@ -417,28 +451,32 @@ class TestAlgorithms(unittest.TestCase):
 
     def test_sa(self):
         """Tests the Simulated Annealing Algorithm."""
-        po, vo = self.algo.run_sa(dir=f"{os.getcwd()}/plots", name=0)
-        os.remove(f"{os.getcwd()}/plots/Path0.png")
+        po, vo = self.algo.run_sa(dir=f"{os.getcwd()}/problem/plots",
+                                   name="Path0")
+        os.remove(f"{os.getcwd()}/problem/plots/Path0.png")
         self.assertEqual(po[-1], po[0])
         random_path = random.sample(range(0, self.g.nodes), self.g.nodes)
         self.assertGreater(self.algo.evaluate(random_path), vo)
 
         # Test on a graph with two nodes.
-        p, v = Algorithms(self.g2nodes).run_sa(dir=f"{os.getcwd()}/plots",
-                                               name=0)
+        p, v = Algorithms(self.g2nodes).run_sa(
+            dir=f"{os.getcwd()}/problem/plots",
+            name="Path0")
         self.assertEqual(v, self.g2nodes.edge_list[0].value)
         self.assertTrue(
             p == [self.aux1.index, self.aux2.index, self.aux1.index])
 
         # Test on a graph with one node.
-        p, v = Algorithms(self.g1node).run_sa(dir=f"{os.getcwd()}/plots",
-                                              name=0)
+        p, v = Algorithms(self.g1node).run_sa(
+            dir=f"{os.getcwd()}/problem/plots",
+            name="Path0")
         self.assertEqual(v, 0)
         self.assertTrue(p == [self.aux1.index])
 
         # Test on a graph with no nodes.
-        p, v = Algorithms(self.g0nodes).run_sa(dir=f"{os.getcwd()}/plots",
-                                               name=0)
+        p, v = Algorithms(self.g0nodes).run_sa(
+            dir=f"{os.getcwd()}/problem/plots",
+            name="Path0")
         self.assertEqual(v, 0)
         self.assertTrue(p == [])
 
@@ -446,8 +484,8 @@ class TestAlgorithms(unittest.TestCase):
         for i in range(len(self.subgraphs)):
             with self.subTest(i=i):
                 ps, vs = Algorithms(self.subgraphs[i]).run_sa(
-                    dir=f"{os.getcwd()}/plots", name=0)
-                os.remove(f"{os.getcwd()}/plots/Path0.png")
+                    dir=f"{os.getcwd()}/problem/plots", name="Path0")
+                os.remove(f"{os.getcwd()}/problem/plots/Path0.png")
                 self.assertLessEqual(vs, vo)
                 self.assertLessEqual(len(ps), len(po))
                 self.assertLess(
@@ -456,28 +494,29 @@ class TestAlgorithms(unittest.TestCase):
 
     def test_tabu_search(self):
         """Tests the Tabu-serch Algorithm."""
-        po, vo = self.algo.run_tabu_search(dir=f"{os.getcwd()}/plots", name=0)
-        os.remove(f"{os.getcwd()}/plots/Path0.png")
+        po, vo = self.algo.run_tabu_search(dir=f"{os.getcwd()}/problem/plots", 
+                                           name="Path0")
+        os.remove(f"{os.getcwd()}/problem/plots/Path0.png")
         self.assertEqual(po[-1], po[0])
         random_path = random.sample(range(0, self.g.nodes), self.g.nodes)
         self.assertGreater(self.algo.evaluate(random_path), vo)
 
         # Test on a graph with two nodes.
         p, v = Algorithms(self.g2nodes).run_tabu_search(
-            dir=f"{os.getcwd()}/plots", name=0)
+            dir=f"{os.getcwd()}/problem/plots", name="Path0")
         self.assertEqual(v, self.g2nodes.edge_list[0].value)
         self.assertTrue(
             p == [self.aux1.index, self.aux2.index, self.aux1.index])
 
         # Test on a graph with one node.
         p, v = Algorithms(self.g1node).run_tabu_search(
-            dir=f"{os.getcwd()}/plots", name=0)
+            dir=f"{os.getcwd()}/problem/plots", name="Path0")
         self.assertEqual(v, 0)
         self.assertTrue(p == [self.aux1.index])
 
         # Test on a graph with no nodes.
         p, v = Algorithms(self.g0nodes).run_tabu_search(
-            dir=f"{os.getcwd()}/plots", name=0)
+            dir=f"{os.getcwd()}/problem/plots", name="Path0")
         self.assertEqual(v, 0)
         self.assertTrue(p == [])
 
@@ -485,19 +524,107 @@ class TestAlgorithms(unittest.TestCase):
         for i in range(len(self.subgraphs)):
             with self.subTest(i=i):
                 ps, vs = Algorithms(self.subgraphs[i]).run_tabu_search(
-                    dir=f"{os.getcwd()}/plots", name=0)
-                os.remove(f"{os.getcwd()}/plots/Path0.png")
+                    dir=f"{os.getcwd()}/problem/plots", name="Path0")
+                os.remove(f"{os.getcwd()}/problem/plots/Path0.png")
                 self.assertLessEqual(vs, vo)
                 self.assertLessEqual(len(ps), len(po))
                 self.assertLess(
                     sum(self.subgraphs[i].get_node(n).weight for n in ps[1:]),
                     725)
 
+
+class TestTouringAlgorithms(unittest.TestCase):
+    """Tests the tour construction algorithms."""
+    def setUp(self):
+        self.g = Graph()
+        self.g.populate_from_file(f"{os.getcwd()}/tests/files/test2.txt")
+        self.algo = Algorithms(self.g)
+        self.subgraphs = [
+            self.g.create_subgraph(z) for z in self.g.divide_graph(725)
+        ]
+        self.g2nodes = Graph()
+        self.aux1 = Node(0, 100, 0, 0, True)
+        self.aux2 = Node(1, 150, 1, 1)
+        self.g2nodes.add_node(self.aux1)
+        self.g2nodes.add_node(self.aux2)
+        self.g2nodes.add_edge(Edge(1, self.aux1, self.aux2))
+        self.g2nodes.set_distance_matrix()
+        self.g1node = Graph()
+        self.g1node.add_node(self.aux1)
+        self.g1node.set_distance_matrix()
+        self.g0nodes = Graph()
+
+    def test_nearest_neighbor(self):
+        """Tests the Nearest Neighbor Algorithm."""
+        po, vo = self.algo.nearest_neighbor(dir=f"{os.getcwd()}/problem/plots",
+                                             name="Path0")
+        os.remove(f"{os.getcwd()}/problem/plots/Path0.png")
+        self.assertEqual(po[-1], po[0])
+        random_path = random.sample(range(0, self.g.nodes), self.g.nodes)
+        self.assertGreater(self.algo.evaluate(random_path), vo)
+
+        # Test on a graph with two nodes.
+        p, v = Algorithms(self.g2nodes).nearest_neighbor(
+                                            dir=f"{os.getcwd()}/problem/plots",
+                                            name="Path0")
+        self.assertEqual(v, self.g2nodes.edge_list[0].value)
+        self.assertTrue(
+            p == [self.aux1.index, self.aux2.index, self.aux1.index])
+
+        # Test on a graph with one node.
+        p, v = Algorithms(self.g1node).nearest_neighbor(
+                                            dir=f"{os.getcwd()}/problem/plots",
+                                            name="Path0")
+        self.assertEqual(v, 0)
+        self.assertTrue(p == [self.aux1.index])
+
+        # Test on a graph with no nodes.
+        p, v = Algorithms(self.g0nodes).nearest_neighbor(
+                                            dir=f"{os.getcwd()}/problem/plots",
+                                            name="Path0")
+        self.assertEqual(v, 0)
+        self.assertTrue(p == [])
+
+        # Test on a bunch of subgraphs.
+        for i in range(len(self.subgraphs)):
+            with self.subTest(i=i):
+                ps, vs = Algorithms(self.subgraphs[i]).nearest_neighbor(
+                    dir=f"{os.getcwd()}/problem/plots", name="Path0")
+                os.remove(f"{os.getcwd()}/problem/plots/Path0.png")
+                self.assertLessEqual(vs, vo)
+                self.assertLessEqual(len(ps), len(po))
+                self.assertLess(
+                    sum(self.subgraphs[i].get_node(n).weight for n in ps[1:]),
+                    725)
+
+
+class TestLowerBoundAlgorithms(unittest.TestCase):
+    def setUp(self):
+        self.g = Graph()
+        self.g.populate_from_file(f"{os.getcwd()}/tests/files/test2.txt")
+        self.algo = Algorithms(self.g)
+        self.subgraphs = [
+            self.g.create_subgraph(z) for z in self.g.divide_graph(725)
+        ]
+        self.g2nodes = Graph()
+        self.aux1 = Node(0, 100, 0, 0, True)
+        self.aux2 = Node(1, 150, 1, 1)
+        self.g2nodes.add_node(self.aux1)
+        self.g2nodes.add_node(self.aux2)
+        self.g2nodes.add_edge(Edge(1, self.aux1, self.aux2))
+        self.g2nodes.set_distance_matrix()
+        self.g1node = Graph()
+        self.g1node.add_node(self.aux1)
+        self.g1node.set_distance_matrix()
+        self.g0nodes = Graph()
+    
     def test_one_tree(self):
         """Tests the 1-tree lower bound Algorithm."""
         e, v = self.algo.one_tree()
         self.assertFalse(e[0][0])
-        _, vsa = self.algo.run_sa()
+        _, vsa = self.algo.run_sa(dir=f"{os.getcwd()}/problem/plots",
+                                   name="Path0")
+        os.remove(f"{os.getcwd()}/problem/plots/Path0.png")
         self.assertLessEqual(v, vsa)
         with self.assertRaisesRegex(
                 NodeNotFound,
@@ -529,7 +656,9 @@ class TestAlgorithms(unittest.TestCase):
         """Tests the Held-Karp lower bound algorithm."""
         e, v = self.algo.held_karp_lb()
         self.assertFalse(e[0][0])
-        _, vsa = self.algo.run_sa()
+        _, vsa = self.algo.run_sa(dir=f"{os.getcwd()}/problem/plots",
+                                   name="Path0")
+        os.remove(f"{os.getcwd()}/problem/plots/Path0.png")
         self.assertLessEqual(v, vsa)
         with self.assertRaisesRegex(
                 NodeNotFound,
@@ -572,38 +701,38 @@ class TestModelFileCreation(unittest.TestCase):
     def test_file_creation(self):
         """Tests creating the correct number of files"""
         self.assertTrue(
-            os.path.isfile(os.getcwd() + "/files/datasets/dataset2.txt"))
+            os.path.isfile(os.getcwd() + "/utils/datasets/dataset2.txt"))
         self.assertFalse(
-            os.path.isfile(os.getcwd() + "/files/datasets/dataset3.txt"))
+            os.path.isfile(os.getcwd() + "/utils/datasets/dataset3.txt"))
 
     def test_number_of_nodes(self):
         """Tests the number of nodes `n` is between given constraints"""
         for i in range(1, 3):
             with self.subTest(i=i):
                 with open(
-                        os.getcwd() + "/files/datasets/dataset" + str(i) +
+                        os.getcwd() + "/utils/datasets/dataset" + str(i) +
                         ".txt", "r") as file:
                     n = (int(file.readline().strip()))
                     self.assertTrue(n >= 50 and n <= 100)
 
     def test_log_creation(self):
         """Tests the log file has been created."""
-        self.assertTrue(os.path.isfile(os.getcwd() + "/files/datasets/log.txt"))
+        self.assertTrue(os.path.isfile(os.getcwd() + "/utils/datasets/log.txt"))
 
     def tearDown(self):
-        os.remove(os.getcwd() + "/files/datasets/dataset1.txt")
-        os.remove(os.getcwd() + "/files/datasets/dataset2.txt")
-        os.remove(os.getcwd() + "/files/datasets/log.txt")
+        os.remove(os.getcwd() + "/utils/datasets/dataset1.txt")
+        os.remove(os.getcwd() + "/utils/datasets/dataset2.txt")
+        os.remove(os.getcwd() + "/utils/datasets/log.txt")
 
 
 def suite():
     suite = unittest.TestSuite()
-    suite.addTest(TestGraphMethods('test_create_subgraph'))
+    suite.addTest(TestAlgorithms('test_simulated_annealing'))
     return suite
 
 
 def main():
-    """Runs all the tests."""
+    """Runs all the selected tests."""
     runner = unittest.TextTestRunner()
     runner.run(suite())
 

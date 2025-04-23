@@ -2,8 +2,11 @@
 
 import os
 import sys
+script_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.abspath(os.path.join(script_dir, '..'))
+sys.path.insert(0, project_root)
 import random
-import utils
+from utils import utils
 
 CWD = os.getcwd()
 DATA_SIZE = 1
@@ -23,6 +26,10 @@ def update_global():
     """ Takes script call arguments (if any) and updates the value of the
     extraction constants (nº of nodes, weights, nº of files...)
     """
+    if (sys.argv[0] != "create_models.py" or
+        sys.argv[0] != "utils/create_models.py"):
+        return
+    
     for flag, value in zip(sys.argv[1::2], sys.argv[2::2]):
         match flag:
             case "-f":
@@ -113,6 +120,7 @@ def generate_edges(nodes: set[int]) -> tuple[int, str]:
     edge_data = []
     tot_edges = node_count * (node_count - 1)
     edges = 0
+    edges_added = set()
 
     if VERBOSE:
         utils.printProgressBar(0,
@@ -121,16 +129,20 @@ def generate_edges(nodes: set[int]) -> tuple[int, str]:
                                suffix=f"Complete (0/{tot_edges})",
                                length=50)
 
-    for node1 in nodes:
-        for node2 in nodes:
-            if node1 == node2:
+    for node1 in nodes_list:
+        for node2 in nodes_list:
+            if node1 == node2 or (node1, node2) in edges_added:
                 continue
+            edges_added.add((node1, node2))
             speed = random.uniform(MIN_SPEED, MAX_SPEED)
             edge_data.append(f"{speed:.1f} "
                              f"{node1} {node2}")
+            if (node2, node1) in edges_added:
+                continue
+            edges_added.add((node2, node1))
             edge_data.append(f"{speed:.1f} "
                              f"{node2} {node1}")
-            edges += 1
+            edges += 2
 
             if VERBOSE:
                 utils.printProgressBar(edges,
@@ -193,7 +205,7 @@ def create_dataset():
     """
     if len(sys.argv) > 1:
         update_global()
-    path = CWD + "/files/datasets"
+    path = CWD + "/utils/datasets"
     if not os.path.isdir(path):
         os.makedirs(path)
 
