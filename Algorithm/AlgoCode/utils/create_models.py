@@ -2,6 +2,7 @@
 
 import os
 import sys
+
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..'))
 sys.path.insert(0, project_root)
@@ -27,9 +28,9 @@ def update_global():
     extraction constants (nº of nodes, weights, nº of files...)
     """
     if (sys.argv[0] != "create_models.py" or
-        sys.argv[0] != "utils/create_models.py"):
+            sys.argv[0] != "utils/create_models.py"):
         return
-    
+
     for flag, value in zip(sys.argv[1::2], sys.argv[2::2]):
         match flag:
             case "-f":

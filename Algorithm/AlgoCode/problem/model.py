@@ -116,8 +116,10 @@ class Node():
         Returns:
             The absolute value of the euclidean distance.
         """
-        return abs(math.sqrt(pow((self.coordinates[0] - b.coordinates[0]), 2)
-                             + pow((self.coordinates[1] - b.coordinates[1]), 2)))
+        return abs(
+            math.sqrt(
+                pow((self.coordinates[0] - b.coordinates[0]), 2) +
+                pow((self.coordinates[1] - b.coordinates[1]), 2)))
 
     def change_status(self):
         """Visits or unvisits the a depending on the previous status"""
@@ -165,7 +167,10 @@ class Edge():
 
     """
 
-    def __init__(self, speed: float, origin: Node, dest: Node, 
+    def __init__(self,
+                 speed: float,
+                 origin: Node,
+                 dest: Node,
                  bidimensional: bool = False):
         #: float: The length of the edge from origin to dest.
         if not bidimensional:
@@ -478,24 +483,24 @@ class Graph():
                 aux = l.split()
                 if aux[0] == "DIMENSION:":
                     n = int(aux[1])
-                    
+
                 elif aux[0] == "EDGE_WEIGHT_TYPE:":
                     if aux[1] != "EUC_2D":
                         raise WrongEdgeType
-                    
+
                 elif l == "NODE_COORD_SECTION":
                     for i in range(n):
                         l = f.readline().strip().split()
                         self.add_node(Node(i, 0, l[1], l[2]))
-                        
+
         for n in self.node_list:
             for m in self.node_list:
-                if n == m: continue
+                if n == m:
+                    continue
                 self.add_edge(Edge(20, n, m, True))
-            
+
         self.set_center(self.node_list[0])
         self.set_distance_matrix()
-                    
 
     def create_subgraph(self, nodes: list[Node]) -> 'Graph':
         """Creates a new graph from an existing one.
@@ -748,7 +753,7 @@ class Graph():
 
     # Zone creation functions
     def _create_zones(self, angled_nodes: list[Node],
-                     truck_capacity: float) -> list[list[Node]]:
+                      truck_capacity: float) -> list[list[Node]]:
         """Divides the graph in zones.
 
         This function is called by ``divide_graph()``. It is in charge of 
@@ -790,7 +795,7 @@ class Graph():
         return zones
 
     def _postprocess_zones(self, zones: list[list[Node]],
-                          truck_capacity: float) -> list[list[Node]]:
+                           truck_capacity: float) -> list[list[Node]]:
         """Evaluates zones to determine if a frontier node should be moved.
         
         A frontier node is a node that, while being part of a zone, is right 
@@ -928,7 +933,7 @@ class Graph():
     def create_points(
         self,
         path: list[int] | list[list[int]],
-        ) -> list[tuple[float, float]] | list[list[tuple, tuple]]:
+    ) -> list[tuple[float, float]] | list[list[tuple, tuple]]:
         """Generates a list of coordinates from a list of node indices.
         
         Args:

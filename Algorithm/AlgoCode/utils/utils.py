@@ -5,6 +5,7 @@ import time
 # Internal stats for smoothing ETA calculations
 __pb_stats = {}
 
+
 def printProgressBar(iteration: int,
                      total: int,
                      prefix: str = '',

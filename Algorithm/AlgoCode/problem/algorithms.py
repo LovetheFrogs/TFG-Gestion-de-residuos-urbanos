@@ -21,7 +21,9 @@ class Algorithms():
         self.graph = graph
 
     # Divides a graph into zones and creates needed plots & subgraphs.
-    def divide(self, zone_weight: float, dir: str | None = None,
+    def divide(self,
+               zone_weight: float,
+               dir: str | None = None,
                name: str = "") -> tuple[list[Graph], list[list[int]]]:
         """Divides a graph into zones of a given weight.
 
@@ -38,19 +40,19 @@ class Algorithms():
         """
         zones = self.graph.divide_graph(zone_weight)
         subgraphs = [self.graph.create_subgraph(z) for z in zones]
-        
+
         points = []
         for zone in zones:
             l = []
             for node in zone:
                 l.append(node.index)
             points.append(self.graph.create_points(l))
-        
+
         if dir:
             self._plot_divisions(points, dir=dir, name=name)
         else:
             self._plot_divisions(points).show()
-        
+
         return subgraphs, zones
 
     # Function that returns the value of a tour.
@@ -160,7 +162,8 @@ class Algorithms():
             for i in range(n):
                 adjusted_row = []
                 for j in range(n):
-                    adjusted_row.append(self.graph.distances[i][j] + pi[i] + pi[j])
+                    adjusted_row.append(self.graph.distances[i][j] + pi[i] +
+                                        pi[j])
                 adjusted_dist.append(adjusted_row)
             self.graph.distances = adjusted_dist
 
@@ -221,7 +224,7 @@ class Algorithms():
             return [n.index for n in self.graph.graph.keys()], 0
         elif self.graph.nodes == 0:
             return [], 0
-        
+
         path = []
         visited = [False] * self.graph.nodes
         pq = []
@@ -382,8 +385,7 @@ class Algorithms():
             else:
                 p = [
                     self.graph.node_list[0].index,
-                    self.graph.node_list[1].index,
-                    self.graph.node_list[0].index
+                    self.graph.node_list[1].index, self.graph.node_list[0].index
                 ]
             return p, self.graph.distances[0][1]
         elif self.graph.nodes == 1:
@@ -419,7 +421,7 @@ class Algorithms():
         if hasattr(creator, 'Individual'):
             del creator.Individual
 
-        creator.create("FitnessMin", base.Fitness, weights=(-1.0, ))
+        creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
         creator.create("Individual",
                        list,
                        typecode='i',
@@ -444,8 +446,8 @@ class Algorithms():
             The toolbox defined for the genetic algorithm.
         """
         toolbox = base.Toolbox()
-        toolbox.register("random_order", random.sample,
-                         range(self.graph.nodes), self.graph.nodes)
+        toolbox.register("random_order", random.sample, range(self.graph.nodes),
+                         self.graph.nodes)
         toolbox.register("individual_creator", tools.initIterate,
                          creator.Individual, toolbox.random_order)
         toolbox.register("population_creator", tools.initRepeat, list,
@@ -496,28 +498,29 @@ class Algorithms():
         Returns:
             A new population of individuals, all being `path`.
         """
+
         def _return_same(path):
             return path
-        
+
         toolbox.register("seeded_order", _return_same, path)
         toolbox.register("seeded_individual_creator", tools.initIterate,
                          creator.Individual, toolbox.seeded_order)
         toolbox.register("population_seeder", tools.initRepeat, list,
                          toolbox.seeded_individual_creator)
         population = toolbox.population_seeder(n=pop_size)
-            
+
         return population
 
     # Metaheuristic algorithms.
     def _eaSimpleWithElitism(self,
-                            population,
-                            toolbox,
-                            cxpb,
-                            mutpb,
-                            ngen,
-                            stats=None,
-                            halloffame=None,
-                            verbose=__debug__):
+                             population,
+                             toolbox,
+                             cxpb,
+                             mutpb,
+                             ngen,
+                             stats=None,
+                             halloffame=None,
+                             verbose=__debug__):
         """This algorithm is similar to DEAP eaSimple() algorithm, with the 
         modification that halloffame is used to implement an elitism mechanism. 
         The individuals contained in the halloffame are directly injected into 
@@ -608,8 +611,8 @@ class Algorithms():
                 if verbose:
                     print("Stagnated")
                 if ((mut_exploder < 5 or
-                     (mut_exploder < mut_exp and self.graph.nodes >= 20))
-                        and mut_exploder < self.graph.nodes):
+                     (mut_exploder < mut_exp and self.graph.nodes >= 20)) and
+                        mut_exploder < self.graph.nodes):
                     toolbox.register("mutate",
                                      tools.mutShuffleIndexes,
                                      indpb=1 /
@@ -628,8 +631,8 @@ class Algorithms():
                 gens_stagnated = 0
 
             # Population reseting
-            if (cicles >= (mcic) + 1
-                    or superGens_stagnated > self.graph.nodes * 6.5):
+            if (cicles >= (mcic) + 1 or
+                    superGens_stagnated > self.graph.nodes * 6.5):
                 if superGens_stagnated > self.graph.nodes * 6.5 and verbose:
                     print("Halted")
                 break
@@ -713,9 +716,8 @@ class Algorithms():
             next_path = self._flip(current_path, i, j)
             next_value = self.evaluate(next_path)
 
-            if ((next_value < current_value)
-                    or (random.uniform(0, 1) <= np.exp(
-                        (current_value - next_value) / temperature))):
+            if ((next_value < current_value) or (random.uniform(0, 1) <= np.exp(
+                (current_value - next_value) / temperature))):
                 current_path, current_value = next_path, next_value
 
                 if current_value < best_value:
@@ -852,13 +854,13 @@ class Algorithms():
             population = self._seed_population(toolbox, path[:-1], pop_size)
 
         population, logbook = self._eaSimpleWithElitism(population,
-                                                       toolbox,
-                                                       cxpb=cxpb,
-                                                       mutpb=mutpb,
-                                                       ngen=ngen,
-                                                       stats=stats,
-                                                       halloffame=hof,
-                                                       verbose=vrb)
+                                                        toolbox,
+                                                        cxpb=cxpb,
+                                                        mutpb=mutpb,
+                                                        ngen=ngen,
+                                                        stats=stats,
+                                                        halloffame=hof,
+                                                        verbose=vrb)
 
         best = [i for i in hof.items[0]]
         best += [best[0]]
@@ -905,7 +907,7 @@ class Algorithms():
             path = random.sample(range(0, self.graph.nodes), self.graph.nodes)
         best, best_value = self._two_opt(path, vrb)
         best += [best[0]]
-        
+
         if dir:
             self._plot_results(best, dir=dir, name=name)
         else:
@@ -1002,9 +1004,9 @@ class Algorithms():
 
     # Helper functions for plotting results.
     def plot_multiple_paths(self,
-                       paths: list[list[tuple[float, float]]],
-                       dir: str | None = None,
-                       name: str | None = None) -> plt:
+                            paths: list[list[tuple[float, float]]],
+                            dir: str | None = None,
+                            name: str | None = None) -> plt:
         """Prepares a list of path node's coordinates to plot them.
 
         Args:
@@ -1020,13 +1022,13 @@ class Algorithms():
         pltr = plotter.Plotter()
         plt.figure(1)
         pltr.plot_multiple_paths(paths, self.graph.center.coordinates)
-        
+
         if dir:
             plt.savefig(f"{dir}/{name}.png")
             plt.close()
-            
+
         return plt
-    
+
     def _plot_results(self,
                       path: list[int],
                       logbook: dict | None = None,
@@ -1064,7 +1066,7 @@ class Algorithms():
             if dir:
                 plt.savefig(f"{dir}/Evolution_{name}.png")
                 plt.close()
-            
+
         return plt
 
     def _plot_divisions(self,
@@ -1090,11 +1092,11 @@ class Algorithms():
         if dir:
             plt.savefig(f"{dir}/Original{name}.png")
             plt.close()
-            
+
         plt.figure(2)
         pltr.plot_zones(points, self.graph.center.coordinates)
         if dir:
             plt.savefig(f"{dir}/Divisions{name}.png")
             plt.close()
-            
+
         return plt

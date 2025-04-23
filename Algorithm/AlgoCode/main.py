@@ -1,8 +1,9 @@
 import os
 from problem import model
 from problem import algorithms
-
 """Example usage of loading a graph and creating its tour(s)."""
+
+
 def run():
     cwd = os.getcwd()
 
@@ -10,11 +11,10 @@ def run():
     g = model.Graph()
     g.populate_from_file(f"{cwd}/tests/files/test3.txt", verbose=True)
 
-    # Divide the graph into zones of 1.500kg each and create the needed 
+    # Divide the graph into zones of 1.500kg each and create the needed
     # subgraphs.
     algo = algorithms.Algorithms(g)
-    subgraphs, zones = algo.divide(1500, dir=f"{cwd}/problem/plots",
-                                   name="")
+    subgraphs, zones = algo.divide(1500, dir=f"{cwd}/problem/plots", name="")
 
     print(f"Number of zones: {len(zones)}")
     print()
@@ -34,24 +34,25 @@ def run():
         print(f"|   Nearest Neighbor tour value = {nnv:.2f} "
               f"(Within {abs(100 - ((100 * nnv) / lb)):.1f}% "
               f"of the lower bound)")
-        tsp, tsv = algo.run_tabu_search(path=nnp, 
-                                      dir=f"{cwd}/problem/plots", 
-                                      name=f"subgraph{i + 1}")
+        tsp, tsv = algo.run_tabu_search(path=nnp,
+                                        dir=f"{cwd}/problem/plots",
+                                        name=f"subgraph{i + 1}")
         print(f"|   Tabu search tour value = {tsv:.2f} "
               f"(Within {abs(100 - ((100 * tsv) / lb)):.1f}% "
               f"of the lower bound)")
         print("--------------------------------------------------------------")
         print()
         total += tsv
-        
+
         # Save coordinates of the points that form the path.
         points.append([sg.get_node(n).coordinates for n in tsp])
 
     print(f"Total cost = {total}")
-    
+
     # Print all paths calculated
-    algo.plot_multiple_paths(points, dir=f"{cwd}/problem/plots", name="AllPaths")
-    
+    algo.plot_multiple_paths(points,
+                             dir=f"{cwd}/problem/plots",
+                             name="AllPaths")
 
 
 def main():
