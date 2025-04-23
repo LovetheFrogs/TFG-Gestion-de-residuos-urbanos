@@ -119,7 +119,8 @@ class Benchmark():
                     text = "Starting benchmark"
                     utils.printProgressBar(stage, total_stages, 
                                            f"{text + ' ' * (35 - len(text))}", 
-                                           f"{stage}/{total_stages}{' ' * 10}")
+                                           f"{stage}/{total_stages}{' ' * 10}",
+                                           show_eta=True)
             
             for i in range(BENCHMARK_SIZE):
                 self.graph = Graph()
@@ -131,7 +132,8 @@ class Benchmark():
                 text = "Algorithm stage"
                 utils.printProgressBar(stage + 1, total_stages, 
                                         f"{text + ' ' * (35 - len(text))}", 
-                                        f"{stage}/{total_stages}{' ' * 10}")    
+                                        f"{stage}/{total_stages}{' ' * 10}",
+                                        show_eta=True)    
             
             self.generate_results()
             self.save_results()
@@ -148,14 +150,16 @@ class Benchmark():
                     text = "Starting benchmark"
                     utils.printProgressBar(stage, total_stages, 
                                            f"{text + ' ' * (35 - len(text))}", 
-                                           f"{stage}/{total_stages}{' ' * 10}")
+                                           f"{stage}/{total_stages}{' ' * 10}",
+                                           show_eta=True)
             stage = self.run_tsplib_simple(stage, total_stages)
             stage = self.run_tsplib_combined(stage, total_stages)
             if VERBOSE:
                     text = "Algorithm stage"
                     utils.printProgressBar(stage + 1, total_stages, 
                                            f"{text + ' ' * (35 - len(text))}", 
-                                           f"{stage}/{total_stages}{' ' * 10}")
+                                           f"{stage}/{total_stages}{' ' * 10}",
+                                           show_eta=True)
             
             self.generate_results()
             self.save_results()
@@ -196,7 +200,8 @@ class Benchmark():
             text = f"Lower bound (graph {i + 1})"
             utils.printProgressBar(stage, total_stages,
                                    f"{text + ' ' * (35 - len(text))}",
-                                   f"{stage}/{total_stages}{' ' * 10}")
+                                   f"{stage}/{total_stages}{' ' * 10}",
+                                   show_eta=True)
         _, lb = self.algo.held_karp_lb()
         
         if VERBOSE:
@@ -204,7 +209,8 @@ class Benchmark():
             text = f"Nearest Neighgbor (graph {i + 1})"
             utils.printProgressBar(stage, total_stages,
                                    f"{text + ' ' * (35 - len(text))}",
-                                   f"{stage}/{total_stages}{' ' * 10}")
+                                   f"{stage}/{total_stages}{' ' * 10}",
+                                   show_eta=True)
         start = time.time()
         _, v = self.algo.nearest_neighbor(dir=f"{CWD}/benchmark", name="NN")
         end = time.time()
@@ -217,7 +223,8 @@ class Benchmark():
             text = f"2opt (graph {i + 1})"
             utils.printProgressBar(stage, total_stages,
                                    f"{text + ' ' * (35 - len(text))}",
-                                   f"{stage}/{total_stages}{' ' * 10}")
+                                   f"{stage}/{total_stages}{' ' * 10}",
+                                   show_eta=True)
         start = time.time()
         _, v = self.algo.run_two_opt(dir=f"{CWD}/benchmark", name="2opt")
         end = time.time()
@@ -230,7 +237,8 @@ class Benchmark():
             text = f"Simulated Annealing (graph {i + 1})"
             utils.printProgressBar(stage, total_stages,
                                    f"{text + ' ' * (35 - len(text))}",
-                                   f"{stage}/{total_stages}{' ' * 10}")
+                                   f"{stage}/{total_stages}{' ' * 10}",
+                                   show_eta=True)
         start = time.time()
         _, v = self.algo.run_sa(dir=f"{CWD}/benchmark", name="SA")
         
@@ -239,7 +247,8 @@ class Benchmark():
             text = f"Tabu Search (graph {i + 1})"
             utils.printProgressBar(stage, total_stages,
                                    f"{text + ' ' * (35 - len(text))}",
-                                   f"{stage}/{total_stages}{' ' * 10}")
+                                   f"{stage}/{total_stages}{' ' * 10}",
+                                   show_eta=True)
         end = time.time()
         if v < lb: raise ValueError("Lower bound broken")
         self.results["SA"].append([v, (end - start),
@@ -278,7 +287,8 @@ class Benchmark():
             text = f"Lower bound + NN (graph {i + 1})"
             utils.printProgressBar(stage, total_stages,
                                    f"{text + ' ' * (35 - len(text))}",
-                                   f"{stage}/{total_stages}{' ' * 10}")
+                                   f"{stage}/{total_stages}{' ' * 10}",
+                                   show_eta=True)
         _, lb = self.algo.held_karp_lb()
         p, v = self.algo.nearest_neighbor(dir=f"{CWD}/benchmark", name="NN")
         if v < lb: raise ValueError("Lower bound broken")
@@ -288,7 +298,8 @@ class Benchmark():
             text = f"NN + 2opt (graph {i + 1})"
             utils.printProgressBar(stage, total_stages,
                                    f"{text + ' ' * (35 - len(text))}",
-                                   f"{stage}/{total_stages}{' ' * 10}")
+                                   f"{stage}/{total_stages}{' ' * 10}",
+                                   show_eta=True)
         start = time.time()
         _, v = self.algo.run_two_opt(dir=f"{CWD}/benchmark", name="2opt",
                                      path=p)
@@ -302,7 +313,8 @@ class Benchmark():
             text = f"NN + SA (graph {i + 1})"
             utils.printProgressBar(stage, total_stages,
                                    f"{text + ' ' * (35 - len(text))}",
-                                   f"{stage}/{total_stages}{' ' * 10}")
+                                   f"{stage}/{total_stages}{' ' * 10}",
+                                   show_eta=True)
         start = time.time()
         _, v = self.algo.run_sa(dir=f"{CWD}/benchmark", name="SA",
                                 path=p)
@@ -316,7 +328,8 @@ class Benchmark():
             text = f"NN + Tabu search (graph {i + 1})"
             utils.printProgressBar(stage, total_stages,
                                    f"{text + ' ' * (35 - len(text))}",
-                                   f"{stage}/{total_stages}{' ' * 10}")
+                                   f"{stage}/{total_stages}{' ' * 10}",
+                                   show_eta=True)
         start = time.time()
         _, v = self.algo.run_tabu_search(dir=f"{CWD}/benchmark", name="TS",
                                          path=p)
@@ -355,7 +368,8 @@ class Benchmark():
                 text = f"Nearest Neighgbor ({test})"
                 utils.printProgressBar(stage, total_stages,
                                     f"{text + ' ' * (35 - len(text))}",
-                                    f"{stage}/{total_stages}{' ' * 10}")
+                                    f"{stage}/{total_stages}{' ' * 10}",
+                                    show_eta=True)
             
             start = time.time()
             _, v = algo.nearest_neighbor(dir=f"{CWD}/benchmark", name="NN")
@@ -369,7 +383,8 @@ class Benchmark():
                 text = f"2opt ({test})"
                 utils.printProgressBar(stage, total_stages,
                                     f"{text + ' ' * (35 - len(text))}",
-                                    f"{stage}/{total_stages}{' ' * 10}")
+                                    f"{stage}/{total_stages}{' ' * 10}",
+                                    show_eta=True)
             start = time.time()
             _, v = algo.run_two_opt(dir=f"{CWD}/benchmark", name="2opt")
             end = time.time()
@@ -382,7 +397,8 @@ class Benchmark():
                 text = f"Simulated Annealing ({test})"
                 utils.printProgressBar(stage, total_stages,
                                     f"{text + ' ' * (35 - len(text))}",
-                                    f"{stage}/{total_stages}{' ' * 10}")
+                                    f"{stage}/{total_stages}{' ' * 10}",
+                                    show_eta=True)
             start = time.time()
             _, v = algo.run_sa(dir=f"{CWD}/benchmark", name="SA")
             end = time.time()
@@ -395,7 +411,8 @@ class Benchmark():
                 text = f"Tabu Search ({test})"
                 utils.printProgressBar(stage, total_stages,
                                     f"{text + ' ' * (35 - len(text))}",
-                                    f"{stage}/{total_stages}{' ' * 10}")
+                                    f"{stage}/{total_stages}{' ' * 10}",
+                                    show_eta=True)
             start = time.time()
             _, v = algo.run_tabu_search(dir=f"{CWD}/benchmark", name="TS")
             end = time.time()
@@ -433,7 +450,8 @@ class Benchmark():
                 text = f"NN 2nd stage ({test})"
                 utils.printProgressBar(stage, total_stages,
                                     f"{text + ' ' * (35 - len(text))}",
-                                    f"{stage}/{total_stages}{' ' * 10}")
+                                    f"{stage}/{total_stages}{' ' * 10}",
+                                    show_eta=True)
             
             p, v = algo.nearest_neighbor(dir=f"{CWD}/benchmark", name="NN")
             if v < opt: raise ValueError("Optimal value broken")
@@ -443,7 +461,8 @@ class Benchmark():
                 text = f"NN + 2opt ({test})"
                 utils.printProgressBar(stage, total_stages,
                                     f"{text + ' ' * (35 - len(text))}",
-                                    f"{stage}/{total_stages}{' ' * 10}")
+                                    f"{stage}/{total_stages}{' ' * 10}",
+                                    show_eta=True)
             start = time.time()
             _, v = algo.run_two_opt(dir=f"{CWD}/benchmark", name="2opt",
                                      path=p)
@@ -457,7 +476,8 @@ class Benchmark():
                 text = f"NN + SA ({test})"
                 utils.printProgressBar(stage, total_stages,
                                     f"{text + ' ' * (35 - len(text))}",
-                                    f"{stage}/{total_stages}{' ' * 10}")
+                                    f"{stage}/{total_stages}{' ' * 10}",
+                                    show_eta=True)
             start = time.time()
             _, v = algo.run_sa(dir=f"{CWD}/benchmark", name="SA",
                                      path=p)
@@ -471,7 +491,8 @@ class Benchmark():
                 text = f"NN + Tabu search ({test})"
                 utils.printProgressBar(stage, total_stages,
                                     f"{text + ' ' * (35 - len(text))}",
-                                    f"{stage}/{total_stages}{' ' * 10}")
+                                    f"{stage}/{total_stages}{' ' * 10}",
+                                    show_eta=True)
             start = time.time()
             _, v = algo.run_tabu_search(dir=f"{CWD}/benchmark", name="TS",
                                      path=p)
