@@ -106,11 +106,14 @@ class Algorithms():
         result, edges = self.graph.prim(start)
         aux = [(i, w) for i, w in enumerate(self.graph.distances[start])]
         aux.sort(key=lambda x: x[1])
+        added = 0
         for item in aux[1:]:
-            if not (start, item[0]) in edges:
+            if not (start, item[0]) in edges and not (item[0], start) in edges:
                 result += item[1]
                 edges.append((start, item[0]))
-                break
+                added += 1
+                if added == 2:
+                    break
 
         return edges, result
 
@@ -680,7 +683,8 @@ class Algorithms():
         return best, best_value
 
     def _simulated_annealing(self, path: list[int], niter: int, mstag: int,
-                             vrb: bool) -> tuple[list[int], float]:
+                             vrb: bool, temperature: int = 1000, 
+                             alpha: float = 0.999) -> tuple[list[int], float]:
         """Simulated Annealing for solving the Travelling Salesman Problem.
 
         The Simulated Annealing algorithm tries to find a solution by selecting
@@ -703,8 +707,8 @@ class Algorithms():
         current_value = self.evaluate(current_path)
         best_path = current_path
         best_value = current_value
-        temperature = 5000
-        alpha = 0.99
+        temperature = 1000
+        alpha = 0.999
         stagnated = 0
         it = 0
 
