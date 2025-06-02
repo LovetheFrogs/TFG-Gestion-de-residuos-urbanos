@@ -1,4 +1,5 @@
 import os
+import time
 from problem import model
 from problem import algorithms
 """Example usage of loading a graph and creating its tour(s)."""
@@ -21,31 +22,29 @@ def run():
 
     total = 0
     # For each subgraph, calculate the lower bound, create a NN tour and use it
-    # to find a tour using Tabu-Search. Save it to a file called `subgraph{i}`
+    # to find a tour using the best algorithm. Save it to a file called 
+    # `subgraph{i}.txt`.
     points = []
     for i, sg in enumerate(subgraphs):
         algo = algorithms.Algorithms(sg)
-        print(f"Subgraph {i + 1} - Weight {sg.total_weight()}")
+        print(f"Subgraph {i + 1} - Weight {sg.total_weight()} - Nodes {sg.nodes}")
         print("##############################################################")
         _, lb = algo.held_karp_lb()
         print(f"|   Held-Karp lower bound = {lb:.2f}")
-        nnp, nnv = algo.nearest_neighbor(dir=f"{cwd}/problem/plots", name=0)
-        os.remove(f"{cwd}/problem/plots/0.png")
-        print(f"|   Nearest Neighbor tour value = {nnv:.2f} "
-              f"(Within {abs(100 - ((100 * nnv) / lb)):.1f}% "
+        start = time.time()
+        rp, rv = algo.run(dir=f"{cwd}/problem/plots",
+                            name=f"subgraph{i + 1}")
+        end = time.time()
+        print(f"|   Final tour value = {rv:.2f} "
+              f"(Within {abs(100 - ((100 * rv) / lb)):.1f}% "
               f"of the lower bound)")
-        tsp, tsv = algo.run_tabu_search(path=nnp,
-                                        dir=f"{cwd}/problem/plots",
-                                        name=f"subgraph{i + 1}")
-        print(f"|   Tabu search tour value = {tsv:.2f} "
-              f"(Within {abs(100 - ((100 * tsv) / lb)):.1f}% "
-              f"of the lower bound)")
+        print(f"|   Time to compute = {end - start}")
         print("--------------------------------------------------------------")
         print()
-        total += tsv
+        total += rv
 
         # Save coordinates of the points that form the path.
-        points.append([sg.get_node(n).coordinates for n in tsp])
+        points.append([sg.get_node(n).coordinates for n in rp])
 
     print(f"Total cost = {total}")
 

@@ -682,9 +682,9 @@ class Algorithms():
 
         return best, best_value
 
-    def _simulated_annealing(self, path: list[int], niter: int, mstag: int,
-                             vrb: bool, temperature: int = 1000, 
-                             alpha: float = 0.999) -> tuple[list[int], float]:
+    def _simulated_annealing(self, path: list[int], mstag: int,
+                             vrb: bool, temperature: int, 
+                             alpha: float) -> tuple[list[int], float]:
         """Simulated Annealing for solving the Travelling Salesman Problem.
 
         The Simulated Annealing algorithm tries to find a solution by selecting
@@ -695,7 +695,6 @@ class Algorithms():
 
         Args:
             path: The starting path.
-            niter: Maximum number of iterations.
             mstag: Maximum number of iterations without improvements to the 
                 value of the objective function.
             vrb: Run the algorithm in verbose or non-verbose mode.
@@ -707,12 +706,12 @@ class Algorithms():
         current_value = self.evaluate(current_path)
         best_path = current_path
         best_value = current_value
-        temperature = 1000
-        alpha = 0.999
+        temperature = temperature
+        alpha = alpha
         stagnated = 0
         it = 0
 
-        while it < niter and stagnated < mstag:
+        while temperature > 1e-255 and stagnated < mstag:
             i = random.randint(0, self.graph.nodes)
             j = random.randint(0, self.graph.nodes)
             if i > j:
@@ -921,7 +920,6 @@ class Algorithms():
 
     def run_sa(self,
                path: list[int] | None = None,
-               niter: int = 100000,
                mstag: int = 1500,
                dir: str | None = None,
                name: str = "",
@@ -931,7 +929,6 @@ class Algorithms():
         Args:
             path (optional): The starting path. If it is `None`, a random one
                 will be created. Defaults to None.
-            niter (optional): Maximum number of iterations. Defaults to 100000.
             mstag (optional): Maximum number of iterations without improvements
                 to the value of the objective function. Defaults to 1500.
             dir (optional): The directory where the plots should be saved. 
@@ -949,11 +946,29 @@ class Algorithms():
 
         random.seed(169)
 
+        n = self.graph.nodes
+        temperature = 0
+        alpha = 0
+
+        if (mstag == 1500):
+            if (n < 25 | n > 200): mstag = 10000
+            else: mstag = 3.047619e-7*pow(n, 5) - 0.000015238095*pow(n, 4) - 0.0405714286*pow(n, 3) + 9.095238095*pow(n, 2) - 624.76190476*n + 20571.428571
+        if (n < 25):
+            temperature = 10000
+            alpha = 0.98
+        elif (n > 200):
+            temperature = 7000
+            alpha = 0.98
+        else:
+            temperature = -0.00000615619*pow(n, 5) + 0.00374248*pow(n, 4) - 0.8455238*pow(n, 3) + 86.609524*pow(n, 2) - 3879.142857*n + 64657.142857
+            alpha = -9.216e-11*pow(n, 5) + 4.5077333e-8*pow(n, 4) - 7.8773333e-6*pow(n, 3) + 0.000611666667*pow(n, 2) - 0.02178066667*n + 1.2566
+
         if not path:
             path = random.sample(range(0, self.graph.nodes), self.graph.nodes)
         best, best_value = self._simulated_annealing(path,
-                                                     niter=niter,
                                                      mstag=mstag,
+                                                     temperature=temperature,
+                                                     alpha=alpha,
                                                      vrb=vrb)
         best += [best[0]]
         if dir:
@@ -965,8 +980,8 @@ class Algorithms():
 
     def run_tabu_search(self,
                         path: list[int] = None,
-                        niter: int = 1000,
-                        mstag: int = 100,
+                        niter: int = 10000,
+                        mstag: int = 250,
                         dir: str | None = None,
                         name: str = "",
                         vrb: bool = False) -> tuple[list[int], float]:
@@ -1006,6 +1021,67 @@ class Algorithms():
 
         return best, best_value
 
+    def run(self, 
+            dir: str | None = None,
+            name: str = "",
+            vrb: bool = False) -> tuple[list[int], float]:
+        """Executes the best found search on a graph.
+        
+            Calls the functions needed in order to create the best final path.
+            This functions were found out executing the benchmarks.
+
+            dir (optional): The directory where the plots should be saved. 
+                Defaults to None, in which case the plot(s) won't be saved.
+            name (optional): The name to add to the plots. Defaults to "".
+            vrb (optional): Run the algorithm in verbose or non-verbose mode.
+                Defaults to False.
+
+        Returns:
+            A tuple containing the best path found and its total value.
+        """
+        n = self.graph.nodes
+        
+        if vrb:
+            print(f"Computing Nearest Neighbor")
+        pnn, vnn = self.nearest_neighbor(dir=dir, name=name)
+        if vrb:
+            print(f"Nearest Neighbor value: {vnn}")
+            
+        if (n < 30):
+            if vrb:
+                print("Computing 2-opt")
+            p2opt, v2opt = self.run_two_opt(path=pnn, dir=dir, name=name)
+            if vrb:
+                print(f"Nearest Neighbor + 2-opt value: {v2opt}")
+                print("Computing Simulated Annealing")
+            psa, vsa = self.run_sa(path=p2opt, dir=dir, name=name)
+            if vrb:
+                print(f"2-opt + Simulated Annealing value: {vsa}")
+                print("Computing Tabu Search")
+            p1, v1 = self.run_tabu_search(path=psa, dir=dir, name=name)
+            
+            return p1, v1
+        elif (n > 200):
+            if vrb:
+                print("Computing 2-opt")
+            p2opt, v2opt = self.run_two_opt(path=pnn, dir=dir, name=name)
+            if vrb:
+                print(f"Nearest Neighbor + 2-opt value: {v2opt}")
+                print("Computing Tabu Search")
+            pts, vts = self.run_tabu_search(path=p2opt, dir=dir, name=name)
+            if vrb:
+                print(f"2-opt + Tabu Search value: {vts}")
+                print("Computing Simulated Annealing")
+            p1, v1 = self.run_sa(path=pts, dir=dir, name=name)
+            
+            return p1, v1
+        else:
+            if vrb:
+                print("Computing Tabu Search")
+            p1, v1 = self.run_tabu_search(path=pnn, dir=dir, name=name)
+            
+            return p1, v1
+        
     # Helper functions for plotting results.
     def plot_multiple_paths(self,
                             paths: list[list[tuple[float, float]]],

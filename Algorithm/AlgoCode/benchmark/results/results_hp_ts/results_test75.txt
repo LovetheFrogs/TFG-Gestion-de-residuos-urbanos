@@ -1,0 +1,12 @@
+Top 10 results for file: test75.txt
+
+mstag: 1000, niter: 500000, sigma: 200000.0000 -> TSP value: 204431.8192
+mstag: 1000, niter: 400000, sigma: 100000.0000 -> TSP value: 204431.8192
+mstag: 1000, niter: 200000, sigma: 300000.0000 -> TSP value: 204431.8192
+mstag: 1000, niter: 200000, sigma: 200000.0000 -> TSP value: 204431.8192
+mstag: 900, niter: 400000, sigma: 100000.0000 -> TSP value: 204431.8192
+mstag: 900, niter: 300000, sigma: 100000.0000 -> TSP value: 204431.8192
+mstag: 900, niter: 200000, sigma: 300000.0000 -> TSP value: 204431.8192
+mstag: 900, niter: 100000, sigma: 200000.0000 -> TSP value: 204431.8192
+mstag: 800, niter: 400000, sigma: 100000.0000 -> TSP value: 204431.8192
+mstag: 800, niter: 300000, sigma: 300000.0000 -> TSP value: 204431.8192

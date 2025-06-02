@@ -37,10 +37,34 @@ class Benchmark():
     def __init__(self):
         self.data = "Empty benchmark"
 
+    def print_help(self):
+        """Generates the help menu on demand."""
+        print("""
+        Usage: python script.py [options]
+
+        This script updates global parameters for the extraction and processing pipeline.
+
+        Options:
+        -n <int>       Benchmark size (BENCHMARK_SIZE).                      [default: predefined]
+        -i <int>       Minimum input file size (MIN_FILE_SIZE).              [default: predefined]
+        -j <int>       Maximum input file size (MAX_FILE_SIZE).              [default: predefined]
+        -v <bool>      Verbose mode (True/False or 1/0).                     [default: False]
+        -m <int/str>   Mode selection (1/0 or 'TSPLib'/'random').            [default: 0]
+        -h             Show this help menu and exit.
+
+        Example:
+        python benchmark/benchmark.py -n 100 -i 5 -j 25 -v True -m TSPLib
+        """)
+
     def update_global(self):
         """ Takes script call arguments (if any) and updates the value of the
         extraction constants (nº of nodes, nº of files...)
         """
+        if ('-h' in sys.argv):
+            self.print_help()
+            exit(0)
+
+        
         for flag, value in zip(sys.argv[1::2], sys.argv[2::2]):
             match flag:
                 case "-n":
@@ -77,7 +101,11 @@ class Benchmark():
                 "TS": [],
                 "NN2opt": [],
                 "NNSA": [],
-                "NNTS": []
+                "NNTS": [],
+                "2optSA": [],
+                "2optTS": [],
+                "2optTSSA": [],
+                "2optSATS": []
             }
         if MODE == 1:
             self.optimal = {
@@ -91,19 +119,19 @@ class Benchmark():
             }
             self.results = {
                 "berlin52": [["NN"], ["2opt"], ["SA"], ["TS"], ["NN2opt"],
-                             ["NNSA"], ["NNTS"]],
+                             ["NNSA"], ["NNTS"], ["2optSA"], ["2optTS"], ["2optTSSA"], ["2optSATS"]],
                 "eil76": [["NN"], ["2opt"], ["SA"], ["TS"], ["NN2opt"],
-                          ["NNSA"], ["NNTS"]],
+                          ["NNSA"], ["NNTS"], ["2optSA"], ["2optTS"], ["2optTSSA"], ["2optSATS"]],
                 "bier127": [["NN"], ["2opt"], ["SA"], ["TS"], ["NN2opt"],
-                            ["NNSA"], ["NNTS"]],
+                            ["NNSA"], ["NNTS"], ["2optSA"], ["2optTS"], ["2optTSSA"], ["2optSATS"]],
                 "eil101": [["NN"], ["2opt"], ["SA"], ["TS"], ["NN2opt"],
-                           ["NNSA"], ["NNTS"]],
+                           ["NNSA"], ["NNTS"], ["2optSA"], ["2optTS"], ["2optTSSA"], ["2optSATS"]],
                 "kroa100": [["NN"], ["2opt"], ["SA"], ["TS"], ["NN2opt"],
-                            ["NNSA"], ["NNTS"]],
+                            ["NNSA"], ["NNTS"], ["2optSA"], ["2optTS"], ["2optTSSA"], ["2optSATS"]],
                 "ch130": [["NN"], ["2opt"], ["SA"], ["TS"], ["NN2opt"],
-                          ["NNSA"], ["NNTS"]],
+                          ["NNSA"], ["NNTS"], ["2optSA"], ["2optTS"], ["2optTSSA"], ["2optSATS"]],
                 "pr76": [["NN"], ["2opt"], ["SA"], ["TS"], ["NN2opt"], ["NNSA"],
-                         ["NNTS"]]
+                         ["NNTS"], ["2optSA"], ["2optTS"], ["2optTSSA"], ["2optSATS"]]
             }
 
     def run(self):
@@ -115,7 +143,7 @@ class Benchmark():
             print("-#- Starting benchmark -#-")
         if MODE == 0:
             self.create_variables()
-            total_stages = (BENCHMARK_SIZE * 9) + 1
+            total_stages = (BENCHMARK_SIZE * 13) - 2
             if VERBOSE:
                 print("Creating files")
             self.create_benchmark_files()
@@ -142,7 +170,7 @@ class Benchmark():
                 utils.printProgressBar(stage + 1,
                                        total_stages,
                                        f"{text + ' ' * (35 - len(text))}",
-                                       f"{stage}/{total_stages}{' ' * 10}",
+                                       f"{stage + 1}/{total_stages}{' ' * 10}",
                                        show_eta=True)
 
             self.generate_results()
@@ -155,7 +183,7 @@ class Benchmark():
 
         if MODE == 1:
             self.create_variables()
-            total_stages = (TSPLIB_SAMPLES * 8) + 1
+            total_stages = (TSPLIB_SAMPLES * 12) + 1
             if VERBOSE:
                 text = "Starting benchmark"
                 utils.printProgressBar(stage,
@@ -170,7 +198,7 @@ class Benchmark():
                 utils.printProgressBar(stage + 1,
                                        total_stages,
                                        f"{text + ' ' * (35 - len(text))}",
-                                       f"{stage}/{total_stages}{' ' * 10}",
+                                       f"{stage + 1}/{total_stages}{' ' * 10}",
                                        show_eta=True)
 
             self.generate_results()
@@ -306,14 +334,6 @@ class Benchmark():
         Returns:
             The current stage of the benchmark. 
         """
-        if VERBOSE:
-            stage += 1
-            text = f"Lower bound + NN (graph {i + 1})"
-            utils.printProgressBar(stage,
-                                   total_stages,
-                                   f"{text + ' ' * (35 - len(text))}",
-                                   f"{stage}/{total_stages}{' ' * 10}",
-                                   show_eta=True)
         _, lb = self.algo.held_karp_lb()
         p, v = self.algo.nearest_neighbor(dir=f"{CWD}/benchmark", name="NN")
         if v < lb:
@@ -328,7 +348,7 @@ class Benchmark():
                                    f"{stage}/{total_stages}{' ' * 10}",
                                    show_eta=True)
         start = time.time()
-        _, v = self.algo.run_two_opt(dir=f"{CWD}/benchmark",
+        p2opt, v = self.algo.run_two_opt(dir=f"{CWD}/benchmark",
                                      name="2opt",
                                      path=p)
         end = time.time()
@@ -369,6 +389,78 @@ class Benchmark():
         if v < lb:
             raise ValueError("Lower bound broken")
         self.results["NNTS"].append(
+            [v, (end - start), abs(100 - ((100 * v) / lb))])
+        
+        if VERBOSE:
+            stage += 1
+            text = f"NN + 2opt + SA (graph {i + 1})"
+            utils.printProgressBar(stage,
+                                   total_stages,
+                                   f"{text + ' ' * (35 - len(text))}",
+                                   f"{stage}/{total_stages}{' ' * 10}",
+                                   show_eta=True)
+        start = time.time()
+        p2optsa, v = self.algo.run_sa(dir=f"{CWD}/benchmark",
+                                         name="TS",
+                                         path=p2opt)
+        end = time.time()
+        if v < lb:
+            raise ValueError("Lower bound broken")
+        self.results["2optSA"].append(
+            [v, (end - start), abs(100 - ((100 * v) / lb))])
+        
+        if VERBOSE:
+            stage += 1
+            text = f"NN + 2opt + TS (graph {i + 1})"
+            utils.printProgressBar(stage,
+                                   total_stages,
+                                   f"{text + ' ' * (35 - len(text))}",
+                                   f"{stage}/{total_stages}{' ' * 10}",
+                                   show_eta=True)
+        start = time.time()
+        p2optts, v = self.algo.run_tabu_search(dir=f"{CWD}/benchmark",
+                                         name="TS",
+                                         path=p2opt)
+        end = time.time()
+        if v < lb:
+            raise ValueError("Lower bound broken")
+        self.results["2optTS"].append(
+            [v, (end - start), abs(100 - ((100 * v) / lb))])
+        
+        if VERBOSE:
+            stage += 1
+            text = f"NN + 2opt + TS + SA (graph {i + 1})"
+            utils.printProgressBar(stage,
+                                   total_stages,
+                                   f"{text + ' ' * (35 - len(text))}",
+                                   f"{stage}/{total_stages}{' ' * 10}",
+                                   show_eta=True)
+        start = time.time()
+        p, v = self.algo.run_sa(dir=f"{CWD}/benchmark",
+                                         name="TS",
+                                         path=p2optts)
+        end = time.time()
+        if v < lb:
+            raise ValueError("Lower bound broken")
+        self.results["2optTSSA"].append(
+            [v, (end - start), abs(100 - ((100 * v) / lb))])
+        
+        if VERBOSE:
+            stage += 1
+            text = f"NN + 2opt + SA + TS (graph {i + 1})"
+            utils.printProgressBar(stage,
+                                   total_stages,
+                                   f"{text + ' ' * (35 - len(text))}",
+                                   f"{stage}/{total_stages}{' ' * 10}",
+                                   show_eta=True)
+        start = time.time()
+        p, v = self.algo.run_tabu_search(dir=f"{CWD}/benchmark",
+                                         name="TS",
+                                         path=p2optsa)
+        end = time.time()
+        if v < lb:
+            raise ValueError("Lower bound broken")
+        self.results["2optSATS"].append(
             [v, (end - start), abs(100 - ((100 * v) / lb))])
 
         os.remove(f"{CWD}/benchmark/NN.png")
@@ -512,7 +604,7 @@ class Benchmark():
                                        f"{stage}/{total_stages}{' ' * 10}",
                                        show_eta=True)
             start = time.time()
-            _, v = algo.run_two_opt(dir=f"{CWD}/benchmark", name="2opt", path=p)
+            p2opt, v = algo.run_two_opt(dir=f"{CWD}/benchmark", name="2opt", path=p)
             end = time.time()
             if v < opt:
                 raise ValueError("Optimal value broken")
@@ -553,6 +645,82 @@ class Benchmark():
             if v < opt:
                 raise ValueError("Optimal value broken")
             self.results[test][6].append(
+                [v, (end - start),
+                 abs(100 - ((100 * v) / opt))])
+            
+            if VERBOSE:
+                stage += 1
+                text = f"NN + 2opt + SA ({test})"
+                utils.printProgressBar(stage,
+                                       total_stages,
+                                       f"{text + ' ' * (35 - len(text))}",
+                                       f"{stage}/{total_stages}{' ' * 10}",
+                                       show_eta=True)
+            start = time.time()
+            p2optsa, v = algo.run_sa(dir=f"{CWD}/benchmark",
+                                        name="TS",
+                                        path=p2opt)
+            end = time.time()
+            if v < opt:
+                raise ValueError("Optimal value broken")
+            self.results[test][7].append(
+                [v, (end - start),
+                 abs(100 - ((100 * v) / opt))])
+            
+            if VERBOSE:
+                stage += 1
+                text = f"NN + 2opt + TS ({test})"
+                utils.printProgressBar(stage,
+                                       total_stages,
+                                       f"{text + ' ' * (35 - len(text))}",
+                                       f"{stage}/{total_stages}{' ' * 10}",
+                                       show_eta=True)
+            start = time.time()
+            p2optts, v = algo.run_tabu_search(dir=f"{CWD}/benchmark",
+                                        name="TS",
+                                        path=p2opt)
+            end = time.time()
+            if v < opt:
+                raise ValueError("Optimal value broken")
+            self.results[test][8].append(
+                [v, (end - start),
+                 abs(100 - ((100 * v) / opt))])
+            
+            if VERBOSE:
+                stage += 1
+                text = f"NN + 2opt + TS + SA ({test})"
+                utils.printProgressBar(stage,
+                                       total_stages,
+                                       f"{text + ' ' * (35 - len(text))}",
+                                       f"{stage}/{total_stages}{' ' * 10}",
+                                       show_eta=True)
+            start = time.time()
+            p2optts, v = algo.run_sa(dir=f"{CWD}/benchmark",
+                                        name="TS",
+                                        path=p2optts)
+            end = time.time()
+            if v < opt:
+                raise ValueError("Optimal value broken")
+            self.results[test][9].append(
+                [v, (end - start),
+                 abs(100 - ((100 * v) / opt))])
+            
+            if VERBOSE:
+                stage += 1
+                text = f"NN + 2opt + SA + TS ({test})"
+                utils.printProgressBar(stage,
+                                       total_stages,
+                                       f"{text + ' ' * (35 - len(text))}",
+                                       f"{stage}/{total_stages}{' ' * 10}",
+                                       show_eta=True)
+            start = time.time()
+            p2optts, v = algo.run_tabu_search(dir=f"{CWD}/benchmark",
+                                        name="TS",
+                                        path=p2optsa)
+            end = time.time()
+            if v < opt:
+                raise ValueError("Optimal value broken")
+            self.results[test][10].append(
                 [v, (end - start),
                  abs(100 - ((100 * v) / opt))])
 

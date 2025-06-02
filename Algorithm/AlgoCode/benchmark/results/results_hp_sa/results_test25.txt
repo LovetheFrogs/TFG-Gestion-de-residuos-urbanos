@@ -1,0 +1,12 @@
+Top 10 results for file: test25.txt
+
+mstag: 10000, temp: 10000, alpha: 0.9880 -> TSP value: 120283.7287
+mstag: 10000, temp: 10000, alpha: 0.9760 -> TSP value: 120283.7287
+mstag: 10000, temp: 10000, alpha: 0.9730 -> TSP value: 120283.7287
+mstag: 10000, temp: 10000, alpha: 0.9660 -> TSP value: 120283.7287
+mstag: 10000, temp: 10000, alpha: 0.9590 -> TSP value: 120283.7287
+mstag: 10000, temp: 10000, alpha: 0.9530 -> TSP value: 120283.7287
+mstag: 10000, temp: 10000, alpha: 0.9520 -> TSP value: 120283.7287
+mstag: 10000, temp: 10000, alpha: 0.9480 -> TSP value: 120283.7287
+mstag: 10000, temp: 10000, alpha: 0.9370 -> TSP value: 120283.7287
+mstag: 10000, temp: 10000, alpha: 0.9360 -> TSP value: 120283.7287

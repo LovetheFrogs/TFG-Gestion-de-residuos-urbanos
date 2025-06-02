@@ -1,0 +1,12 @@
+Top 10 results for file: test75.txt
+
+mstag: 8000, temp: 8000, alpha: 0.9480 -> TSP value: 200488.4132
+mstag: 4000, temp: 10000, alpha: 0.9030 -> TSP value: 200488.4132
+mstag: 10000, temp: 10000, alpha: 0.9040 -> TSP value: 202476.6966
+mstag: 7000, temp: 2000, alpha: 0.9470 -> TSP value: 202506.8319
+mstag: 3000, temp: 4000, alpha: 0.9240 -> TSP value: 202524.4034
+mstag: 10000, temp: 9000, alpha: 0.9240 -> TSP value: 202809.1899
+mstag: 9000, temp: 7000, alpha: 0.9220 -> TSP value: 202809.1899
+mstag: 9000, temp: 2000, alpha: 0.9910 -> TSP value: 202809.1899
+mstag: 5000, temp: 8000, alpha: 0.9790 -> TSP value: 202809.1899
+mstag: 10000, temp: 8000, alpha: 0.9930 -> TSP value: 202809.1899
