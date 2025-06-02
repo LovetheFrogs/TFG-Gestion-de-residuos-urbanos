@@ -1,0 +1,12 @@
+Top 10 results for file: test100.txt
+
+mstag: 10000, temp: 10000, alpha: 0.9040 -> TSP value: 220271.2265
+mstag: 10000, temp: 7000, alpha: 0.9640 -> TSP value: 220271.2265
+mstag: 8000, temp: 9000, alpha: 0.9940 -> TSP value: 220622.1281
+mstag: 3000, temp: 6000, alpha: 0.9540 -> TSP value: 221032.0542
+mstag: 10000, temp: 4000, alpha: 0.9660 -> TSP value: 221039.1528
+mstag: 7000, temp: 2000, alpha: 0.9960 -> TSP value: 221228.0927
+mstag: 10000, temp: 9000, alpha: 0.9550 -> TSP value: 221287.5414
+mstag: 5000, temp: 9000, alpha: 0.9820 -> TSP value: 221633.8284
+mstag: 4000, temp: 10000, alpha: 0.9260 -> TSP value: 221811.7546
+mstag: 3000, temp: 8000, alpha: 0.9130 -> TSP value: 221877.1150

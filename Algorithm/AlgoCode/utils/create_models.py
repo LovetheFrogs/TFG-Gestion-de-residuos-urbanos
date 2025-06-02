@@ -11,7 +11,7 @@ from utils import utils
 
 CWD = os.getcwd()
 DATA_SIZE = 1
-MIN_NODES, MAX_NODES = 300, 500
+MIN_NODES, MAX_NODES = 200, 200
 MIN_WEIGHT, MAX_WEIGHT = 100, 250
 MIN_X, MAX_X = -100, 100
 MIN_Y, MAX_Y = -100, 100
@@ -22,14 +22,39 @@ NEW_LINE = "\n"
 DECORATOR = ("+-----------------------------------------"
              "-----------------------------------------+")
 
+def print_help():
+    """Generates the help menu on demand """
+    print("""
+    Usage: python create_models.py [options]
+
+    This script generates graph files for testing with configurable parameters.
+
+    Options:
+    -f <int>       Number of data files to generate (DATA_SIZE).         [default: 1]
+    -n <int>       Minimum number of nodes in a graph (MIN_NODES).       [default: 200]
+    -N <int>       Maximum number of nodes in a graph (MAX_NODES).       [default: 200]
+    -x <int>       Minimum X coordinate value (MIN_X).                   [default: -100]
+    -X <int>       Maximum X coordinate value (MAX_X).                   [default: 100]
+    -y <int>       Minimum Y coordinate value (MIN_Y).                   [default: -100]
+    -Y <int>       Maximum Y coordinate value (MAX_Y).                   [default: 100]
+    -w <float>     Minimum node weight (MIN_WEIGHT).                     [default: 100.0]
+    -W <float>     Maximum node weight (MAX_WEIGHT).                     [default: 250.0]
+    -s <float>     Minimum speed (MIN_SPEED).                            [default: 20.0]
+    -S <float>     Maximum speed (MAX_SPEED).                            [default: 60.0]
+    -v <bool>      Verbose mode (True/False or 1/0).                     [default: False]
+
+    Example:
+    python create_models.py -f 10 -n 5 -N 15 -s 1.0 -S 5.0 -v True
+    """)
+
 
 def update_global():
     """ Takes script call arguments (if any) and updates the value of the
     extraction constants (nº of nodes, weights, nº of files...)
     """
-    if (sys.argv[0] != "create_models.py" or
-            sys.argv[0] != "utils/create_models.py"):
-        return
+    if ('-h' in sys.argv):
+        print_help()
+        exit(0)
 
     for flag, value in zip(sys.argv[1::2], sys.argv[2::2]):
         match flag:
