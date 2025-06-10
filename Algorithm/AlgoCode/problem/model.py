@@ -502,6 +502,70 @@ class Graph():
         self.set_center(self.node_list[0])
         self.set_distance_matrix()
 
+    def populate_from_database(self, cur, verbose: bool = False):
+        """
+        Populates a graph from data stored in the database.
+        
+        It uses data from NODE, ESTIMATED_DATA, and EDGE tables. The weight of 
+        each node is taken from the ESTIMATED_WEIGHT column in ESTIMATED_DATA. 
+        The node with index 0 is set as the center.
+
+        Args:
+            cur: An open psycopg2 cursor connected to the database.
+            verbose (optional): If the function should run in verbose mode.
+                Defaults to False
+        """
+
+        cur.execute("""
+            SELECT N.NODE_ID, N.CENTER, N.COORDINATES[0], N.COORDINATES[1], E.WEIGHT
+            FROM NODE N
+            JOIN ESTIMATED_DATA E ON N.NODE_ID = E.NODE_ID
+            ORDER BY N.NODE_ID
+        """)
+        nodes = cur.fetchall()
+        n = len(nodes)
+
+        if verbose:
+            print("Loading graph")
+            printProgressBar(0, n, prefix="Adding nodes:", suffix=f"Complete (0/{n})", length=50)
+
+        center_node = None
+
+        for i, (node_id, is_center, x, y, weight) in enumerate(nodes):
+            if verbose:
+                printProgressBar(i + 1, n, prefix="Adding nodes:", suffix=f"Complete ({i + 1}/{n})", length=50)
+            
+            node = Node(node_id, weight, x, y)
+            if is_center:
+                center_node = node
+                node.center = True
+
+            self.add_node(node)
+
+        cur.execute("""
+            SELECT EDGE_ID, SPEED, ORIGIN, DESTINATION
+            FROM EDGE
+            ORDER BY EDGE_ID
+        """)
+        edges = cur.fetchall()
+        m = len(edges)
+
+        if verbose:
+            printProgressBar(0, m, prefix="Adding edges:", suffix=f"Complete (0/{m})", length=50)
+
+        for j, (_, speed, origin, destination) in enumerate(edges):
+            if verbose:
+                printProgressBar(j + 1, m, prefix="Adding edges:", suffix=f"Complete ({j + 1}/{m})", length=50)
+            self.add_edge(Edge(speed, self.get_node(origin), self.get_node(destination)))
+
+        if center_node is None:
+            raise NoCenterDefined("No center node found in NODE table (CENTER = TRUE)")
+
+        self.set_distance_matrix()
+
+        if verbose:
+            print("Graph loaded from database")
+
     def create_subgraph(self, nodes: list[Node]) -> 'Graph':
         """Creates a new graph from an existing one.
 
