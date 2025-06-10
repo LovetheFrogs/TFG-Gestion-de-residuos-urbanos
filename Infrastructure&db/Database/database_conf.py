@@ -145,7 +145,7 @@ def load(conn):
 
     for day in range(100):
         current_date = start_date + timedelta(days=day)
-        for node_id in range(0, num_nodes):
+        for node_id in range(1, num_nodes):
             weight = round(random.uniform(50.0, 150.0), 2)
             cur.execute("""
                 INSERT INTO HISTORIC_DATA (NODE_ID, WEIGHT, DATE)
