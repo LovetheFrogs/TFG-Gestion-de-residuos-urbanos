@@ -251,14 +251,14 @@ class TestSubgraphCreation(unittest.TestCase):
 
     def test_divide_graph(self):
         """Tests graph division into zones."""
-        aux = self.g.divide_graph(725)
+        aux = self.g.divide_graph_ascendent(725)
         zones = [[n.index for n in z] for z in aux]
         self.assertEqual(zones,
                          [[0, 9, 3, 4, 10], [0, 11, 2, 7, 8], [0, 5, 6, 1, 12]])
 
     def test_create_subgraph(self):
         """Tests creating a subgraph from a list of nodes."""
-        aux = self.g.divide_graph(725)
+        aux = self.g.divide_graph_ascendent(725)
         for i, zone in enumerate(aux):
             with self.subTest(i=i):
                 subgraph = self.g.create_subgraph(zone)
@@ -345,7 +345,7 @@ class TestAlgorithms(unittest.TestCase):
         self.g.populate_from_file(f"{os.getcwd()}/tests/files/test2.txt")
         self.algo = Algorithms(self.g)
         self.subgraphs = [
-            self.g.create_subgraph(z) for z in self.g.divide_graph(725)
+            self.g.create_subgraph(z) for z in self.g.divide_graph_ascendent(725)
         ]
         self.g2nodes = Graph()
         self.aux1 = Node(0, 100, 0, 0, True)
@@ -531,7 +531,7 @@ class TestTouringAlgorithms(unittest.TestCase):
         self.g.populate_from_file(f"{os.getcwd()}/tests/files/test2.txt")
         self.algo = Algorithms(self.g)
         self.subgraphs = [
-            self.g.create_subgraph(z) for z in self.g.divide_graph(725)
+            self.g.create_subgraph(z) for z in self.g.divide_graph_ascendent(725)
         ]
         self.g2nodes = Graph()
         self.aux1 = Node(0, 100, 0, 0, True)
@@ -593,7 +593,7 @@ class TestLowerBoundAlgorithms(unittest.TestCase):
         self.g.populate_from_file(f"{os.getcwd()}/tests/files/test2.txt")
         self.algo = Algorithms(self.g)
         self.subgraphs = [
-            self.g.create_subgraph(z) for z in self.g.divide_graph(725)
+            self.g.create_subgraph(z) for z in self.g.divide_graph_ascendent(725)
         ]
         self.g2nodes = Graph()
         self.aux1 = Node(0, 100, 0, 0, True)

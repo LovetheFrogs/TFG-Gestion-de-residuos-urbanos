@@ -952,7 +952,7 @@ class Graph():
 
         return zones
 
-    def divide_graph(self, truck_capacity: float) -> list[list[Node]]:
+    def divide_graph_ascendent(self, truck_capacity: float) -> list[list[Node]]:
         """Manages graph division in zones.
 
         The division in zones tries to give out a result that minimizes the 
@@ -989,6 +989,48 @@ class Graph():
             y_coordinates = node.coordinates[1] - self.center.coordinates[1]
             node.angle = math.atan2(y_coordinates, x_coordinates)
         angled_nodes = sorted(self.node_list, key=lambda n: n.angle)
+        zones = self._create_zones(angled_nodes, truck_capacity)
+        zones = self._postprocess_zones(zones, truck_capacity)
+
+        return zones
+
+    def divide_graph_decreasing(self, truck_capacity: float) -> list[list[Node]]:
+        """Manages graph division in zones.
+
+        The division in zones tries to give out a result that minimizes the 
+        number of zones while making sure each zone can be fully picked up by 
+        one truck. It does not ensure the number of zones is the minimum, as 
+        this can yield not-so-ideal zones (for example, zones that intersect 
+        others and make the distances between two nodes far too big).
+
+        The zones are divided radially, ordering the nodes depending on the 
+        angle they form with ``self.center``. This ensures there is no zone 
+        overlapping.
+
+        After division, the zones are post-processed. This looks at the created
+        zones and checks if moving the first and/or last node of each zone to 
+        a contiguous zone helps lower the total number of zones.
+        
+        Args:
+            truck_capacity: The maximum capacity of each truck.
+
+        Returns:
+            A list of lists containing the diferent zones created, each one 
+            containing a set of ``Node`` instances.
+
+        Raises:
+            NoCenterDefined: If the graph does not have a center node.
+            EmptyGraph: If the function is called on an empty graph.
+        """
+        if self.center is None:
+            raise NoCenterDefined()
+        if not self.node_list:
+            raise EmptyGraph()
+        for node in self.node_list:
+            x_coordinates = node.coordinates[0] - self.center.coordinates[0]
+            y_coordinates = node.coordinates[1] - self.center.coordinates[1]
+            node.angle = math.atan2(y_coordinates, x_coordinates)
+        angled_nodes = sorted(self.node_list, key=lambda n: n.angle, reverse=True)
         zones = self._create_zones(angled_nodes, truck_capacity)
         zones = self._postprocess_zones(zones, truck_capacity)
 

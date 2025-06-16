@@ -24,7 +24,8 @@ class Algorithms():
     def divide(self,
                zone_weight: float,
                dir: str | None = None,
-               name: str = "") -> tuple[list[Graph], list[list[int]]]:
+               name: str = "",
+               asc: bool = False) -> tuple[list[Graph], list[list[int]]]:
         """Divides a graph into zones of a given weight.
 
         Args:
@@ -33,14 +34,20 @@ class Algorithms():
                 saved. Defaults to None, in which case the plot(s) won't be 
                 saved and will rather be shown to screen.
             name (optional): The name to add to the plots. Defaults to "".
+            asc (optional): Use the ascending division algorithm. Defaults to
+                False.
 
         Returns:
             A tuple containing a list of the subgraphs created and a list of 
             the zones, represented as lists of node indices.
         """
-        zones = self.graph.divide_graph(zone_weight)
-        subgraphs = [self.graph.create_subgraph(z) for z in zones]
-
+        if not asc:
+            zones = self.graph.divide_graph_ascendent(zone_weight)
+            subgraphs = [self.graph.create_subgraph(z) for z in zones]
+        else:
+            zones = self.graph.divide_graph_decreasing(zone_weight)
+            subgraphs = [self.graph.create_subgraph(z) for z in zones]
+            
         points = []
         for zone in zones:
             l = []
