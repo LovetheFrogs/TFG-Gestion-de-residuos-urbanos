@@ -5,9 +5,9 @@ from deap import base, creator, tools, algorithms
 import matplotlib.pyplot as plt
 import numpy as np
 import heapq
-import utils.plotter as plotter
-from problem.model import Graph, Node
-import problem.exceptions as exceptions
+import Algorithm.Library.utils.plotter as plotter
+from .model import Graph, Node
+from .exceptions import *
 
 
 class Algorithms():
@@ -49,7 +49,10 @@ class Algorithms():
             points.append(self.graph.create_points(l))
 
         if dir:
-            self._plot_divisions(points, dir=dir, name=name)
+            if dir == "False":
+                return subgraphs, zones
+            else:
+                self._plot_divisions(points, dir=dir, name=name)
         else:
             self._plot_divisions(points).show()
 
@@ -101,7 +104,7 @@ class Algorithms():
         if isinstance(start, Node):
             start = start.index
         if start > max([n.index for n in self.graph.node_list]):
-            raise exceptions.NodeNotFound(start)
+            raise NodeNotFound(start)
 
         result, edges = self.graph.prim(start)
         aux = [(i, w) for i, w in enumerate(self.graph.distances[start])]
@@ -152,7 +155,7 @@ class Algorithms():
         if isinstance(start, Node):
             start = start.index
         if start >= self.graph.nodes:
-            raise exceptions.NodeNotFound(start)
+            raise NodeNotFound(start)
 
         n = self.graph.nodes
         pi = [0.0 for _ in range(n)]
@@ -247,7 +250,10 @@ class Algorithms():
         path.append(path[0])
 
         if dir:
-            self._plot_results(path, dir=dir, name=name)
+            if dir == "False":
+                return path, self.evaluate(path)
+            else:        
+                self._plot_results(path, dir=dir, name=name)
         else:
             self._plot_results(path).show()
 
@@ -874,6 +880,8 @@ class Algorithms():
             print("-- Best Ever Fitness = ", total_value)
 
         if dir:
+            if dir == "False":
+                return best, total_value        
             self._plot_results(best, logbook, dir=dir, name=name)
         else:
             plt = self._plot_results(best, logbook).show()
@@ -912,6 +920,8 @@ class Algorithms():
         best += [best[0]]
 
         if dir:
+            if dir == "False":
+                return best, best_value  
             self._plot_results(best, dir=dir, name=name)
         else:
             self._plot_results(best).show()
@@ -972,6 +982,8 @@ class Algorithms():
                                                      vrb=vrb)
         best += [best[0]]
         if dir:
+            if dir == "False":
+                return best, best_value 
             self._plot_results(best, dir=dir, name=name)
         else:
             self._plot_results(best).show()
@@ -1015,6 +1027,8 @@ class Algorithms():
                                              vrb=vrb)
         best += [best[0]]
         if dir:
+            if dir == "False":
+                return best, best_value 
             self._plot_results(best, dir=dir, name=name)
         else:
             self._plot_results(best).show()
@@ -1177,6 +1191,32 @@ class Algorithms():
         pltr.plot_zones(points, self.graph.center.coordinates)
         if dir:
             plt.savefig(f"{dir}/Divisions{name}.png")
+            plt.close()
+
+        return plt
+    
+    def _plot_original(self,
+                        points: list[tuple[float, float]],
+                        dir: str | None = None,
+                        name: str = "") -> plt:
+        """Creates a plot for the original graph.
+
+        Args:
+            points: A list containing the coordinates of each
+                node.
+            dir (optional): The directory where the plots should be saved. 
+                Defaults to None, in which case the plot(s) won't be saved.
+            name (optional): The name to add to the plots. Defaults to "".
+
+        Returns:
+            A ``matplotlib.pyplot`` object containing the plots.
+        """
+        pltr = plotter.Plotter()
+        plt.figure(1)
+        pltr.plot_points(self.graph.create_points(range(1, self.graph.nodes)),
+                         self.graph.center.coordinates)
+        if dir:
+            plt.savefig(f"{dir}/Original{name}.png")
             plt.close()
 
         return plt

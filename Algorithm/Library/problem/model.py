@@ -20,8 +20,8 @@ import math
 import heapq
 import pickle
 from typing import Union
-from problem.exceptions import *
-from utils.utils import printProgressBar
+from .exceptions import *
+from Algorithm.Library.utils.utils import printProgressBar
 
 
 def load(path: str) -> Union['Graph', None]:
