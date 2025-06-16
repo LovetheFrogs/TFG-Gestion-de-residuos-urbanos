@@ -173,10 +173,7 @@ class Edge():
                  dest: Node,
                  bidimensional: bool = False):
         #: float: The length of the edge from origin to dest.
-        if not bidimensional:
-            self.length = origin.get_distance(dest)
-        else:
-            self.length = origin.get_distance_twod(dest)
+        self.length = origin.get_distance_twod(dest)
         #: float: The average speed to traverse the edge.
         self.speed = float(speed)
         #: Node: The origin of the edge.
@@ -184,10 +181,10 @@ class Edge():
         #: Node: The destination of the edge.
         self.dest = dest
         #: float: Time it takes to traverse the edge, given a speed and length.
-        self.time = 2.5 * ((float(self.length)) / self.speed)
+        self.time = ((float(self.length)) / self.speed)
         #: float: The cost of the edge plus 0.033 for node pickup (2 mins).
         if not bidimensional:
-            self.value = self.length + self.time + 0.033
+            self.value = self.time + 0.033
         else:
             self.value = self.length
 
