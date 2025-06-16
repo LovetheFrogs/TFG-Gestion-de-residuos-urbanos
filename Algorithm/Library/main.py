@@ -1,5 +1,7 @@
 import os
+import sys
 import time
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 from problem import model
 from problem import algorithms
 """Example usage of loading a graph and creating its tour(s)."""
@@ -10,12 +12,12 @@ def run():
 
     # Create a graph from the data in ~/tests/files/test3.txt
     g = model.Graph()
-    g.populate_from_file(f"{cwd}/tests/files/test3.txt", verbose=True)
+    g.populate_from_file(f"{cwd}/Library/tests/files/test3.txt", verbose=True)
 
     # Divide the graph into zones of 1.500kg each and create the needed
     # subgraphs.
     algo = algorithms.Algorithms(g)
-    subgraphs, zones = algo.divide(1500, dir=f"{cwd}/problem/plots", name="")
+    subgraphs, zones = algo.divide(1500, dir=f"{cwd}/Library/problem/plots", name="")
 
     print(f"Number of zones: {len(zones)}")
     print()
