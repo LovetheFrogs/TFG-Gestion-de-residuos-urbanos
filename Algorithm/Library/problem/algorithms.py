@@ -5,7 +5,7 @@ from deap import base, creator, tools, algorithms
 import matplotlib.pyplot as plt
 import numpy as np
 import heapq
-import Algorithm.Library.utils.plotter as plotter
+from ..utils import plotter as plotter
 from .model import Graph, Node
 from .exceptions import *
 
