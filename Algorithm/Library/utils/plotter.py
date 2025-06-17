@@ -3,6 +3,7 @@
 import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
+from collections import Counter
 
 
 class Plotter():
@@ -131,5 +132,79 @@ class Plotter():
                  x_limits[1] + 10 if x_limits[1] > 0 else x_limits[1] - 10)
         plt.ylim(y_limits[0] - 10 if y_limits[0] < 0 else y_limits[0] + 10,
                  y_limits[1] + 10 if y_limits[1] > 0 else y_limits[1] - 10)
+
+        return plt
+    
+    def plot_bench_results(self, 
+                           data: tuple[list, list], 
+                           x_values: list, 
+                           title: str,
+                           x_label: str,
+                           y_label: str, 
+                           labels: list[str],
+                           x_data_points: list[int]) -> plt:
+        """Plots a 2-tuple of lists vs. x_values.
+
+        Args:
+            data: A 2-tuple of lists.
+            x_values: List of all possible values for the x-axis.
+            title: Title of the graph.
+            y_label: Label of the y-axis.
+            labels: List of labels of the plotted lines. 
+
+        Returns:
+            A plot containing all data.
+        """
+        plt.figure()
+        plt.plot(x_values, data[0], label=labels[0])
+        plt.plot(x_values, data[1], label=labels[1])
+        plt.legend()
+        plt.xlabel(x_label)
+        plt.ylabel(y_label)
+        plt.title(title)
+        plt.xticks(x_data_points)
+        
+        return plt
+    
+    def plot_distribution_bar_chart(self,
+                                    data: tuple[list, list], 
+                                    title: str,
+                                    x_label: str,
+                                    y_label: str,
+                                    labels: list[str]) -> plt:
+        """
+        Plots a grouped bar chart showing the frequency of values in each list of the tuple.
+
+        Args:
+            data: Tuple of two lists (e.g., (desc_values, asc_values)).
+            title: Title of the chart.
+            x_label: Label for x-axis (e.g., "Nodes").
+            y_label: Label for y-axis (e.g., "Occurrences").
+            labels: Labels for the two datasets (e.g., ["DescDivi", "AscDivi"]).
+        
+        Returns:
+            The matplotlib.pyplot object for further customization or saving.
+        """
+        counter1 = Counter(data[0])
+        counter2 = Counter(data[1])
+
+        all_keys = sorted(set(counter1.keys()).union(set(counter2.keys())))
+
+        values1 = [counter1.get(k, 0) for k in all_keys]
+        values2 = [counter2.get(k, 0) for k in all_keys]
+
+        x = np.arange(len(all_keys))
+        width = 0.35
+
+        fig, ax = plt.subplots()
+        rects1 = ax.bar(x - width/2, values1, width, label=labels[0], color='royalblue')
+        rects2 = ax.bar(x + width/2, values2, width, label=labels[1], color='tomato')
+
+        ax.set_xlabel(x_label)
+        ax.set_ylabel(y_label)
+        ax.set_title(title)
+        ax.set_xticks(x)
+        ax.set_xticklabels(all_keys)
+        ax.legend()
 
         return plt
