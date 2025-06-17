@@ -1,28 +1,23 @@
-import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 import time
-from problem import model
-from problem import algorithms
-from utils import utils
+from ..problem import model
+from ..problem import algorithms
+from ..utils import utils
+
+
+CWD = os.path.join(os.getcwd(), "Algorithm")
 
 
 def run():
-    cwd = os.getcwd()
-
-    # Create a graph from the data in ~/tests/files/test3.txt
     g = model.Graph()
-    g.populate_from_file(f"{cwd}/Library/tests/files/test3.txt", verbose=True)
-
-    # Divide the graph into zones of 1.500kg each and create the needed
-    # subgraphs.
+    g.populate_from_file(f"{CWD}/Library/tests/files/test3.txt", verbose=True)
     algo = algorithms.Algorithms(g)
     start = time.time()
-    subgraphs, zones = algo.divide(1500, dir=f"{cwd}/Library/problem/plots", name="AscDivi")
+    subgraphs, zones = algo.divide(1500, dir=f"{CWD}/Library/problem/plots", name="AscDivi")
     end = time.time()
     t1 = end - start
     start = time.time()
-    subgraphs2, zones2 = algo.divide(1500, dir=f"{cwd}/Library/problem/plots", name="DesDivi", asc=True)
+    subgraphs2, zones2 = algo.divide(1500, dir=f"{CWD}/Library/problem/plots", name="DesDivi", asc=True)
     end = time.time()
     t2 = end - start
     t1 *= 1000
@@ -70,9 +65,8 @@ def run():
     
 
 def run_avg_times():
-    cwd = os.getcwd()
     g = model.Graph()
-    g.populate_from_file(f"{cwd}/Library/tests/files/test3.txt", verbose=False)
+    g.populate_from_file(f"{CWD}/Library/tests/files/test3.txt", verbose=False)
     t1, t2 = 0, 0
     t1l, t2l = [], []
     algo = algorithms.Algorithms(g)
