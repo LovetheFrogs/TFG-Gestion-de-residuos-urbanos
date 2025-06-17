@@ -380,6 +380,22 @@ class Graph():
                 distances[n][edge.dest.index] = edge.value
         self.distances = distances
 
+    def wipe(self):
+        """Deletes all data so the object can be re-used.
+        
+        This function helps improve memory usage when loading lots of graphs,
+        as it allows for use of the same object.
+        """
+        self.graph = {}
+        self.node_list = []
+        self.edge_list = []
+        self.nodes = 0
+        self.edges = 0
+        self.index_dict = {}
+        self.edge_dict = {}
+        self.center = None
+        self.distances = None
+
     def populate_from_file(self, file: str, verbose: bool = False):
         """Populates a graph from the data in a file.
 
@@ -853,6 +869,46 @@ class Graph():
         if current_zone:
             zones.append([self.center] + current_zone)
 
+        zones = self._merge_small_zones(zones, truck_capacity)
+
+        return zones
+
+    def _merge_small_zones(self, zones: list[list[Node]], truck_capacity: float) -> list[list[Node]]:
+        i = 0
+        while i < len(zones):
+            zone = zones[i]
+            if len(zone) - 1 <= 2:
+                redistributed = False
+
+                # Try merging with previous zone
+                if i > 0:
+                    prev_zone = zones[i - 1]
+                    if sum(n.weight for n in prev_zone[1:] + zone[1:]) <= truck_capacity:
+                        zones[i - 1] = [self.center] + prev_zone[1:] + zone[1:]
+                        del zones[i]
+                        redistributed = True
+                        i -= 1
+
+                # Try merging with next zone
+                elif i + 1 < len(zones):
+                    next_zone = zones[i + 1]
+                    if sum(n.weight for n in next_zone[1:] + zone[1:]) <= truck_capacity:
+                        zones[i + 1] = [self.center] + zone[1:] + next_zone[1:]
+                        del zones[i]
+                        redistributed = True
+
+                if not redistributed:
+                    # Try redistributing nodes individually
+                    for j in range(len(zones)):
+                        if j == i:
+                            continue
+                        other = zones[j]
+                        if sum(n.weight for n in other[1:] + zone[1:]) <= truck_capacity:
+                            zones[j] = [self.center] + other[1:] + zone[1:]
+                            del zones[i]
+                            i -= 1
+                            break
+            i += 1
         return zones
 
     def _postprocess_zones(self, zones: list[list[Node]],
