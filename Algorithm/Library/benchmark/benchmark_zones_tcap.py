@@ -1,17 +1,76 @@
 import datetime
 import os
-import sys
 import json
-script_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
-sys.path.insert(0, project_root)
 import time
 import shutil
+import argparse
+import pickle
+import statistics
+import multiprocessing
+import zipfile
+from tqdm import tqdm
 from ..utils import create_models as cm
 from ..utils import plotter
 from ..utils import utils
 from ..problem.algorithms import Algorithms
 from ..problem.model import Graph
+
+REPETITIONS = 10
+
+
+def run_divide_solve_task(args):
+    graph_bytes, capacity, asc = args
+    g = pickle.loads(graph_bytes)
+    res_list = int(asc)
+
+    temp_metrics = {
+        'time_divide': [],
+        'time_solve': [],
+        'time_total': [],
+        'value': [],
+        'zones': [],
+        'min_nodes': [],
+        'max_nodes': [],
+        'avg_nodes': []
+    }
+
+    for _ in range(REPETITIONS):
+        algo = Algorithms(g)
+        start = time.time()
+        subgraphs, z = algo.divide(zone_weight=capacity, dir="False", asc=asc)
+        end = time.time()
+        time_divide = (end - start) * 1000
+
+        tot_runtime = 0
+        tot_value = 0
+        node_counts = []
+
+        for sg in subgraphs:
+            algo = Algorithms(sg)
+            start2 = time.time()
+            _, v = algo.run(dir="False")
+            end2 = time.time()
+            tot_runtime += (end2 - start2)
+            tot_value += v
+            node_counts.append(len(sg))
+
+        temp_metrics['time_divide'].append(time_divide)
+        temp_metrics['time_solve'].append(tot_runtime * 1000)
+        temp_metrics['time_total'].append(tot_runtime * 1000 + time_divide)
+        temp_metrics['value'].append(tot_value)
+        temp_metrics['zones'].append(len(z))
+        temp_metrics['min_nodes'].append(min(node_counts))
+        temp_metrics['max_nodes'].append(max(node_counts))
+        temp_metrics['avg_nodes'].append(sum(node_counts) / len(node_counts))
+
+    return {
+        'res_list': res_list,
+        'capacity': capacity,
+        'averaged': {
+            k: int(statistics.mean(v)) if k.startswith("avg_nodes") else statistics.mean(v)
+            for k, v in temp_metrics.items()
+        }
+    }
 
 
 class Benchmark():
@@ -31,37 +90,42 @@ class Benchmark():
             "zones":([], [])
         }
         self.g = Graph()
-    
-    def run(self):
+
+    def run(self, dist):
         print("Creating files...")
-        self.create_files()
+        self.create_files(dist)
         self.g.populate_from_file(f"{self.CWD}/Algorithm/Library/benchmark/files/file.txt")
-        text = "Running benchmark"
-        count = 0
-        utils.printProgressBar(0,
-                               int((((self.MAX_CAPACITY - 1000) / 100) + 1) * 2),
-                               f"{text + ' ' * (35 - len(text))}",
-                               f"{count}/{int((((self.MAX_CAPACITY - 1000) / 100) + 1) * 2)}{' ' * 10}",
-                               show_eta=True)
-        for capacity in range(1000, self.MAX_CAPACITY + 1, 100):
-            text = f"Running benchmark ({capacity} capacity)"
-            count += 1
-            self.run_divide_solve(capacity, False)
-            utils.printProgressBar(count,
-                                   int((((self.MAX_CAPACITY - 1000) / 100) + 1) * 2),
-                                   f"{text + ' ' * (35 - len(text))}",
-                                   f"{count}/{int((((self.MAX_CAPACITY - 1000) / 100) + 1) * 2)}{' ' * 10}",
-                                   show_eta=True)
-            self.run_divide_solve(capacity, True)
-            count += 1
-            utils.printProgressBar(count,
-                                   int((((self.MAX_CAPACITY - 1000) / 100) + 1) * 2),
-                                   f"{text + ' ' * (35 - len(text))}",
-                                   f"{count}/{int((((self.MAX_CAPACITY - 1000) / 100) + 1) * 2)}{' ' * 10}",
-                                   show_eta=True)
-        
+
+        graph_bytes = pickle.dumps(self.g)
+
+        tasks = []
+        capacities = list(range(1000, self.MAX_CAPACITY + 1, 100))
+        for capacity in capacities:
+            for asc in [False, True]:
+                tasks.append((graph_bytes, capacity, asc))
+
+        num_cores = max(1, multiprocessing.cpu_count()//4)
+        print(f"Using {num_cores} parallel workers...")
+
+        with multiprocessing.Pool(processes=num_cores) as pool:
+            results = list(tqdm(pool.imap(run_divide_solve_task, tasks), total=len(tasks), desc="Benchmarking",
+                                ncols=90))
+
+        capacity_index = {c: i for i, c in enumerate(capacities)}
+
+        # Prepare space in advance
+        for k in self.data:
+            self.data[k] = ([0] * len(capacities), [0] * len(capacities))
+
+        for result in results:
+            idx = result['res_list']
+            cap = result['capacity']
+            cap_idx = capacity_index[cap]
+            for k, v in result['averaged'].items():
+                self.data[k][idx][cap_idx] = v
+
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        folder = f"{timestamp}_zonesGsize"
+        folder = f"{timestamp}_zonesTcap_{dist}"
         self.RESULTS = f"{self.PATH}/results/{folder}"
         os.makedirs(f"{self.RESULTS}")
         print("Creating graphs...")
@@ -69,139 +133,89 @@ class Benchmark():
         print("Saving raw data...")
         self.save_results()
         self.cleanup()
-    
-    def create_files(self):
-        cm.DATA_SIZE = 1
-        cm.MAX_NODES = self.NODES
-        cm.MIN_NODES = self.NODES
-        cm.create_dataset()
-        shutil.move(f"{self.CWD}/Algorithm/Library/utils/datasets/dataset1.txt",
-                    f"{self.PATH}/files/file.txt")
 
-        shutil.move(f"{self.CWD}/Algorithm/Library/utils/datasets/log.txt",
-                    f"{self.PATH}/files/log.txt")
+    def create_files(self, dist):
+        args = argparse.Namespace(
+            files=1,
+            min_nodes=self.NODES,
+            max_nodes=self.NODES,
+            min_x=-100,
+            max_x=100,
+            min_y=-100,
+            max_y=100,
+            min_weight=100.0,
+            max_weight=250.0,
+            min_speed=20.0,
+            max_speed=60.0,
+            verbose=False,
+            distribution=dist
+        )
 
-    def run_divide_solve(self, capacity, asc):
-        res_list = int(asc)
-        algo = Algorithms(self.g)
-        start = time.time()
-        subgraphs, z = algo.divide(zone_weight=capacity, dir="False", asc=asc)
-        end = time.time()
-        time_divide = (end - start) * 1000
-        self.data["time_divide"][res_list].append(time_divide)
-        tot_runtime = 0
-        tot_value = 0
-        for sg in subgraphs:
-            algo = Algorithms(sg)
-            start2 = time.time()
-            _, v = algo.run(dir="False")
-            end2 = time.time()
-            tot_runtime += (end2 - start2)
-            if tot_runtime < 0:
-                print(f"Start: {start2}, End: {end2}, Runtime: {tot_runtime}")
-            tot_value += v
-        self.data["time_solve"][res_list].append(tot_runtime)
-        self.data["time_total"][res_list].append(tot_runtime + (time_divide * 1000))
-        self.data["value"][res_list].append(tot_value)
-        self.data["zones"][res_list].append(len(z))
-        
-        node_counts = [len(sg) for sg in subgraphs]
-        self.data["min_nodes"][res_list].append(min(node_counts))
-        self.data["max_nodes"][res_list].append(max(node_counts))
-        self.data["avg_nodes"][res_list].append(int(sum(node_counts) / len(node_counts)))
+        cm.create_datasets(args)
+
+        src_base = f"{self.CWD}/Algorithm/Library/utils/datasets"
+        dst_base = f"{self.PATH}/files"
+
+        shutil.move(f"{src_base}/dataset1.txt", f"{dst_base}/file.txt")
+        shutil.move(f"{src_base}/log.txt", f"{dst_base}/log.txt")
 
     def create_graphs(self):
         pltr = plotter.Plotter()
-        plt_obj = pltr.plot_bench_results(self.data["time_divide"],
-                                          list(range(1000, 1101, 100)),
-                                          "Time to divide a graph vs. number of nodes",
-                                          "Capacity",
-                                          "Time",
-                                          ["Ascendent division", "Descendent division"],
-                                          range(1000, self.MAX_CAPACITY + 1, 100))
-        plt_obj.savefig(f"{self.RESULTS}/divide_time.png")
-        plt_obj.close()
-        
-        plt_obj = pltr.plot_bench_results(self.data["time_solve"],
-                                          list(range(1000, 1101, 100)),
-                                          "Time to solve a graph vs. capacity",
-                                          "Capacity",
-                                          "Time",
-                                          ["Ascendent division", "Descendent division"],
-                                          range(1000, self.MAX_CAPACITY + 1, 100))
-        plt_obj.savefig(f"{self.RESULTS}/time_solve.png")
-        plt_obj.close()
-        
-        plt_obj = pltr.plot_bench_results(self.data["time_total"],
-                                          list(range(1000, 1101, 100)),
-                                          "Total time (divide + solve) vs. capacity",
-                                          "Capacity",
-                                          "Time",
-                                          ["Ascendent division", "Descendent division"],
-                                          range(1000, self.MAX_CAPACITY + 1, 100))
-        plt_obj.savefig(f"{self.RESULTS}/time_total.png")
-        plt_obj.close()
-        
-        plt_obj = pltr.plot_bench_results(self.data["value"],
-                                          list(range(1000, 1101, 100)),
-                                          "Solution value vs. capacity",
-                                          "Capacity",
-                                          "Value",
-                                          ["Ascendent division", "Descendent division"],
-                                          range(1000, self.MAX_CAPACITY + 1, 100))
-        plt_obj.savefig(f"{self.RESULTS}/value.png")
-        plt_obj.close()
-        
-        plt_obj = pltr.plot_distribution_bar_chart(data=self.data["max_nodes"],
-                                                title="Max nodes (DescDivi) & Max nodes (AscDivi)",
-                                                x_label="Nodes",
-                                                y_label="Occurrences",
-                                                labels=["Max. nodes (DescDivi)", "Max. nodes (AscDivi)"])
-        plt_obj.savefig(f"{self.RESULTS}/max_nodes.png")
-        plt_obj.close()
-        
-        plt_obj = pltr.plot_distribution_bar_chart(self.data["avg_nodes"],
-                                                title="Avg nodes (DescDivi) & Avg nodes (AscDivi)",
-                                                x_label="Nodes",
-                                                y_label="Occurrences",
-                                                labels=["Avg. nodes (DescDivi)", "Avg. nodes (AscDivi)"])
-        plt_obj.savefig(f"{self.RESULTS}/avg_nodes.png")
-        plt_obj.close()
-        
-        plt_obj = pltr.plot_distribution_bar_chart(self.data["min_nodes"],
-                                                title="Min nodes (DescDivi) & Min nodes (AscDivi)",
-                                                x_label="Nodes",
-                                                y_label="Occurrences",
-                                                labels=["Min. nodes (DescDivi)", "Min. nodes (AscDivi)"])
-        plt_obj.savefig(f"{self.RESULTS}/min_nodes.png")
-        plt_obj.close()
-        
-        plt_obj = pltr.plot_bench_results(self.data["zones"],
-                                          list(range(1000, 1101, 100)),
-                                          "Number of zones vs. capacity",
-                                          "Capacity",
-                                          "Nº of zones",
-                                          ["Ascendent division", "Descendent division"],
-                                          range(1000, self.MAX_CAPACITY + 1, 100))
-        plt_obj.savefig(f"{self.RESULTS}/zones.png")
-        plt_obj.close()
-    
+        x_values = list(range(1000, self.MAX_CAPACITY + 1, 100))
+        ticks = list(range(1000, self.MAX_CAPACITY + 1, 1000))
+        labels = ["Ascendent division", "Descendent division"]
+
+        def save_plot(metric, title, ylabel, filename):
+            plt_obj = pltr.plot_bench_results(self.data[metric], x_values, title, "Capacity", ylabel, labels, ticks)
+            plt_obj.savefig(f"{self.RESULTS}/{filename}.png")
+            plt_obj.close()
+
+        save_plot("time_divide", "Time to divide a graph vs. number of nodes", "Time", "divide_time")
+        save_plot("time_solve", "Time to solve a graph vs. capacity", "Time", "time_solve")
+        save_plot("time_total", "Total time (divide + solve) vs. capacity", "Time", "time_total")
+        save_plot("value", "Solution value vs. capacity", "Value", "value")
+        save_plot("zones", "Number of zones vs. capacity", "Nº of zones", "zones")
+
+        def save_bar(metric, title, filename):
+            plt_obj = pltr.plot_distribution_bar_chart(data=self.data[metric],
+                                                       title=title,
+                                                       x_label="Nodes",
+                                                       y_label="Occurrences",
+                                                       labels=[f"{title} (DescDivi)", f"{title} (AscDivi)"])
+            plt_obj.savefig(f"{self.RESULTS}/{filename}.png")
+            plt_obj.close()
+
+        save_bar("max_nodes", "Max nodes", "max_nodes")
+        save_bar("avg_nodes", "Avg nodes", "avg_nodes")
+        save_bar("min_nodes", "Min nodes", "min_nodes")
+
     def save_results(self):
         with open(f"{self.RESULTS}/results.json", "w") as f:
             json.dump(self.data, f)
-    
+
+    def zip_input_file(self):
+        zip_path = os.path.join(self.RESULTS, "graphs.zip")
+        files_dir = os.path.join(self.PATH, "files")
+
+        with zipfile.ZipFile(zip_path, 'w') as zipf:
+            file_path = os.path.join(files_dir, "file.txt")
+            if os.path.exists(file_path):
+                arcname = os.path.basename(file_path)
+                zipf.write(file_path, arcname)
+
     def cleanup(self):
         os.remove(f"{self.PATH}/files/file.txt")
         os.remove(f"{self.PATH}/files/log.txt")
-        
+
 
 def main():
-    """Runs the benchmark."""
     bench = Benchmark()
-    bench.run()
+    bench.run("u")
+    bench = Benchmark()
+    bench.run("n")
+    bench = Benchmark()
+    bench.run("k")
 
 
 if __name__ == '__main__':
-    """Entry point of the script."""
     main()
-    
