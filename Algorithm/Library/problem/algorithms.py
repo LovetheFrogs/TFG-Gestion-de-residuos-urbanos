@@ -41,7 +41,7 @@ class Algorithms():
             A tuple containing a list of the subgraphs created and a list of 
             the zones, represented as lists of node indices.
         """
-        if not asc:
+        if asc:
             zones = self.graph.divide_graph_ascendent(zone_weight)
             subgraphs = [self.graph.create_subgraph(z) for z in zones]
         else:
@@ -357,6 +357,22 @@ class Algorithms():
         new_path = np.concatenate(
             (path[0:i], path[j:-len(path) + i - 1:-1], path[j + 1:len(path)]))
         return [int(n) for n in new_path]
+
+    def _swap(self, path: list[int], i: int, j: int) -> list[int]:
+        """Swaps two nodes of a path.
+        
+        Args:
+            path: The path where the nodes will be swapped.
+            i: The first node to swap.
+            j: The second node to swap.
+            
+        Returns:
+            The result of performing a swap on the given path.
+        """
+        new_path = path.copy()
+        new_path[i], new_path[j] = new_path[j], new_path[i]
+        
+        return new_path
 
     def _get_neighbors(self, path: list[int]) -> list[list[int]]:
         """Gets all the posible neighbors of a path.
@@ -695,9 +711,10 @@ class Algorithms():
 
         return best, best_value
 
-    def _simulated_annealing(self, path: list[int], mstag: int,
-                             vrb: bool, temperature: int, 
-                             alpha: float) -> tuple[list[int], float]:
+    def _simulated_annealing(self, vrb: bool, path: list[int], mstag: int = 10000,
+                             temperature: float = None, 
+                             alpha: float = 0.995,
+                             max_iter: int = 100000) -> tuple[list[int], float]:
         """Simulated Annealing for solving the Travelling Salesman Problem.
 
         The Simulated Annealing algorithm tries to find a solution by selecting
@@ -715,43 +732,70 @@ class Algorithms():
         Returns:
             A tuple containing the best path found and its value.
         """
-        current_path = path
+        def estimate_initial_temperature(sample_size=max(len(path)//10, 1), acceptance_prob=0.8):
+            deltas = []
+            for _ in range(sample_size):
+                i, j = sorted(random.sample(range(len(path)), 2))
+                test_path = self._flip(path, i, j)
+                delta = abs(self.evaluate(test_path) - self.evaluate(path))
+                deltas.append(delta)
+            avg_delta = np.mean(deltas)
+            return -avg_delta / np.log(acceptance_prob)
+
+        current_path = path[:]
         current_value = self.evaluate(current_path)
-        best_path = current_path
+        best_path = current_path[:]
         best_value = current_value
-        temperature = temperature
-        alpha = alpha
+
+        if temperature is None:
+            temperature = estimate_initial_temperature()
+
         stagnated = 0
         it = 0
 
-        while temperature > 1e-255 and stagnated < mstag:
-            i = random.randint(0, self.graph.nodes)
-            j = random.randint(0, self.graph.nodes)
-            if i > j:
-                i, j = j, i
-            next_path = self._flip(current_path, i, j)
+        while stagnated < mstag and it < max_iter:
+            i, j = sorted(random.sample(range(self.graph.nodes), 2))
+            if temperature < 1e-8:
+                next_path = self._swap(current_path, i, j)
+            else:
+                next_path = self._flip(current_path, i, j)
             next_value = self.evaluate(next_path)
 
-            if ((next_value < current_value) or (random.uniform(0, 1) <= np.exp(
-                (current_value - next_value) / temperature))):
+            delta = next_value - current_value
+            accept = False
+
+            if delta < 0:
+                accept = True
+            elif temperature < 1e-300:
+                accept = False
+            else:
+                x = -delta / temperature
+                if x < -745 or not np.isfinite(x):
+                    prob = 0.0
+                else:
+                    prob = np.exp(x)
+                if random.uniform(0, 1) < prob:
+                    accept = True
+            if accept:
                 current_path, current_value = next_path, next_value
-
                 if current_value < best_value:
-                    best_path, best_value = current_path, current_value
+                    best_path, best_value = current_path[:], current_value
                     stagnated = 0
-
+                else:
+                    stagnated += 1
             else:
                 stagnated += 1
+
             temperature *= alpha
             it += 1
 
             if vrb:
-                print(f"Iteration {it}. "
-                      f"Best value: {best_value} - best path: {best_path} | "
-                      f"Temperature: {temperature} | "
-                      f"Stagnated: {stagnated}")
+                print(f"Iteration {it:5d} | Temp: {temperature:.4f} | "
+                    f"Current: {current_value:.2f} | Best: {best_value:.2f} | "
+                    f"Stagnated: {stagnated}")
 
         return best_path, best_value
+
 
     def _tabu_search(self,
                      path: list[int],
@@ -937,7 +981,6 @@ class Algorithms():
 
     def run_sa(self,
                path: list[int] | None = None,
-               mstag: int = 1500,
                dir: str | None = None,
                name: str = "",
                vrb: bool = False) -> tuple[list[int], float]:
@@ -962,31 +1005,11 @@ class Algorithms():
             return check[0], check[1]
 
         random.seed(169)
-
-        n = self.graph.nodes
-        temperature = 0
-        alpha = 0
-
-        if (mstag == 1500):
-            if (n < 25 | n > 200): mstag = 10000
-            else: mstag = 3.047619e-7*pow(n, 5) - 0.000015238095*pow(n, 4) - 0.0405714286*pow(n, 3) + 9.095238095*pow(n, 2) - 624.76190476*n + 20571.428571
-        if (n < 25):
-            temperature = 10000
-            alpha = 0.98
-        elif (n > 200):
-            temperature = 7000
-            alpha = 0.98
-        else:
-            temperature = -0.00000615619*pow(n, 5) + 0.00374248*pow(n, 4) - 0.8455238*pow(n, 3) + 86.609524*pow(n, 2) - 3879.142857*n + 64657.142857
-            alpha = -9.216e-11*pow(n, 5) + 4.5077333e-8*pow(n, 4) - 7.8773333e-6*pow(n, 3) + 0.000611666667*pow(n, 2) - 0.02178066667*n + 1.2566
-
+        
         if not path:
             path = random.sample(range(0, self.graph.nodes), self.graph.nodes)
-        best, best_value = self._simulated_annealing(path,
-                                                     mstag=mstag,
-                                                     temperature=temperature,
-                                                     alpha=alpha,
-                                                     vrb=vrb)
+        best, best_value = self._simulated_annealing(vrb=vrb,
+                                                     path=path)
         best += [best[0]]
         if dir:
             if dir == "False":
@@ -1060,48 +1083,7 @@ class Algorithms():
         Returns:
             A tuple containing the best path found and its total value.
         """
-        n = self.graph.nodes
-        
-        if vrb:
-            print(f"Computing Nearest Neighbor")
-        pnn, vnn = self.nearest_neighbor(dir=dir, name=name)
-        if vrb:
-            print(f"Nearest Neighbor value: {vnn}")
-            
-        if (n < 30):
-            if vrb:
-                print("Computing 2-opt")
-            p2opt, v2opt = self.run_two_opt(path=pnn, dir=dir, name=name)
-            if vrb:
-                print(f"Nearest Neighbor + 2-opt value: {v2opt}")
-                print("Computing Simulated Annealing")
-            psa, vsa = self.run_sa(path=p2opt, dir=dir, name=name)
-            if vrb:
-                print(f"2-opt + Simulated Annealing value: {vsa}")
-                print("Computing Tabu Search")
-            p1, v1 = self.run_tabu_search(path=psa, dir=dir, name=name)
-            
-            return p1, v1
-        elif (n > 200):
-            if vrb:
-                print("Computing 2-opt")
-            p2opt, v2opt = self.run_two_opt(path=pnn, dir=dir, name=name)
-            if vrb:
-                print(f"Nearest Neighbor + 2-opt value: {v2opt}")
-                print("Computing Tabu Search")
-            pts, vts = self.run_tabu_search(path=p2opt, dir=dir, name=name)
-            if vrb:
-                print(f"2-opt + Tabu Search value: {vts}")
-                print("Computing Simulated Annealing")
-            p1, v1 = self.run_sa(path=pts, dir=dir, name=name)
-            
-            return p1, v1
-        else:
-            if vrb:
-                print("Computing Tabu Search")
-            p1, v1 = self.run_tabu_search(path=pnn, dir=dir, name=name)
-            
-            return p1, v1
+        return self.run_sa(dir=dir, name=name, vrb=vrb)
         
     # Helper functions for plotting results.
     def plot_multiple_paths(self,
