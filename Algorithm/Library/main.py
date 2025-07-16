@@ -2,8 +2,8 @@ import os
 import sys
 import time
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
-from problem import model
-from problem import algorithms
+from .problem import model
+from .problem import algorithms
 """Example usage of loading a graph and creating its tour(s)."""
 
 
@@ -12,12 +12,12 @@ def run():
 
     # Create a graph from the data in ~/tests/files/test3.txt
     g = model.Graph()
-    g.populate_from_file(f"{cwd}/Library/tests/files/test3.txt", verbose=True)
+    g.populate_from_file(f"{cwd}/Algorithm/Library/tests/files/test3.txt", verbose=True)
 
     # Divide the graph into zones of 1.500kg each and create the needed
     # subgraphs.
     algo = algorithms.Algorithms(g)
-    subgraphs, zones = algo.divide(1500, dir=f"{cwd}/Library/problem/plots", name="")
+    subgraphs, zones = algo.divide(1500, dir=f"{cwd}/Algorithm/Library/problem/plots", name="")
 
     print(f"Number of zones: {len(zones)}")
     print()
@@ -31,15 +31,11 @@ def run():
         algo = algorithms.Algorithms(sg)
         print(f"Subgraph {i + 1} - Weight {sg.total_weight()} - Nodes {sg.nodes}")
         print("##############################################################")
-        _, lb = algo.held_karp_lb()
-        print(f"|   Held-Karp lower bound = {lb:.2f}")
         start = time.time()
-        rp, rv = algo.run(dir=f"{cwd}/problem/plots",
+        rp, rv = algo.run(dir=f"{cwd}/Algorithm/Library/problem/plots",
                             name=f"subgraph{i + 1}")
         end = time.time()
-        print(f"|   Final tour value = {rv:.2f} "
-              f"(Within {abs(100 - ((100 * rv) / lb)):.1f}% "
-              f"of the lower bound)")
+        print(f"|   Final tour value = {rv:.2f} ")
         print(f"|   Time to compute = {end - start}")
         print("--------------------------------------------------------------")
         print()
@@ -52,7 +48,7 @@ def run():
 
     # Print all paths calculated
     algo.plot_multiple_paths(points,
-                             dir=f"{cwd}/problem/plots",
+                             dir=f"{cwd}/Algorithm/Library/problem/plots",
                              name="AllPaths")
 
 
