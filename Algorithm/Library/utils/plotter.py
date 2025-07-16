@@ -162,7 +162,7 @@ class Plotter():
         plt.xlabel(x_label)
         plt.ylabel(y_label)
         plt.title(title)
-        plt.xticks(x_data_points)
+        plt.xticks(x_data_points, rotation=90)
         
         return plt
     
@@ -204,6 +204,7 @@ class Plotter():
         ax.set_ylabel(y_label)
         ax.set_title(title)
         ax.set_xticks(x)
+        ax.set_xticklabels(x, rotation=90)
         ax.set_xticklabels(all_keys)
         ax.legend()
 
