@@ -124,6 +124,10 @@ class Node():
     def change_status(self):
         """Visits or unvisits the a depending on the previous status"""
         self.visited = not self.visited
+        
+    def set_weight(self, weight: float):
+        """Sets the weight of a node to a new value"""
+        self.weight = weight
 
     def __repr__(self) -> str:
         """Changes the default representation of a node.
@@ -505,6 +509,49 @@ class Graph():
                     for i in range(n):
                         l = f.readline().strip().split()
                         self.add_node(Node(i, 0, l[1], l[2]))
+
+        for n in self.node_list:
+            for m in self.node_list:
+                if n == m:
+                    continue
+                self.add_edge(Edge(20, n, m, True))
+
+        self.set_center(self.node_list[0])
+        self.set_distance_matrix()
+        
+    def populate_from_cvrplib(self, file: str):
+        """Populates a graph from a CVRPLib instance.
+        
+        The ``file`` argument contains a CVRPLib file to be read from. The 
+        instance of the CVRP must have ``EDGE_WEIGHT_TYPE`` equal to ``EUC_2D``
+        and it is checked for at execution, raising an exception if the 
+        restriction is not followed.
+
+        Args:
+            file: The data of a CVRPLib instance.
+        """
+        with open(file, "r") as f:
+            n = 0
+            l = ""
+            while l != "EOF":
+                l = f.readline().strip()
+                aux = l.split()
+                if aux[0] == "DIMENSION":
+                    n = int(aux[2])
+
+                elif aux[0] == "EDGE_WEIGHT_TYPE":
+                    if aux[2] != "EUC_2D":
+                        raise WrongEdgeType
+
+                elif l == "NODE_COORD_SECTION":
+                    for i in range(n):
+                        l = f.readline().strip().split()
+                        self.add_node(Node(i, 0, l[1], l[2]))
+                    
+                elif l == "DEMAND_SECTION":
+                    for i in range(n):
+                        l = f.readline().strip().split()
+                        self.get_node(i).set_weight(float(l[1]))
 
         for n in self.node_list:
             for m in self.node_list:
@@ -988,7 +1035,7 @@ class Graph():
                         zone_empty = True
                         continue
                 # Move first to next and last to previous
-                if (prev_sum + last_w) < truck_capacity and (not zone_empty):
+                if (prev_sum + first_w) < truck_capacity and (not zone_empty):
                     prev_zone.append(zone[-1])
                     zone.remove(zone[-1])
                     if len(zone) == 1:
