@@ -1,0 +1,40 @@
+aniadir palabras clave ademas de conceptos clave (5 palabras clave)
+introduccion - objetivos (estado del arte) (metodologia)
+tabla formula (conjuntos, indices, parametros y variables de decision)
+cambiar peso() por p()
+no v_j si no j. Unicidad de simbolos (no repetir y usar siempre los mismos para lo mismo)
+
+quitar segunda parte del titulo
+para acabar en julio habria que tenerlo el 16. Dar para autorizacion y despues solicitar defensa para ultima semana
+
+preguntar por introduccion
+
+	- Aniadir que es el VRP
+	- Aniadir que es el TSP (definicion)
+	- Aniadir que es Capacitado en los CVRP/CTSP
+	- Como se distingue el MTSP del VRP
+	- Es incorrecto decir que esl CVRP se modela como CMTSP. Es una simplificacion del problema. En vez de una sola vez para todo se analiza en dos pasos, dividiendo el problema.
+	- Roll on / Roll of VRP.
+	- El MTSP es el enfoque de la solucion, no la formulacion del problema.
+
+preguntar por estado del arte
+
+	- Definir el VRP extensamente. n vehiculos, n tareas, teoria de grafos... Todos parten de un deposito central y vuelven a el.
+	- Primer parrafo hablando de complejidad, introduciendo el VRP. Decir que es computacionalmente complejo (pagina 9) en seccion 2.2 hablar de como minimizar complejidad a cambio de optimalidad.
+	- Despues de introduccion de estado del arte introducir la definicion en vez de en metodologia. En metodologia entrar en detalle
+	- En formula 1; S es espacio de soluciones. Citar de donde sale la formula. Si conjunto de restricciones. Justificar la formula. Usar otra mejor para definir complejidad computacional.
+
+preguntar por metodologia
+
+	- Cambiar completo por conexo (conectado) 
+	- Pagina 14 subseccion (3.1 definicion, 3.2 solucion)
+	- Justificar el porque ejecuto sobre TSP y no VRP. Buscar trabajos sobre esto.
+	- Ajustar hp de simmulated annealing para dar la solucion y solucion y solo dar ese resultado. No presentar todos los flujos como resultado final, solo el ultimo
+	- Motivacion para no ejecutar SA al infinito. Como resuelves los TSPs
+
+preguntar por zonificacion
+
+	- Relacionar zonas con vertices. Cada zona Z tiene un numero de vertices
+	- En la pagina 15 poner pequenia figura de como se forman las zonas.
+	- Introducir pseudocodigo del algoritmo en la pagina 16 (citar de donde ha salido).
+	- Referencia a pseudocodigo para cada parte de la explicacion.
