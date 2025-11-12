@@ -713,7 +713,7 @@ class Algorithms():
 
     def _simulated_annealing(self, vrb: bool, path: list[int], mstag: int = 10000,
                              temperature: float = None, 
-                             alpha: float = 0.995,
+                             alpha: float = 0.99,
                              max_iter: int = 100000) -> tuple[list[int], float]:
         """Simulated Annealing for solving the Travelling Salesman Problem.
 
